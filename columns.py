@@ -12,6 +12,8 @@ Based on LightBox:
 http://blog.vjeux.com/2012/image/image-layout-algorithm-lightbox.html
 """
 
+import copy
+import math
 import random
 from wand.color import Color
 from wand.drawing import Drawing
@@ -24,6 +26,7 @@ class Photo:
 		self.real_w = self.w = w
 		self.real_h = self.h = h
 
+		self.extended = False
 		self.spacings = []
 
 	def ratio(self):
@@ -45,7 +48,7 @@ class Photo:
 	def smaller_photo(self, w, h):
 		return w * h
 
-class Spacing(Photo):
+class ExtendedSpacing(Photo):
 
 	def __init__(self, img, x, y):
 
@@ -53,7 +56,7 @@ class Spacing(Photo):
 		self.x = x
 		self.y = y
 
-		super(Spacing, self).__init__(img.w, img.h)
+		super(ExtendedSpacing, self).__init__(img.w, img.h)
 
 	#def draw_borders(self, canvas, x):
 	def draw_borders(self, canvas):
@@ -74,7 +77,7 @@ class Column:
 		img.y = self.h
 
 		img.w = self.w
-		img.h = int(self.w * img.real_h / img.real_w)
+		img.h = round(self.w * img.real_h / img.real_w)
 
 		self.imglist.append(img)
 		self.h += img.h
@@ -84,44 +87,102 @@ class Column:
 		for img in self.imglist:
 			img.draw_borders(canvas)
 
-	def eat_space(self, H):
-		space = H - self.h
-		if space == 0:
-			return
+	def adjust_height(self, H):
 
 		# Group "movable" zones together, spacings being non-movable
 		groups = []
 		groups.append({"imglist": []})
 		groups[-1]["y"] = 0
 		for img in self.imglist:
-			if not isinstance(img, Spacing):
+			if not isinstance(img, ExtendedSpacing):
 				groups[-1]["imglist"].append(img)
 			else:
 				groups[-1]["h"] = img.y - groups[-1]["y"]
 				groups.append({"imglist": []})
 				groups[-1]["y"] = img.y + img.h
 		groups[-1]["h"] = H - groups[-1]["y"]
-		#groups[-1]["h"] = self.h - groups[-1]["y"]
 
-		#for img in self.imglist:
 		for group in groups:
-			if len(group) == 0:
+			if len(group["imglist"]) == 0:
 				continue
-			print("groupe de %d" % len(group["imglist"]))
+
 			y = group["y"]
-			h = group["h"]
-			g_h = sum(i.h for i in group["imglist"])
+			alpha = group["h"] / sum(i.h for i in group["imglist"]) # enlargement
 			for img in group["imglist"]:
 				img.y = y
-				img.h = int(img.h * h / g_h)
+				img.h = round(img.h * alpha)
 				for s in img.spacings:
 					s.y = img.y
 					s.h = img.h
-				img.x += (img.w - int(img.h * img.real_w / img.real_h)) / 2
-				img.w = int(img.h * img.real_w / img.real_h)
+				img.x += (img.w - round(img.h * img.real_w / img.real_h)) / 2
+				img.w = round(img.h * img.real_w / img.real_h)
 				y += img.h
-		# TODO: remettre
-		# self.h = H
+
+		self.h = H
+
+	def get_width(self):
+		"""Returns the width of the smallest image in this column"""
+		imgs = list(img.w for img in self.imglist if not
+					isinstance(img, ExtendedSpacing) and not img.extended)
+		exts = list(img.w / 2 for img in self.imglist if
+					not isinstance(img, ExtendedSpacing) and img.extended)
+		spcs = list(img.img_ref.w / 2 for img in self.imglist if
+					isinstance(img, ExtendedSpacing))
+		mini = 2**32
+		if len(imgs) > 0:
+			mini = min(imgs)
+		if len(exts) > 0:
+			mini = min(mini, round(min(exts)))
+		if len(spcs) > 0:
+			mini = min(mini, round(min(spcs)))
+		return mini
+
+	def adjust_width(self):
+		self.w = self.get_width()
+
+		for img in self.imglist:
+			if not isinstance(img, ExtendedSpacing) and not img.extended:
+				img.x = self.x + (self.w - img.w) / 2
+			elif not isinstance(img, ExtendedSpacing):
+				img.x = self.x + (self.w - img.w) / 2
+			else:
+				img.img_ref.x += self.w / 2
+
+	def wasted_space(self):
+
+		waste = 0
+
+		# Waste on left and right
+		for img in self.imglist:
+			if img.w < self.w:
+				waste += img.h * (self.w - img.w)
+
+		# Waste between non-adjacent images
+		for i in range(len(self.imglist) - 1):
+			img0 = self.imglist[i]
+			img1 = self.imglist[i + 1]
+			if img0.y + img0.h < img1.y:
+				waste += self.w * (img1.y - (img0.y + img0.h))
+		img0 = self.imglist[-1]
+		if img0.y + img0.h < self.h:
+			waste += self.w * (self.h - (img0.y + img0.h))
+
+		return waste
+
+	def lost_space(self):
+
+		lost = 0
+
+		# With current implementation, image can only overflow on left and right
+		for img in self.imglist:
+			if isinstance(img, ExtendedSpacing):
+				if img.img_ref.x + img.img_ref.w > self.x + self.w:
+					lost += ((img.img_ref.x + img.img_ref.w) - (self.x + self.w)) / img.img_ref.w
+			else:
+				if img.x < self.x:
+					lost += (self.x - img.x) / img.w
+
+		return lost
 
 class Page:
 
@@ -129,10 +190,12 @@ class Page:
 		self.w = w
 		self.no_cols = no_cols
 		self.cols = []
+
 		x = 0
+		col_w = round(self.w / self.no_cols)
 		for i in range(no_cols):
-			self.cols.append(Column(x, int(self.w / self.no_cols)))
-			x += int(self.w / self.no_cols)
+			self.cols.append(Column(x, col_w))
+			x += col_w
 
 	def next_col_index(self):
 		cur_min = 2**31
@@ -147,14 +210,6 @@ class Page:
 		return self.cols[self.next_col_index()]
 
 	def worth_multicol(self):
-		"""
-		for i in range(self.no_cols - 1):
-			c1 = self.cols[i]
-			c2 = self.cols[i + 1]
-			if c1.h == c2.h:
-				return [i, i + 1]
-		return None
-		"""
 		i = self.next_col_index()
 		for j in range(max(0, i - 1), min(self.no_cols, i + 2)):
 			if j == i:
@@ -173,12 +228,13 @@ class Page:
 			img.w = 0
 			for i in multicol:
 				img.w += self.cols[i].w
-			img.h = int(img.w * img.real_h / img.real_w)
+			img.h = round(img.w * img.real_h / img.real_w)
 			for i in multicol:
 				if i == multicol[0]:
+					img.extended = True
 					self.cols[i].imglist.append(img)
 				else:
-					s = Spacing(img, self.cols[i].x, self.cols[i].h)
+					s = ExtendedSpacing(img, self.cols[i].x, self.cols[i].h)
 					self.cols[i].imglist.append(s)
 					img.spacings.append(s)
 				self.cols[i].h = img.y + img.h # every column is set at the longest
@@ -198,18 +254,32 @@ class Page:
 				draw.line((col.x, 0), (col.x, col.h))
 				draw(canvas)
 
+	def get_width(self):
+		return sum(c.w for c in self.cols)
+
 	def get_height(self):
-		return max([c.h for c in self.cols])
+		return max(c.h for c in self.cols)
 
 	def eat_space(self):
 
 		# Step 1: set all columns at the same height
-		H = int(sum([c.h for c in self.cols]) / self.no_cols)
+		H = round(sum([c.h for c in self.cols]) / self.no_cols)
 		for c in self.cols:
-			c.eat_space(H)
+			c.adjust_height(H)
 
+	def eat_space2(self):
 		# Step 2: arrange columns width to fit contents
-		# TODO
+		x = 0
+		for c in self.cols:
+			c.x = x
+			c.adjust_width()
+			x += c.w
+
+	def wasted_space(self):
+		return sum(c.wasted_space() for c in self.cols) / (self.get_width() * self.get_height())
+
+	def lost_space(self):
+		return sum(c.lost_space() for c in self.cols) / sum(len(c.imglist) for c in self.cols)
 
 def read_images():
 	ret = []
@@ -232,37 +302,64 @@ def read_images():
 	return ret
 
 def fake_images():
-	ret = [ Photo(1944,	2592), Photo(1944,	2592), Photo(2592,	1944),
-			Photo(1944,	2592), Photo(1944,	2592), Photo(2592,	1944),
-			Photo(1944,	2592), Photo(1944,	2592), Photo(1944,	2592),
-			Photo(2592,	1944), Photo(1944,	2592), Photo(1944,	2592),
-			Photo(2816,	2112), Photo(2816,	2112), Photo(2816,	2112),
-			Photo(2816,	2112), Photo(2816,	2112), Photo(2816,	2112),
-			Photo(2816,	2112), Photo(2816,	2112)]
-	for i in range(len(ret)):
-		ret[i].real_w = ret[i].w = int(ret[i].w * (.9 + .2 * random.random()))
-		ret[i].real_h = ret[i].h = int(ret[i].h * (.9 + .2 * random.random()))
+
+	ret = []
+	for i in range(random.randint(10, 60)):
+		ret.append(Photo(1000, 1000 * (.5 + random.random())))
 	return ret
 
 def main():
 
 	photolist = fake_images()
-	photolist.extend(fake_images())
 	random.shuffle(photolist)
+
+	tries = []
+	for i in range(100):
+		page = Page(600, int(math.sqrt(len(photolist))))
+		page.fill(copy.deepcopy(photolist))
+		page.eat_space()
+		page.eat_space2()
+		if page.wasted_space() < 0.001:
+			tries.append(page)
+
+	tries.sort(key=lambda t: t.lost_space())
+
+	page = tries[0]
+	print("wasted space: %.2f%% + %.2f%%" % (100*page.wasted_space(), 100*page.lost_space()))
+	canvas = Image(width=page.get_width(), height=page.get_height(), background=Color("white"))
+	page.draw_borders(canvas)
+	canvas.save(filename="borders-2.png")
+
+	page = tries[-1]
+	print("wasted space: %.2f%% + %.2f%%" % (100*page.wasted_space(), 100*page.lost_space()))
+	canvas = Image(width=page.get_width(), height=page.get_height(), background=Color("white"))
+	page.draw_borders(canvas)
+	canvas.save(filename="borders-1.png")
+
+	return
 
 	page = Page(600, 6)
 	page.fill(photolist)
 	print("Page height: %d" % page.get_height())
+	print("wasted space: %.2f%% + %.2f%%" % (100*page.wasted_space(), 100*page.lost_space()))
 
-	canvas = Image(width=page.w, height=page.get_height(), background=Color("white"))
+	canvas = Image(width=page.get_width(), height=page.get_height(), background=Color("white"))
 	page.draw_borders(canvas)
 	canvas.save(filename="borders-0.png")
 
 	page.eat_space()
+	print("wasted space: %.2f%% + %.2f%%" % (100*page.wasted_space(), 100*page.lost_space()))
 
-	canvas = Image(width=page.w, height=page.get_height(), background=Color("white"))
+	canvas = Image(width=page.get_width(), height=page.get_height(), background=Color("white"))
 	page.draw_borders(canvas)
-	canvas.save(filename="borders.png")
+	canvas.save(filename="borders-1.png")
+
+	page.eat_space2()
+	print("wasted space: %.2f%% + %.2f%%" % (100*page.wasted_space(), 100*page.lost_space()))
+
+	canvas = Image(width=page.get_width(), height=page.get_height(), background=Color("white"))
+	page.draw_borders(canvas)
+	canvas.save(filename="borders-2.png")
 
 if __name__ == "__main__":
 	main()
