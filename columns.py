@@ -40,11 +40,9 @@ The design is based on LightBox, as presented in [1].
 
 import copy
 import math
+import PIL.Image
+import PIL.ImageDraw
 import random
-from wand.color import Color
-from wand.drawing import Drawing
-from wand.image import Image
-import wand.exceptions
 
 class Photo:
 
@@ -61,14 +59,13 @@ class Photo:
 	def draw_borders(self, canvas):
 		x = self.x
 		y = self.y
-		with Drawing() as draw:
-			draw.line((x, y), (x + self.w - 1, y))
-			draw.line((x, y), (x, y + self.h - 1))
-			draw.line((x, y + self.h - 1), (x + self.w - 1, y + self.h - 1))
-			draw.line((x + self.w - 1, y), (x + self.w - 1, y + self.h - 1))
-			draw.line((x, y), (x + self.w - 1, y + self.h - 1))
-			draw.line((x, y + self.h - 1), (x + self.w - 1, y))
-			draw(canvas)
+		draw = PIL.ImageDraw.Draw(canvas)
+		draw.line((x, y) + (x + self.w - 1, y), fill="black")
+		draw.line((x, y) + (x, y + self.h - 1), fill="black")
+		draw.line((x, y + self.h - 1) + (x + self.w - 1, y + self.h - 1), fill="black")
+		draw.line((x + self.w - 1, y) + (x + self.w - 1, y + self.h - 1), fill="black")
+		draw.line((x, y) + (x + self.w - 1, y + self.h - 1), fill="gray")
+		draw.line((x, y + self.h - 1) + (x + self.w - 1, y), fill="gray")
 
 class PhotoExtent(Photo):
 
@@ -267,10 +264,8 @@ class Page:
 	def draw_borders(self, canvas):
 		for col in self.cols:
 			col.draw_borders(canvas)
-			with Drawing() as draw:
-				draw.fill_color = Color("red")
-				draw.line((col.x, 0), (col.x, col.h))
-				draw(canvas)
+			draw = PIL.ImageDraw.Draw(canvas)
+			draw.line((col.x, 0) + (col.x, col.h), fill="red")
 
 	def get_width(self):
 		return sum(c.w for c in self.cols)
@@ -313,10 +308,9 @@ def read_images():
 			"IMG_2493.JPG", "IMG_2494.JPG",
 			"IMG_2495.JPG", "IMG_2496.JPG"]
 	for name in list:
-		filename = dir + "/" + name
-		with Image(filename=filename) as img:
-			print("%d\t%d" % (img.width, img.height))
-			ret.append(Photo(img.width, img.height))
+		img = PIL.Image.open(dir + "/" + name)
+		print("%d\t%d" % img.size)
+		ret.append(Photo(*img.size))
 	return ret
 
 def fake_images():
@@ -345,15 +339,15 @@ def main():
 
 	page = tries[0]
 	print("wasted space: %.2f%% + %.2f%%" % (100*page.wasted_space(), 100*page.lost_space()))
-	canvas = Image(width=page.get_width(), height=page.get_height(), background=Color("white"))
+	canvas = PIL.Image.new("RGB", (page.get_width(), page.get_height()), "white")
 	page.draw_borders(canvas)
-	canvas.save(filename="borders-2.png")
+	canvas.save("borders-2.png")
 
 	page = tries[-1]
 	print("wasted space: %.2f%% + %.2f%%" % (100*page.wasted_space(), 100*page.lost_space()))
-	canvas = Image(width=page.get_width(), height=page.get_height(), background=Color("white"))
+	canvas = PIL.Image.new("RGB", (page.get_width(), page.get_height()), "white")
 	page.draw_borders(canvas)
-	canvas.save(filename="borders-1.png")
+	canvas.save("borders-1.png")
 
 	return
 
@@ -362,23 +356,23 @@ def main():
 	print("Page height: %d" % page.get_height())
 	print("wasted space: %.2f%% + %.2f%%" % (100*page.wasted_space(), 100*page.lost_space()))
 
-	canvas = Image(width=page.get_width(), height=page.get_height(), background=Color("white"))
+	canvas = PIL.Image.new("RGB", (page.get_width(), page.get_height()), "white")
 	page.draw_borders(canvas)
-	canvas.save(filename="borders-0.png")
+	canvas.save("borders-0.png")
 
 	page.eat_space()
 	print("wasted space: %.2f%% + %.2f%%" % (100*page.wasted_space(), 100*page.lost_space()))
 
-	canvas = Image(width=page.get_width(), height=page.get_height(), background=Color("white"))
+	canvas = PIL.Image.new("RGB", (page.get_width(), page.get_height()), "white")
 	page.draw_borders(canvas)
-	canvas.save(filename="borders-1.png")
+	canvas.save("borders-1.png")
 
 	page.eat_space2()
 	print("wasted space: %.2f%% + %.2f%%" % (100*page.wasted_space(), 100*page.lost_space()))
 
-	canvas = Image(width=page.get_width(), height=page.get_height(), background=Color("white"))
+	canvas = PIL.Image.new("RGB", (page.get_width(), page.get_height()), "white")
 	page.draw_borders(canvas)
-	canvas.save(filename="borders-2.png")
+	canvas.save("borders-2.png")
 
 if __name__ == "__main__":
 	main()
