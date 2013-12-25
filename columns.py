@@ -8,8 +8,34 @@ __license__ = "GPL"
 __version__ = "1.0"
 
 """
-Based on LightBox:
-http://blog.vjeux.com/2012/image/image-layout-algorithm-lightbox.html
+The design is based on LightBox, as presented in [1].
+
+[1]: http://blog.vjeux.com/2012/image/image-layout-algorithm-lightbox.html
+
+-------------------------
+|                       |
+|                       |
+|        Page           |  The "Page" object represents the whole page that
+|                       |  will give the final assembled image.
+|                       |
+-------------------------
+
+-------------------------
+|       |       |       |
+|       |Column |       |
+|       |       |Column |  A page is divided into columns.
+|Column |       |       |
+|       |       |       |
+-------------------------
+
+-------------------------
+| Photo | Photo     x<--|-------- PhotoExtent
+|-------|               |
+| Photo |---------------|  Each column contains photos. When a photo is located
+|-------| Photo |       |  in several columns, its "extended" flag is set, and
+| Photo |       | Photo |  a "PhotoExtent" object is added to the column on the
+-------------------------  right.
+
 """
 
 import copy
@@ -22,17 +48,16 @@ import wand.exceptions
 
 class Photo:
 
-	def __init__(self, w, h):
+	def __init__(self, w, h, x=0, y=0):
 		self.real_w = self.w = w
 		self.real_h = self.h = h
+
+		self.x = x
+		self.y = y
 
 		self.extended = False
 		self.spacings = []
 
-	def ratio(self):
-		return self.w / self.h
-
-	#def draw_borders(self, canvas, x):
 	def draw_borders(self, canvas):
 		x = self.x
 		y = self.y
@@ -45,20 +70,14 @@ class Photo:
 			draw.line((x, y + self.h - 1), (x + self.w - 1, y))
 			draw(canvas)
 
-	def smaller_photo(self, w, h):
-		return w * h
-
-class ExtendedSpacing(Photo):
+class PhotoExtent(Photo):
 
 	def __init__(self, img, x, y):
 
 		self.img_ref = img
-		self.x = x
-		self.y = y
 
-		super(ExtendedSpacing, self).__init__(img.w, img.h)
+		super(PhotoExtent, self).__init__(img.w, img.h, x, y)
 
-	#def draw_borders(self, canvas, x):
 	def draw_borders(self, canvas):
 		pass
 
@@ -82,7 +101,6 @@ class Column:
 		self.imglist.append(img)
 		self.h += img.h
 
-	#def draw_borders(self, canvas, x):
 	def draw_borders(self, canvas):
 		for img in self.imglist:
 			img.draw_borders(canvas)
@@ -94,7 +112,7 @@ class Column:
 		groups.append({"imglist": []})
 		groups[-1]["y"] = 0
 		for img in self.imglist:
-			if not isinstance(img, ExtendedSpacing):
+			if not isinstance(img, PhotoExtent):
 				groups[-1]["imglist"].append(img)
 			else:
 				groups[-1]["h"] = img.y - groups[-1]["y"]
@@ -123,11 +141,11 @@ class Column:
 	def get_width(self):
 		"""Returns the width of the smallest image in this column"""
 		imgs = list(img.w for img in self.imglist if not
-					isinstance(img, ExtendedSpacing) and not img.extended)
+					isinstance(img, PhotoExtent) and not img.extended)
 		exts = list(img.w / 2 for img in self.imglist if
-					not isinstance(img, ExtendedSpacing) and img.extended)
+					not isinstance(img, PhotoExtent) and img.extended)
 		spcs = list(img.img_ref.w / 2 for img in self.imglist if
-					isinstance(img, ExtendedSpacing))
+					isinstance(img, PhotoExtent))
 		mini = 2**32
 		if len(imgs) > 0:
 			mini = min(imgs)
@@ -141,9 +159,9 @@ class Column:
 		self.w = self.get_width()
 
 		for img in self.imglist:
-			if not isinstance(img, ExtendedSpacing) and not img.extended:
+			if not isinstance(img, PhotoExtent) and not img.extended:
 				img.x = self.x + (self.w - img.w) / 2
-			elif not isinstance(img, ExtendedSpacing):
+			elif not isinstance(img, PhotoExtent):
 				img.x = self.x + (self.w - img.w) / 2
 			else:
 				img.img_ref.x += self.w / 2
@@ -175,7 +193,7 @@ class Column:
 
 		# With current implementation, image can only overflow on left and right
 		for img in self.imglist:
-			if isinstance(img, ExtendedSpacing):
+			if isinstance(img, PhotoExtent):
 				if img.img_ref.x + img.img_ref.w > self.x + self.w:
 					lost += ((img.img_ref.x + img.img_ref.w) - (self.x + self.w)) / img.img_ref.w
 			else:
@@ -222,7 +240,7 @@ class Page:
 	def append(self, img):
 
 		multicol = self.worth_multicol()
-		if multicol and img.ratio() > 1 and random.randint(0, 1):
+		if multicol and img.w / img.h > 1 and random.randint(0, 1):
 			img.x = self.cols[multicol[0]].x
 			img.y = max([self.cols[i].h for i in multicol])
 			img.w = 0
@@ -234,7 +252,7 @@ class Page:
 					img.extended = True
 					self.cols[i].imglist.append(img)
 				else:
-					s = ExtendedSpacing(img, self.cols[i].x, self.cols[i].h)
+					s = PhotoExtent(img, self.cols[i].x, self.cols[i].h)
 					self.cols[i].imglist.append(s)
 					img.spacings.append(s)
 				self.cols[i].h = img.y + img.h # every column is set at the longest
@@ -310,6 +328,7 @@ def fake_images():
 
 def main():
 
+	#photolist = read_images()
 	photolist = fake_images()
 	random.shuffle(photolist)
 
