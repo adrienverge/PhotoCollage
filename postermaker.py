@@ -66,7 +66,10 @@ import copy
 import math
 import PIL.Image
 import PIL.ImageDraw
+import PIL.ImageTk
 import random
+import tkinter as tk
+from tkinter import filedialog
 
 def random_color():
 	r = random.randrange(256)
@@ -116,7 +119,7 @@ class Photo:
 		draw.line(xy + XY, fill=color)
 		draw.line(xY + Xy, fill=color)
 
-	def draw_photo(self, canvas, w, h, x, y):
+	def draw_photo(self, canvas, w, h, x, y, fast):
 		img = PIL.Image.open(self.imagefile)
 
 		# Rotate image is EXIF says so
@@ -127,18 +130,23 @@ class Photo:
 		elif self.orientation == 8:
 			img = img.rotate(90)
 
+		if fast:
+			method = PIL.Image.NEAREST
+		else:
+			method = PIL.Image.ANTIALIAS
+
 		if img.size[0] * h > img.size[1] * w:
 			# Image is too large
 			img = img.resize((round(h * img.size[0] / img.size[1]), round(h)),
-							 PIL.Image.ANTIALIAS)
+							 method)
 			img.crop(((img.size[0] - w) / 2, 0, (img.size[0] + w) / 2, h))
 		elif img.size[0] * h < img.size[1] * w:
 			# Image is too high
 			img = img.resize((round(w), round(w * img.size[1] / img.size[0])),
-							 PIL.Image.ANTIALIAS)
+							 method)
 			img.crop((0, (img.size[1] - h) / 2, w, (img.size[1] + h) / 2))
 		else:
-			img = img.resize((round(w), round(h)), PIL.Image.ANTIALIAS)
+			img = img.resize((round(w), round(h)), method)
 		canvas.paste(img, (round(x), round(y)))
 
 class PhotoExtent(Photo):
@@ -290,11 +298,11 @@ class Column:
 					XY = (self.print_x + border / 2, img.print_y + img.print_h)
 					draw.rectangle(xy + XY, color)
 
-	def draw_photos(self, canvas):
+	def draw_photos(self, canvas, fast):
 		for img in self.imglist:
 			if not isinstance(img, PhotoExtent):
 				img.draw_photo(canvas, self.print_w, img.print_h,
-							   self.print_x, img.print_y)
+							   self.print_x, img.print_y, fast)
 
 class Page:
 
@@ -406,6 +414,17 @@ class Page:
 	#  Rendering functions
 	# ---------------------
 
+	def scale_to_fit(self, max_w, max_h):
+		w = self.get_width()
+		h = self.get_height()
+		print("wh = (%f, %f)" % (w, h))
+		if w * max_h > h * max_w:
+			print("scale = %f" % (max_w / w))
+			return max_w / w
+		else:
+			print("scale = %f" % (max_h / h))
+			return max_h / h
+
 	def scale(self, scale):
 		self.print_w = scale * self.get_width()
 		self.print_h = scale * self.get_height()
@@ -429,39 +448,146 @@ class Page:
 		for col in self.cols:
 			col.draw_borders(canvas, border, color)
 
-	def draw_photos(self, canvas):
+	def draw_photos(self, canvas, fast):
 		for col in self.cols:
-			col.draw_photos(canvas)
+			col.draw_photos(canvas, fast)
 
-def read_images():
-	ret = []
-	dir = "/docs/archive/2013/12"
-	list = ["IMG_20131201_111223.jpg", "IMG_20131201_111226.jpg",
-			"IMG_20131201_155815.jpg", "IMG_20131201_155820.jpg",
-			"IMG_20131202_094007.jpg", "IMG_20131202_112407.jpg",
-			"IMG_20131202_122617.jpg", "IMG_20131202_122642.jpg",
-			"IMG_20131202_122732.jpg", "IMG_20131207_162832.jpg",
-			"IMG_20131207_200205.jpg", "IMG_20131207_200207.jpg",
-			"IMG_2489.JPG", "IMG_2490.JPG",
-			"IMG_2491.JPG", "IMG_2492.JPG",
-			"IMG_2493.JPG", "IMG_2494.JPG",
-			"IMG_2495.JPG", "IMG_2496.JPG"]
-	for name in list:
-		img = PIL.Image.open(dir + "/" + name)
+	def print(self, width, border, skeleton=False, fast=False):
+		self.scale(width / self.get_width())
+
+		canvas = PIL.Image.new("RGB", (int(self.print_w), int(self.print_h)),
+							   "white")
+
+		if skeleton:
+			self.draw_skeleton(canvas)
+		else:
+			self.draw_photos(canvas, fast)
+			self.draw_borders(canvas, border, "black")
+
+		return canvas
+
+class PreviewLabel(tk.Label):
+
+	def __init__(self, master=None, **options):
+		self.img = PIL.ImageTk.PhotoImage("RGB", (300, 300))
+		self.img.paste(PIL.Image.new("RGB", (300, 300), "gray"))
+
+		return super(PreviewLabel, self).__init__(master, options, image=self.img)
+
+	def set_img(self, img):
+		canvas = PIL.Image.new("RGB", (300, 300), "gray")
+
 		w, h = img.size
+		x = y = 0
+		if w > h:
+			y = round((300 - h) / 2)
+		else:
+			x = round((300 - w) / 2)
 
-		exif = img._getexif()
-		if 274 in exif: # orientation tag
-			orientation = exif[274]
-			if orientation == 6 or orientation == 8:
-				w, h = h, w
+		canvas.paste(img, (x, y))
 
-		photo = Photo(dir + "/" + name, w, h)
-		photo.orientation = orientation
+		self.img.paste(canvas)
 
-		print("%d\t%d" % (w, h))
-		ret.append(photo)
-	return ret
+class PosterMakerGUI(tk.Frame):
+
+	def __init__(self, master=None):
+		tk.Frame.__init__(self, master)
+		self.pack()
+		self.createWidgets()
+		self.master.title("PosterMaker")
+
+	def createWidgets(self):
+		pan_root = tk.PanedWindow()
+		pan_root.pack(fill=tk.BOTH, expand=1)
+
+		self.pan_settings = tk.PanedWindow(pan_root, orient=tk.VERTICAL)
+		self.pan_skeleton = tk.PanedWindow(pan_root, orient=tk.VERTICAL)
+		self.pan_preview = tk.PanedWindow(pan_root, orient=tk.VERTICAL)
+		pan_root.add(self.pan_settings)
+		pan_root.add(self.pan_skeleton)
+		pan_root.add(self.pan_preview)
+
+		# -----------
+		#  First pan
+		# -----------
+
+		self.QUIT = tk.Button(self.pan_settings, text="Chose images", command=self.select_files)
+		self.pan_settings.add(self.QUIT)
+
+		# ------------
+		#  Second pan
+		# ------------
+
+		self.btn_skeleton = tk.Button(self.pan_skeleton, text="Generate a new layout", command=self.make_skeleton, state="disabled")
+		self.pan_skeleton.add(self.btn_skeleton)
+		self.lbl_skeleton = PreviewLabel(self.pan_skeleton, width=300, height=300)
+		self.pan_skeleton.add(self.lbl_skeleton)
+
+		# -----------
+		#  Third pan
+		# -----------
+
+		self.btn_preview = tk.Button(self.pan_preview, text="Preview poster", command=self.make_preview, state="disabled")
+		self.pan_preview.add(self.btn_preview)
+		self.lbl_preview = PreviewLabel(self.pan_preview, width=300, height=300)
+		self.pan_preview.add(self.lbl_preview)
+
+	def build_photolist(self, filelist):
+		ret = []
+
+		for name in filelist:
+			img = PIL.Image.open(name)
+			w, h = img.size
+
+			try:
+				exif = img._getexif()
+				if 274 in exif: # orientation tag
+					orientation = exif[274]
+					if orientation == 6 or orientation == 8:
+						w, h = h, w
+			except:
+				orientation = 0
+
+			photo = Photo(name, w, h)
+			photo.orientation = orientation
+
+			ret.append(photo)
+
+		return ret
+
+	def select_files(self):
+		filelist = tk.filedialog.askopenfilenames(parent=self, title="Choose a file")
+		for a in filelist:
+			print(a)
+		self.photolist = self.build_photolist(filelist)
+
+		self.btn_skeleton.config(state="disabled")
+		self.btn_preview.config(state="disabled")
+		if len(self.photolist) > 0:
+			self.btn_skeleton.config(state="normal")
+
+	def make_skeleton(self):
+		#photolist = fake_images()
+
+		random.shuffle(self.photolist)
+
+		no_cols = int(math.sqrt(len(self.photolist)))
+
+		self.page = Page(1.0, no_cols)
+		self.page.fill(copy.deepcopy(self.photolist))
+		self.page.eat_space()
+		self.page.eat_space2()
+
+		img = self.page.print(self.page.scale_to_fit(300, 300), 6, True)
+
+		self.lbl_skeleton.set_img(img)
+
+		self.btn_preview.config(state="normal")
+
+	def make_preview(self):
+		img = self.page.print(self.page.scale_to_fit(300, 300), 6, False, True)
+
+		self.lbl_preview.set_img(img)
 
 def fake_images():
 	ret = []
@@ -469,24 +595,19 @@ def fake_images():
 		ret.append(Photo(None, 1000, 1000 * (.5 + random.random())))
 	return ret
 
-def print_page(filename, page, width, border, skeleton=False):
-	page.scale(width / page.get_width())
-	canvas = PIL.Image.new("RGB", (int(page.print_w), int(page.print_h)), "white")
-	if skeleton:
-		page.draw_skeleton(canvas)
-	else:
-		page.draw_photos(canvas)
-		page.draw_borders(canvas, border, "black")
-	canvas.save(filename, quality=90, optimize=True)
-
 def main():
-	photolist = read_images()
-	#photolist = fake_images()
+	root = tk.Tk()
+	app = PosterMakerGUI(root)
+	app.mainloop()
+	root.destroy()
+	return
+
+	photolist = fake_images()
 
 	tries = []
 	best_no_cols = int(math.sqrt(len(photolist)))
 	for no_cols in range(max(1, best_no_cols - 1), best_no_cols + 3):
-		for i in range(3):
+		for i in range(1):
 			page = Page(1.0, no_cols)
 			random.shuffle(photolist)
 			page.fill(copy.deepcopy(photolist))
@@ -500,13 +621,13 @@ def main():
 	page = tries[0]
 	print("wasted space: %.2f%% + %.2f%%" % (100*page.wasted_space(), 100*page.hidden_space()))
 
-	print_page("page-best-preview.png", page, 600 * page.get_width() / page.get_height(), 6, True)
-	print_page("page-best.jpg", page, 600 * page.get_width() / page.get_height(), 6)
+	page.print(600 * page.get_width() / page.get_height(), 6, True).save("page-best-preview.png")
+	page.print(600 * page.get_width() / page.get_height(), 6).save("page-best.jpg", quality=90, optimize=True)
 
 	page = tries[-1]
 	print("wasted space: %.2f%% + %.2f%%" % (100*page.wasted_space(), 100*page.hidden_space()))
-	print_page("page-worst-preview.png", page, 600 * page.get_width() / page.get_height(), 6, True)
-	print_page("page-worst.jpg", page, 600 * page.get_width() / page.get_height(), 6)
+	page.print(600 * page.get_width() / page.get_height(), 6, True).save("page-worst-preview.png")
+	page.print(600 * page.get_width() / page.get_height(), 6).save("page-worst.jpg", quality=90, optimize=True)
 
 if __name__ == "__main__":
 	main()
