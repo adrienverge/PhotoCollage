@@ -327,9 +327,8 @@ class Page:
 		for j in range(max(0, i - 1), min(self.no_cols, i + 2)):
 			if j == i:
 				continue
-			c0 = self.cols[i]
-			c1 = self.cols[j]
-			if (c1.h > .9 * c0.h) and (c1.h < 1.1 * c0.h):
+
+			if abs(self.cols[j].h - self.cols[i].h) < 0.5 * self.cols[i].w:
 				return sorted([i, j])
 
 	def append(self, img):
