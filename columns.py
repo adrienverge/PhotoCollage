@@ -36,6 +36,30 @@ The design is based on LightBox, as presented in [1].
 | Photo |       | Photo |  a "PhotoExtent" object is added to the column on the
 -------------------------  right.
 
+The layout placing process can be divided in three phases.
+
+Phase A: Fill columns with photos.
+	Photos are added to columns, one by one, until they are no more photos.
+	Each new photo is put in the smallest column, so as to have balanced
+	columns.  If two columns have approximately the same height, a photo can be
+	"extended" to fit two columns. In this case, the "Photo" object is put in
+	the first column, and the second column takes a "PhotoExtent" object to
+	save the taken space.
+
+Phase B: Set all columns to same height.
+	A global common height is computed for all columns, and every of them is
+	stressed or extended to this common length.  This can result in a decrease
+	or increase in columns' width.
+
+Phase C: Adapt columns' width.
+	Since every column images may have different widths, each column new width
+	is set to the smallest width amongst its images.
+
+This process makes images with holes and cropped images, whose importance can
+be measured with the "wasted_space" and "hidden_space" functions.  A simple way
+to get a good layout is to generate many and keep the one with the smallest of
+these values.
+
 """
 
 import copy
@@ -56,54 +80,49 @@ class Photo:
 		self.extended = False
 		self.spacings = []
 
-	def draw_borders(self, canvas):
-		x = self.x
-		y = self.y
+	def scale(self, scale):
+		self.print_x = scale * self.x
+		self.print_y = scale * self.y
+		self.print_w = scale * self.w
+		self.print_h = scale * self.h
+
+	def draw_preview(self, canvas):
+		xy = (self.print_x, self.print_y)
+		xY = (self.print_x, self.print_y + self.print_h - 1)
+		Xy = (self.print_x + self.print_w - 1, self.print_y)
+		XY = (self.print_x + self.print_w - 1, self.print_y + self.print_h - 1)
+
 		draw = PIL.ImageDraw.Draw(canvas)
-		draw.line((x, y) + (x + self.w - 1, y), fill="black")
-		draw.line((x, y) + (x, y + self.h - 1), fill="black")
-		draw.line((x, y + self.h - 1) + (x + self.w - 1, y + self.h - 1), fill="black")
-		draw.line((x + self.w - 1, y) + (x + self.w - 1, y + self.h - 1), fill="black")
-		draw.line((x, y) + (x + self.w - 1, y + self.h - 1), fill="gray")
-		draw.line((x, y + self.h - 1) + (x + self.w - 1, y), fill="gray")
+		draw.line(xy + Xy, fill="black")
+		draw.line(xy + xY, fill="black")
+		draw.line(xY + XY, fill="black")
+		draw.line(Xy + XY, fill="black")
+		draw.line(xy + XY, fill="gray")
+		draw.line(xY + Xy, fill="gray")
 
 class PhotoExtent(Photo):
 
 	def __init__(self, img, x, y):
-
 		self.img_ref = img
 
 		super(PhotoExtent, self).__init__(img.w, img.h, x, y)
 
-	def draw_borders(self, canvas):
+	def draw_preview(self, canvas):
 		pass
 
 class Column:
 
 	def __init__(self, x, w):
-
 		self.imglist = []
 		self.x = x
 		self.w = w
 		self.h = 0
 
-	def append(self, img):
-
-		img.x = self.x
-		img.y = self.h
-
-		img.w = self.w
-		img.h = round(self.w * img.real_h / img.real_w)
-
-		self.imglist.append(img)
-		self.h += img.h
-
-	def draw_borders(self, canvas):
-		for img in self.imglist:
-			img.draw_borders(canvas)
+	# -------------------
+	#  Phase B functions
+	# -------------------
 
 	def adjust_height(self, H):
-
 		# Group "movable" zones together, spacings being non-movable
 		groups = []
 		groups.append({"imglist": []})
@@ -117,6 +136,7 @@ class Column:
 				groups[-1]["y"] = img.y + img.h
 		groups[-1]["h"] = H - groups[-1]["y"]
 
+		# Adjust height for each group independently
 		for group in groups:
 			if len(group["imglist"]) == 0:
 				continue
@@ -125,12 +145,12 @@ class Column:
 			alpha = group["h"] / sum(i.h for i in group["imglist"]) # enlargement
 			for img in group["imglist"]:
 				img.y = y
-				img.h = round(img.h * alpha)
+				img.h = img.h * alpha
 				for s in img.spacings:
 					s.y = img.y
 					s.h = img.h
-				img.x += (img.w - round(img.h * img.real_w / img.real_h)) / 2
-				img.w = round(img.h * img.real_w / img.real_h)
+				img.x += (img.w - img.h * img.real_w / img.real_h) / 2
+				img.w = img.h * img.real_w / img.real_h
 				y += img.h
 
 		self.h = H
@@ -147,9 +167,9 @@ class Column:
 		if len(imgs) > 0:
 			mini = min(imgs)
 		if len(exts) > 0:
-			mini = min(mini, round(min(exts)))
+			mini = min(mini, min(exts))
 		if len(spcs) > 0:
-			mini = min(mini, round(min(spcs)))
+			mini = min(mini, min(spcs))
 		return mini
 
 	def adjust_width(self):
@@ -163,8 +183,11 @@ class Column:
 			else:
 				img.img_ref.x += self.w / 2
 
-	def wasted_space(self):
+	# -------------------
+	#  Ranking functions
+	# -------------------
 
+	def wasted_space(self):
 		waste = 0
 
 		# Waste on left and right
@@ -184,20 +207,51 @@ class Column:
 
 		return waste
 
-	def lost_space(self):
+	def hidden_space(self):
+		hidden = 0
 
-		lost = 0
-
-		# With current implementation, image can only overflow on left and right
+		# With current implementation, image can only overflow on left/right
 		for img in self.imglist:
 			if isinstance(img, PhotoExtent):
 				if img.img_ref.x + img.img_ref.w > self.x + self.w:
-					lost += ((img.img_ref.x + img.img_ref.w) - (self.x + self.w)) / img.img_ref.w
+					w = (img.img_ref.x + img.img_ref.w) - (self.x + self.w)
+					hidden += w / img.img_ref.w
 			else:
 				if img.x < self.x:
-					lost += (self.x - img.x) / img.w
+					hidden += (self.x - img.x) / img.w
 
-		return lost
+		return hidden
+
+	# ---------------------
+	#  Rendering functions
+	# ---------------------
+
+	def scale(self, scale):
+		self.print_x = scale * self.x
+		self.print_w = scale * self.w
+		self.print_h = scale * self.h
+		for img in self.imglist:
+			img.scale(scale)
+
+	def draw_preview(self, canvas):
+		for img in self.imglist:
+			img.draw_preview(canvas)
+
+	def draw_borders(self, canvas, border):
+		color = "blue"
+		draw = PIL.ImageDraw.Draw(canvas)
+
+		for img in self.imglist[1:]:
+			xy = (self.print_x, img.print_y - border / 2)
+			XY = (self.print_x + self.print_w, img.print_y + border / 2)
+			draw.rectangle(xy + XY, color)
+
+		if self.print_x > 0:
+			for img in self.imglist:
+				if not isinstance(img, PhotoExtent):
+					xy = (self.print_x - border / 2, img.print_y)
+					XY = (self.print_x + border / 2, img.print_y + img.print_h)
+					draw.rectangle(xy + XY, color)
 
 class Page:
 
@@ -207,12 +261,16 @@ class Page:
 		self.cols = []
 
 		x = 0
-		col_w = round(self.w / self.no_cols)
+		col_w = self.w / self.no_cols
 		for i in range(no_cols):
 			self.cols.append(Column(x, col_w))
 			x += col_w
 
-	def next_col_index(self):
+	# -------------------
+	#  Phase A functions
+	# -------------------
+
+	def next_col(self):
 		cur_min = 2**31
 		index = None
 		for i in range(self.no_cols):
@@ -221,11 +279,8 @@ class Page:
 				index = i
 		return index
 
-	def next_col(self):
-		return self.cols[self.next_col_index()]
-
 	def worth_multicol(self):
-		i = self.next_col_index()
+		i = self.next_col()
 		for j in range(max(0, i - 1), min(self.no_cols, i + 2)):
 			if j == i:
 				continue
@@ -235,7 +290,6 @@ class Page:
 				return sorted([i, j])
 
 	def append(self, img):
-
 		multicol = self.worth_multicol()
 		if multicol and img.w / img.h > 1 and random.randint(0, 1):
 			img.x = self.cols[multicol[0]].x
@@ -243,7 +297,7 @@ class Page:
 			img.w = 0
 			for i in multicol:
 				img.w += self.cols[i].w
-			img.h = round(img.w * img.real_h / img.real_w)
+			img.h = img.w * img.real_h / img.real_w
 			for i in multicol:
 				if i == multicol[0]:
 					img.extended = True
@@ -254,18 +308,19 @@ class Page:
 					img.spacings.append(s)
 				self.cols[i].h = img.y + img.h # every column is set at the longest
 		else:
-			c = self.next_col()
-			c.append(img)
+			c = self.cols[self.next_col()]
+
+			img.x = c.x
+			img.y = c.h
+			img.w = c.w
+			img.h = c.w * img.real_h / img.real_w
+
+			c.imglist.append(img)
+			c.h += img.h
 
 	def fill(self, imglist):
 		for img in imglist:
 			self.append(img)
-
-	def draw_borders(self, canvas):
-		for col in self.cols:
-			col.draw_borders(canvas)
-			draw = PIL.ImageDraw.Draw(canvas)
-			draw.line((col.x, 0) + (col.x, col.h), fill="red")
 
 	def get_width(self):
 		return sum(c.w for c in self.cols)
@@ -273,26 +328,65 @@ class Page:
 	def get_height(self):
 		return max(c.h for c in self.cols)
 
-	def eat_space(self):
+	# -------------------
+	#  Phase B functions
+	# -------------------
 
-		# Step 1: set all columns at the same height
-		H = round(sum([c.h for c in self.cols]) / self.no_cols)
+	def eat_space(self):
+		H = sum([c.h for c in self.cols]) / self.no_cols
 		for c in self.cols:
 			c.adjust_height(H)
 
+	# -------------------
+	#  Phase C functions
+	# -------------------
+
 	def eat_space2(self):
-		# Step 2: arrange columns width to fit contents
 		x = 0
 		for c in self.cols:
 			c.x = x
 			c.adjust_width()
 			x += c.w
 
-	def wasted_space(self):
-		return sum(c.wasted_space() for c in self.cols) / (self.get_width() * self.get_height())
+	# -------------------
+	#  Ranking functions
+	# -------------------
 
-	def lost_space(self):
-		return sum(c.lost_space() for c in self.cols) / sum(len(c.imglist) for c in self.cols)
+	def wasted_space(self):
+		return sum(c.wasted_space() for c in self.cols) / \
+			   (self.get_width() * self.get_height())
+
+	def hidden_space(self):
+		return sum(c.hidden_space() for c in self.cols) / \
+			   sum(len(c.imglist) for c in self.cols)
+
+	# ---------------------
+	#  Rendering functions
+	# ---------------------
+
+	def scale(self, scale):
+		self.print_w = scale * self.get_width()
+		self.print_h = scale * self.get_height()
+		for col in self.cols:
+			col.scale(scale)
+
+	def draw_preview(self, canvas):
+		for col in self.cols:
+			col.draw_preview(canvas)
+
+	def draw_borders(self, canvas, border):
+		color = "blue"
+		W = self.print_w
+		H = self.print_h
+
+		draw = PIL.ImageDraw.Draw(canvas)
+		draw.rectangle((0, 0) + (border, H), color)
+		draw.rectangle((W - border, 0) + (W, H), color)
+		draw.rectangle((0, 0) + (W, border), color)
+		draw.rectangle((0, H - border) + (W, H), color)
+
+		for col in self.cols:
+			col.draw_borders(canvas, border)
 
 def read_images():
 	ret = []
@@ -314,65 +408,44 @@ def read_images():
 	return ret
 
 def fake_images():
-
 	ret = []
 	for i in range(random.randint(10, 60)):
 		ret.append(Photo(1000, 1000 * (.5 + random.random())))
 	return ret
 
-def main():
+def print_preview(filename, page, width, border):
+	page.scale(width / page.get_width())
+	canvas = PIL.Image.new("RGB", (int(page.print_w), int(page.print_h)), "white")
+	page.draw_preview(canvas)
+	page.draw_borders(canvas, border)
+	canvas.save(filename)
 
-	#photolist = read_images()
-	photolist = fake_images()
-	random.shuffle(photolist)
+def main():
+	photolist = read_images()
+	#photolist = fake_images()
 
 	tries = []
-	for i in range(100):
-		page = Page(600, int(math.sqrt(len(photolist))))
-		page.fill(copy.deepcopy(photolist))
-		page.eat_space()
-		page.eat_space2()
-		if page.wasted_space() < 0.001:
-			tries.append(page)
+	best_no_cols = int(math.sqrt(len(photolist)))
+	for no_cols in range(max(1, best_no_cols - 1), best_no_cols + 3):
+		for i in range(3):
+			page = Page(1.0, no_cols)
+			random.shuffle(photolist)
+			page.fill(copy.deepcopy(photolist))
+			page.eat_space()
+			page.eat_space2()
+			if page.wasted_space() < 0.001:
+				tries.append(page)
 
-	tries.sort(key=lambda t: t.lost_space())
+	tries.sort(key=lambda t: t.hidden_space())
 
 	page = tries[0]
-	print("wasted space: %.2f%% + %.2f%%" % (100*page.wasted_space(), 100*page.lost_space()))
-	canvas = PIL.Image.new("RGB", (page.get_width(), page.get_height()), "white")
-	page.draw_borders(canvas)
-	canvas.save("borders-2.png")
+	print("wasted space: %.2f%% + %.2f%%" % (100*page.wasted_space(), 100*page.hidden_space()))
+
+	print_preview("borders-2.png", page, 600 * page.get_width() / page.get_height(), 6)
 
 	page = tries[-1]
-	print("wasted space: %.2f%% + %.2f%%" % (100*page.wasted_space(), 100*page.lost_space()))
-	canvas = PIL.Image.new("RGB", (page.get_width(), page.get_height()), "white")
-	page.draw_borders(canvas)
-	canvas.save("borders-1.png")
-
-	return
-
-	page = Page(600, 6)
-	page.fill(photolist)
-	print("Page height: %d" % page.get_height())
-	print("wasted space: %.2f%% + %.2f%%" % (100*page.wasted_space(), 100*page.lost_space()))
-
-	canvas = PIL.Image.new("RGB", (page.get_width(), page.get_height()), "white")
-	page.draw_borders(canvas)
-	canvas.save("borders-0.png")
-
-	page.eat_space()
-	print("wasted space: %.2f%% + %.2f%%" % (100*page.wasted_space(), 100*page.lost_space()))
-
-	canvas = PIL.Image.new("RGB", (page.get_width(), page.get_height()), "white")
-	page.draw_borders(canvas)
-	canvas.save("borders-1.png")
-
-	page.eat_space2()
-	print("wasted space: %.2f%% + %.2f%%" % (100*page.wasted_space(), 100*page.lost_space()))
-
-	canvas = PIL.Image.new("RGB", (page.get_width(), page.get_height()), "white")
-	page.draw_borders(canvas)
-	canvas.save("borders-2.png")
+	print("wasted space: %.2f%% + %.2f%%" % (100*page.wasted_space(), 100*page.hidden_space()))
+	print_preview("borders-1.png", page, 600 * page.get_width() / page.get_height(), 8)
 
 if __name__ == "__main__":
 	main()
