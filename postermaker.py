@@ -68,9 +68,17 @@ import PIL.Image
 import PIL.ImageDraw
 import random
 
+def random_color():
+	r = random.randrange(256)
+	g = random.randrange(256)
+	b = random.randrange(256)
+	return (r, g, b)
+
 class Photo:
 
-	def __init__(self, w, h, x=0, y=0):
+	def __init__(self, imagefile, w, h, x=0, y=0):
+		self.imagefile = imagefile
+
 		self.real_w = self.w = w
 		self.real_h = self.h = h
 
@@ -80,35 +88,64 @@ class Photo:
 		self.extended = False
 		self.spacings = []
 
+		self.orientation = 0
+
+	# ---------------------
+	#  Rendering functions
+	# ---------------------
+
 	def scale(self, scale):
 		self.print_x = scale * self.x
 		self.print_y = scale * self.y
 		self.print_w = scale * self.w
 		self.print_h = scale * self.h
 
-	def draw_preview(self, canvas):
+	def draw_skeleton(self, canvas):
 		xy = (self.print_x, self.print_y)
 		xY = (self.print_x, self.print_y + self.print_h - 1)
 		Xy = (self.print_x + self.print_w - 1, self.print_y)
 		XY = (self.print_x + self.print_w - 1, self.print_y + self.print_h - 1)
 
+		color = random_color()
+
 		draw = PIL.ImageDraw.Draw(canvas)
-		draw.line(xy + Xy, fill="black")
-		draw.line(xy + xY, fill="black")
-		draw.line(xY + XY, fill="black")
-		draw.line(Xy + XY, fill="black")
-		draw.line(xy + XY, fill="gray")
-		draw.line(xY + Xy, fill="gray")
+		draw.line(xy + Xy, fill=color)
+		draw.line(xy + xY, fill=color)
+		draw.line(xY + XY, fill=color)
+		draw.line(Xy + XY, fill=color)
+		draw.line(xy + XY, fill=color)
+		draw.line(xY + Xy, fill=color)
+
+	def draw_photo(self, canvas, w, h, x, y):
+		img = PIL.Image.open(self.imagefile)
+
+		# Rotate image is EXIF says so
+		if self.orientation == 3:
+			img = img.rotate(180)
+		elif self.orientation == 6:
+			img = img.rotate(270)
+		elif self.orientation == 8:
+			img = img.rotate(90)
+
+		if img.size[0] * h > img.size[1] * w:
+			# Image is too large
+			img = img.resize((round(h * img.size[0] / img.size[1]), round(h)),
+							 PIL.Image.ANTIALIAS)
+			img.crop(((img.size[0] - w) / 2, 0, (img.size[0] + w) / 2, h))
+		elif img.size[0] * h < img.size[1] * w:
+			# Image is too high
+			img = img.resize((round(w), round(w * img.size[1] / img.size[0])),
+							 PIL.Image.ANTIALIAS)
+			img.crop((0, (img.size[1] - h) / 2, w, (img.size[1] + h) / 2))
+		else:
+			img = img.resize((round(w), round(h)), PIL.Image.ANTIALIAS)
+		canvas.paste(img, (round(x), round(y)))
 
 class PhotoExtent(Photo):
 
 	def __init__(self, img, x, y):
 		self.img_ref = img
-
-		super(PhotoExtent, self).__init__(img.w, img.h, x, y)
-
-	def draw_preview(self, canvas):
-		pass
+		super(PhotoExtent, self).__init__(img.imagefile, img.w, img.h, x, y)
 
 class Column:
 
@@ -233,12 +270,12 @@ class Column:
 		for img in self.imglist:
 			img.scale(scale)
 
-	def draw_preview(self, canvas):
+	def draw_skeleton(self, canvas):
 		for img in self.imglist:
-			img.draw_preview(canvas)
+			if not isinstance(img, PhotoExtent):
+				img.draw_skeleton(canvas)
 
-	def draw_borders(self, canvas, border):
-		color = "blue"
+	def draw_borders(self, canvas, border, color):
 		draw = PIL.ImageDraw.Draw(canvas)
 
 		for img in self.imglist[1:]:
@@ -252,6 +289,12 @@ class Column:
 					xy = (self.print_x - border / 2, img.print_y)
 					XY = (self.print_x + border / 2, img.print_y + img.print_h)
 					draw.rectangle(xy + XY, color)
+
+	def draw_photos(self, canvas):
+		for img in self.imglist:
+			if not isinstance(img, PhotoExtent):
+				img.draw_photo(canvas, self.print_w, img.print_h,
+							   self.print_x, img.print_y)
 
 class Page:
 
@@ -370,12 +413,11 @@ class Page:
 		for col in self.cols:
 			col.scale(scale)
 
-	def draw_preview(self, canvas):
+	def draw_skeleton(self, canvas):
 		for col in self.cols:
-			col.draw_preview(canvas)
+			col.draw_skeleton(canvas)
 
-	def draw_borders(self, canvas, border):
-		color = "blue"
+	def draw_borders(self, canvas, border, color):
 		W = self.print_w
 		H = self.print_h
 
@@ -386,7 +428,11 @@ class Page:
 		draw.rectangle((0, H - border) + (W, H), color)
 
 		for col in self.cols:
-			col.draw_borders(canvas, border)
+			col.draw_borders(canvas, border, color)
+
+	def draw_photos(self, canvas):
+		for col in self.cols:
+			col.draw_photos(canvas)
 
 def read_images():
 	ret = []
@@ -403,22 +449,36 @@ def read_images():
 			"IMG_2495.JPG", "IMG_2496.JPG"]
 	for name in list:
 		img = PIL.Image.open(dir + "/" + name)
-		print("%d\t%d" % img.size)
-		ret.append(Photo(*img.size))
+		w, h = img.size
+
+		exif = img._getexif()
+		if 274 in exif: # orientation tag
+			orientation = exif[274]
+			if orientation == 6 or orientation == 8:
+				w, h = h, w
+
+		photo = Photo(dir + "/" + name, w, h)
+		photo.orientation = orientation
+
+		print("%d\t%d" % (w, h))
+		ret.append(photo)
 	return ret
 
 def fake_images():
 	ret = []
 	for i in range(random.randint(10, 60)):
-		ret.append(Photo(1000, 1000 * (.5 + random.random())))
+		ret.append(Photo(None, 1000, 1000 * (.5 + random.random())))
 	return ret
 
-def print_preview(filename, page, width, border):
+def print_page(filename, page, width, border, skeleton=False):
 	page.scale(width / page.get_width())
 	canvas = PIL.Image.new("RGB", (int(page.print_w), int(page.print_h)), "white")
-	page.draw_preview(canvas)
-	page.draw_borders(canvas, border)
-	canvas.save(filename)
+	if skeleton:
+		page.draw_skeleton(canvas)
+	else:
+		page.draw_photos(canvas)
+		page.draw_borders(canvas, border, "black")
+	canvas.save(filename, quality=90, optimize=True)
 
 def main():
 	photolist = read_images()
@@ -441,11 +501,13 @@ def main():
 	page = tries[0]
 	print("wasted space: %.2f%% + %.2f%%" % (100*page.wasted_space(), 100*page.hidden_space()))
 
-	print_preview("borders-2.png", page, 600 * page.get_width() / page.get_height(), 6)
+	print_page("page-best-preview.png", page, 600 * page.get_width() / page.get_height(), 6, True)
+	print_page("page-best.jpg", page, 600 * page.get_width() / page.get_height(), 6)
 
 	page = tries[-1]
 	print("wasted space: %.2f%% + %.2f%%" % (100*page.wasted_space(), 100*page.hidden_space()))
-	print_preview("borders-1.png", page, 600 * page.get_width() / page.get_height(), 8)
+	print_page("page-worst-preview.png", page, 600 * page.get_width() / page.get_height(), 6, True)
+	print_page("page-worst.jpg", page, 600 * page.get_width() / page.get_height(), 6)
 
 if __name__ == "__main__":
 	main()
