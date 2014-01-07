@@ -19,7 +19,7 @@ def pil_img_to_gtk_img(src_img, dest_img):
 	dest_img.set_from_pixbuf(l.get_pixbuf())
 	l.close()
 
-class MyWindow(Gtk.Window):
+class PosterMakerWindow(Gtk.Window):
 
 	def __init__(self):
 		self.photolist = []
@@ -31,7 +31,7 @@ class MyWindow(Gtk.Window):
 
 		self.set_border_width(10)
 
-		box_window = Gtk.Box(spacing=6)
+		box_window = Gtk.Box(spacing=10)
 		self.add(box_window)
 
 		# -----------
@@ -71,6 +71,15 @@ class MyWindow(Gtk.Window):
 		self.cmb_bordercolor.insert(1, "white", "white")
 		self.cmb_bordercolor.set_active(0)
 		box_settings.pack_start(self.cmb_bordercolor, False, False, 0)
+
+		label = Gtk.Label("Poster width (in pixels):", xalign=0)
+		box_settings.pack_start(label, False, False, 0)
+
+		self.spn_outw = Gtk.SpinButton()
+		self.spn_outw.set_adjustment(Gtk.Adjustment(1000, 1, 100000, 1, 100, 0))
+		self.spn_outw.set_numeric(True)
+		self.spn_outw.set_update_policy(Gtk.SpinButtonUpdatePolicy.IF_VALID)
+		box_settings.pack_start(self.spn_outw, False, False, 0)
 
 		# ------------
 		#  Second pan
@@ -115,7 +124,9 @@ class MyWindow(Gtk.Window):
 		self.btn_save.set_sensitive(False)
 
 	def choose_images(self, button):
-		dialog = Gtk.FileChooserDialog("Choose images", button.get_toplevel(), Gtk.FileChooserAction.OPEN, select_multiple=True)
+		dialog = Gtk.FileChooserDialog("Choose images", button.get_toplevel(),
+									   Gtk.FileChooserAction.OPEN,
+									   select_multiple=True)
 		dialog.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
 		dialog.add_button(Gtk.STOCK_OK, Gtk.ResponseType.OK)
 
@@ -156,7 +167,7 @@ class MyWindow(Gtk.Window):
 		self.btn_preview.set_sensitive(True)
 		self.btn_save.set_sensitive(True)
 
-	def make_preview(self, button):
+	def generate_image(self, scale, skeleton, fast):
 		# get border width
 		border = {"width": self.spn_border.get_value_as_int()}
 
@@ -165,15 +176,19 @@ class MyWindow(Gtk.Window):
 		model = self.cmb_bordercolor.get_model()
 		border["color"] = model[iter][1]
 
+		return self.page.print(scale, border, skeleton, fast)
+
+	def make_preview(self, button):
 		w = self.img_preview.get_allocation().width
 		h = self.img_preview.get_allocation().height
 
-		img = self.page.print(self.page.scale_to_fit(w, h), border, False, True)
+		img = self.generate_image(self.page.scale_to_fit(w, h), False, True)
 
 		pil_img_to_gtk_img(img, self.img_preview)
 
 	def save_poster(self, button):
-		dialog = Gtk.FileChooserDialog("Save file", button.get_toplevel(), Gtk.FileChooserAction.SAVE)
+		dialog = Gtk.FileChooserDialog("Save file", button.get_toplevel(),
+									   Gtk.FileChooserAction.SAVE)
 		dialog.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
 		dialog.add_button(Gtk.STOCK_OK, Gtk.ResponseType.OK)
 		dialog.set_do_overwrite_confirmation(True)
@@ -183,19 +198,22 @@ class MyWindow(Gtk.Window):
 		dialog.set_filter(filefilter)
 
 		if dialog.run() == Gtk.ResponseType.OK:
-			border_w = self.spn_border.get_value_as_int()
-			w = 1000
-			h = 1000
+			w = self.spn_outw.get_value_as_int()
+			scale = w / self.page.get_width()
 
-			img = self.page.print(self.page.scale_to_fit(w, h), border_w, False, False)
+			# TODO: show progression
 
-			print(dialog.get_filename())
-			
+			img = self.generate_image(scale, False, False)
+
 			img.save(dialog.get_filename())
 
 		dialog.destroy()
 
-win = MyWindow()
-win.connect("delete-event", Gtk.main_quit)
-win.show_all()
-Gtk.main()
+def main():
+	win = PosterMakerWindow()
+	win.connect("delete-event", Gtk.main_quit)
+	win.show_all()
+	Gtk.main()
+
+if __name__ == '__main__':
+	main()
