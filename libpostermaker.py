@@ -66,10 +66,7 @@ import copy
 import math
 import PIL.Image
 import PIL.ImageDraw
-import PIL.ImageTk
 import random
-import tkinter as tk
-from tkinter import filedialog
 
 def random_color():
 	r = random.randrange(256)
@@ -462,172 +459,33 @@ class Page:
 			self.draw_skeleton(canvas)
 		else:
 			self.draw_photos(canvas, fast)
-			self.draw_borders(canvas, border, "black")
+
+		# border is given in %
+		if border:
+			border_w = int(border["width"] * self.print_w / 100)
+			self.draw_borders(canvas, border_w, border["color"])
 
 		return canvas
 
-class PreviewLabel(tk.Label):
-
-	def __init__(self, master=None, **options):
-		self.img = PIL.ImageTk.PhotoImage("RGB", (300, 300))
-		self.img.paste(PIL.Image.new("RGB", (300, 300), "gray"))
-
-		return super(PreviewLabel, self).__init__(master, options, image=self.img)
-
-	def set_img(self, img):
-		canvas = PIL.Image.new("RGB", (300, 300), "gray")
-
-		w, h = img.size
-		x = y = 0
-		if w > h:
-			y = round((300 - h) / 2)
-		else:
-			x = round((300 - w) / 2)
-
-		canvas.paste(img, (x, y))
-
-		self.img.paste(canvas)
-
-class PosterMakerGUI(tk.Frame):
-
-	def __init__(self, master=None):
-		tk.Frame.__init__(self, master)
-		self.pack()
-		self.createWidgets()
-		self.master.title("PosterMaker")
-
-	def createWidgets(self):
-		pan_root = tk.PanedWindow()
-		pan_root.pack(fill=tk.BOTH, expand=1)
-
-		self.pan_settings = tk.PanedWindow(pan_root, orient=tk.VERTICAL)
-		self.pan_skeleton = tk.PanedWindow(pan_root, orient=tk.VERTICAL)
-		self.pan_preview = tk.PanedWindow(pan_root, orient=tk.VERTICAL)
-		pan_root.add(self.pan_settings)
-		pan_root.add(self.pan_skeleton)
-		pan_root.add(self.pan_preview)
-
-		# -----------
-		#  First pan
-		# -----------
-
-		self.QUIT = tk.Button(self.pan_settings, text="Chose images", command=self.select_files)
-		self.pan_settings.add(self.QUIT)
-
-		# ------------
-		#  Second pan
-		# ------------
-
-		self.btn_skeleton = tk.Button(self.pan_skeleton, text="Generate a new layout", command=self.make_skeleton, state="disabled")
-		self.pan_skeleton.add(self.btn_skeleton)
-		self.lbl_skeleton = PreviewLabel(self.pan_skeleton, width=300, height=300)
-		self.pan_skeleton.add(self.lbl_skeleton)
-
-		# -----------
-		#  Third pan
-		# -----------
-
-		self.btn_preview = tk.Button(self.pan_preview, text="Preview poster", command=self.make_preview, state="disabled")
-		self.pan_preview.add(self.btn_preview)
-		self.lbl_preview = PreviewLabel(self.pan_preview, width=300, height=300)
-		self.pan_preview.add(self.lbl_preview)
-
-	def build_photolist(self, filelist):
-		ret = []
-
-		for name in filelist:
-			img = PIL.Image.open(name)
-			w, h = img.size
-
-			try:
-				exif = img._getexif()
-				if 274 in exif: # orientation tag
-					orientation = exif[274]
-					if orientation == 6 or orientation == 8:
-						w, h = h, w
-			except:
-				orientation = 0
-
-			photo = Photo(name, w, h)
-			photo.orientation = orientation
-
-			ret.append(photo)
-
-		return ret
-
-	def select_files(self):
-		filelist = tk.filedialog.askopenfilenames(parent=self, title="Choose a file")
-		for a in filelist:
-			print(a)
-		self.photolist = self.build_photolist(filelist)
-
-		self.btn_skeleton.config(state="disabled")
-		self.btn_preview.config(state="disabled")
-		if len(self.photolist) > 0:
-			self.btn_skeleton.config(state="normal")
-
-	def make_skeleton(self):
-		#photolist = fake_images()
-
-		random.shuffle(self.photolist)
-
-		no_cols = int(math.sqrt(len(self.photolist)))
-
-		self.page = Page(1.0, no_cols)
-		self.page.fill(copy.deepcopy(self.photolist))
-		self.page.eat_space()
-		self.page.eat_space2()
-
-		img = self.page.print(self.page.scale_to_fit(300, 300), 6, True)
-
-		self.lbl_skeleton.set_img(img)
-
-		self.btn_preview.config(state="normal")
-
-	def make_preview(self):
-		img = self.page.print(self.page.scale_to_fit(300, 300), 6, False, True)
-
-		self.lbl_preview.set_img(img)
-
-def fake_images():
+def build_photolist(filelist):
 	ret = []
-	for i in range(random.randint(10, 60)):
-		ret.append(Photo(None, 1000, 1000 * (.5 + random.random())))
+
+	for name in filelist:
+		img = PIL.Image.open(name)
+		w, h = img.size
+
+		try:
+			exif = img._getexif()
+			if 274 in exif: # orientation tag
+				orientation = exif[274]
+				if orientation == 6 or orientation == 8:
+					w, h = h, w
+		except:
+			orientation = 0
+
+		photo = Photo(name, w, h)
+		photo.orientation = orientation
+
+		ret.append(photo)
+
 	return ret
-
-def main():
-	root = tk.Tk()
-	app = PosterMakerGUI(root)
-	app.mainloop()
-	root.destroy()
-	return
-
-	photolist = fake_images()
-
-	tries = []
-	best_no_cols = int(math.sqrt(len(photolist)))
-	for no_cols in range(max(1, best_no_cols - 1), best_no_cols + 3):
-		for i in range(1):
-			page = Page(1.0, no_cols)
-			random.shuffle(photolist)
-			page.fill(copy.deepcopy(photolist))
-			page.eat_space()
-			page.eat_space2()
-			if page.wasted_space() < 0.001:
-				tries.append(page)
-
-	tries.sort(key=lambda t: t.hidden_space())
-
-	page = tries[0]
-	print("wasted space: %.2f%% + %.2f%%" % (100*page.wasted_space(), 100*page.hidden_space()))
-
-	page.print(600 * page.get_width() / page.get_height(), 6, True).save("page-best-preview.png")
-	page.print(600 * page.get_width() / page.get_height(), 6).save("page-best.jpg", quality=90, optimize=True)
-
-	page = tries[-1]
-	print("wasted space: %.2f%% + %.2f%%" % (100*page.wasted_space(), 100*page.hidden_space()))
-	page.print(600 * page.get_width() / page.get_height(), 6, True).save("page-worst-preview.png")
-	page.print(600 * page.get_width() / page.get_height(), 6).save("page-worst.jpg", quality=90, optimize=True)
-
-if __name__ == "__main__":
-	main()
