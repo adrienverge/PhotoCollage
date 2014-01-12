@@ -1,18 +1,29 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# Copyright (C) 2013 Adrien Vergé
 
-from gi.repository import Gtk, Gdk, GdkPixbuf
+__author__ = "Adrien Vergé"
+__copyright__ = "Copyright 2013, Adrien Vergé"
+__license__ = "GPL"
+__version__ = "1.0"
+
+from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
 import io
+from multiprocessing import Process, Pipe
 import PIL.Image
+from threading import Thread, Lock
 
 from libpostermaker import *
 
-def pil_img_to_gtk_img(src_img, dest_img):
+def pil_img_to_raw(src_img):
 	# Save image to a temporary buffer
 	buf = io.BytesIO()
 	src_img.save(buf, 'ppm')
 	contents = buf.getvalue()
 	buf.close()
+	return contents
 
+def gtk_img_from_raw(dest_img, contents):
 	# Fill pixbuf from this buffer
 	l = GdkPixbuf.PixbufLoader.new_with_type('pnm')
 	l.write(contents)
@@ -159,32 +170,55 @@ class PosterMakerWindow(Gtk.Window):
 
 		w = self.img_skeleton.get_allocation().width
 		h = self.img_skeleton.get_allocation().height
+		enlargement = self.page.scale_to_fit(w, h)
 
-		img = self.page.print(self.page.scale_to_fit(w, h), None, True)
+		opts = PrintOptions(enlargement, PrintOptions.RENDER_SKELETON,
+							PrintOptions.QUALITY_FAST)
+		img = self.page.print(opts)
 
-		pil_img_to_gtk_img(img, self.img_skeleton)
+		gtk_img_from_raw(self.img_skeleton, pil_img_to_raw(img))
 
 		self.btn_preview.set_sensitive(True)
 		self.btn_save.set_sensitive(True)
 
-	def generate_image(self, scale, skeleton, fast):
-		# get border width
-		border = {"width": self.spn_border.get_value_as_int()}
+	def get_border_width(self):
+		return self.spn_border.get_value_as_int()
 
-		# get border color
+	def get_border_color(self):
 		iter = self.cmb_bordercolor.get_active_iter()
 		model = self.cmb_bordercolor.get_model()
-		border["color"] = model[iter][1]
-
-		return self.page.print(scale, border, skeleton, fast)
+		return model[iter][1]
 
 	def make_preview(self, button):
 		w = self.img_preview.get_allocation().width
 		h = self.img_preview.get_allocation().height
+		enlargement = self.page.scale_to_fit(w, h)
 
-		img = self.generate_image(self.page.scale_to_fit(w, h), False, True)
+		opts = PrintOptions(enlargement, PrintOptions.RENDER_REAL,
+							PrintOptions.QUALITY_FAST)
+		opts.set_border(self.get_border_width(), self.get_border_color())
 
-		pil_img_to_gtk_img(img, self.img_preview)
+		def big_job(conn):
+			"""
+			This is the heavy work that will be executed in another process.
+			It sends its result to a pipe.
+			"""
+			img = self.page.print(opts)
+
+			conn.send(pil_img_to_raw(img))
+			conn.close()
+
+		def finish_job(conn):
+			"""
+			This is the final, lightweight work of displaying the image.
+			It gets the heavy work result from the pipe.
+			"""
+			try:
+				gtk_img_from_raw(self.img_preview, conn.recv())
+			except EOFError:
+				pass
+
+		self.do_computing(big_job, finish_job)
 
 	def save_poster(self, button):
 		dialog = Gtk.FileChooserDialog("Save file", button.get_toplevel(),
@@ -197,17 +231,109 @@ class PosterMakerWindow(Gtk.Window):
 		filefilter.add_pixbuf_formats()
 		dialog.set_filter(filefilter)
 
+		savefile = None
+
 		if dialog.run() == Gtk.ResponseType.OK:
 			w = self.spn_outw.get_value_as_int()
-			scale = w / self.page.get_width()
+			enlargement = w / self.page.get_width()
 
-			# TODO: show progression
+			opts = PrintOptions(enlargement, PrintOptions.RENDER_REAL,
+								PrintOptions.QUALITY_BEST)
+			opts.set_border(self.get_border_width(), self.get_border_color())
 
-			img = self.generate_image(scale, False, False)
-
-			img.save(dialog.get_filename())
+			savefile = dialog.get_filename()
 
 		dialog.destroy()
+
+		if not savefile:
+			return
+
+		def big_job(conn):
+			"""
+			This is the heavy work that will be executed in another process.
+			"""
+			img = self.page.print(opts)
+			img.save(savefile)
+
+			conn.close()
+
+		def finish_job(conn):
+			"""
+			Nothing to do once the big job is done.
+			"""
+			pass
+
+		self.do_computing(big_job, finish_job)
+
+	def do_computing(self, big_job, finish_job):
+		"""
+		Displays a "please wait" dialog and do the job.
+
+		This function is a bit tricky. It will create a new thread, to avoid
+		freezing the GUI. It will also create a new subprocess, to take
+		advantage of multi-core processors.
+
+		The lock is here for synchronization: the thread must wait for the
+		"please wait" dialog to appear, to make sure it will not destroy it
+		before it is created.
+		"""
+		lock = Lock()
+		lock.acquire()
+
+		compdialog = ComputingDialog(self, lock)
+
+		rd_conn, wr_conn = Pipe(False)
+		process = Process(target=big_job, args=(wr_conn,))
+
+		def thread_job(window):
+			lock.acquire()
+
+			process.start()
+			finish_job(rd_conn)
+			process.join()
+
+			compdialog.destroy()
+
+		thread = Thread(target=thread_job, args=(self,))
+		thread.start()
+
+		response = compdialog.run()
+		if response == Gtk.ResponseType.CANCEL:
+			wr_conn.close()
+			process.terminate()
+
+class ComputingDialog(Gtk.Dialog):
+
+	def __init__(self, parent, lock):
+		Gtk.Dialog.__init__(self, "Please wait", parent, 0,
+							(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
+
+		self.set_default_size(300, -1)
+		self.set_border_width(10)
+
+		box = self.get_content_area()
+		vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+		box.add(vbox)
+
+		label = Gtk.Label("Performing image computation...")
+		vbox.pack_start(label, True, True, 0)
+
+		self.progressbar = Gtk.ProgressBar()
+		self.progressbar.pulse()
+		vbox.pack_start(self.progressbar, True, True, 0)
+
+		self.show_all()
+
+		self.timeout_id = GObject.timeout_add(50, self.on_timeout, None)
+
+		lock.release()
+		print("lock released")
+
+	def on_timeout(self, user_data):
+		self.progressbar.pulse()
+
+		# Return True so that it continues to get called
+		return True
 
 def main():
 	win = PosterMakerWindow()

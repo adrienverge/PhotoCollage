@@ -301,6 +301,33 @@ class Column:
 				img.draw_photo(canvas, self.print_w, img.print_h,
 							   self.print_x, img.print_y, fast)
 
+class PrintOptions:
+
+	RENDER_SKELETON = 1
+	RENDER_REAL = 2
+
+	QUALITY_FAST = 1
+	QUALITY_BEST = 2
+
+	def __init__(self, enlargement=1.0, render=RENDER_REAL,
+				 quality=QUALITY_BEST):
+		self.enlargement = enlargement
+		self.border = None
+		self.render = render
+		self.quality = quality
+
+	class Border:
+
+		def __init__(self, width, color):
+			self.width = width
+			self.color = color
+
+	def set_border(self, width, color="black"):
+		if width > 0:
+			self.border = self.Border(width, color)
+		else:
+			self.border = None
+
 class Page:
 
 	def __init__(self, w, no_cols):
@@ -449,21 +476,21 @@ class Page:
 		for col in self.cols:
 			col.draw_photos(canvas, fast)
 
-	def print(self, width, border, skeleton=False, fast=False):
-		self.scale(width / self.get_width())
+	def print(self, opts):
+		self.scale(opts.enlargement)
 
 		canvas = PIL.Image.new("RGB", (int(self.print_w), int(self.print_h)),
 							   "white")
 
-		if skeleton:
+		if opts.render == PrintOptions.RENDER_SKELETON:
 			self.draw_skeleton(canvas)
-		else:
-			self.draw_photos(canvas, fast)
+		elif opts.render == PrintOptions.RENDER_REAL:
+			self.draw_photos(canvas, opts.quality == PrintOptions.QUALITY_FAST)
 
-		# border is given in %
-		if border:
-			border_w = int(border["width"] * self.print_w / 100)
-			self.draw_borders(canvas, border_w, border["color"])
+		if opts.border:
+			# border is given in %
+			width = int(opts.border.width * self.print_w / 100)
+			self.draw_borders(canvas, width, opts.border.color)
 
 		return canvas
 
@@ -474,6 +501,7 @@ def build_photolist(filelist):
 		img = PIL.Image.open(name)
 		w, h = img.size
 
+		orientation = 0
 		try:
 			exif = img._getexif()
 			if 274 in exif: # orientation tag
@@ -481,7 +509,7 @@ def build_photolist(filelist):
 				if orientation == 6 or orientation == 8:
 					w, h = h, w
 		except:
-			orientation = 0
+			pass
 
 		photo = Photo(name, w, h)
 		photo.orientation = orientation
