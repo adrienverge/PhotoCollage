@@ -441,12 +441,9 @@ class Page:
 	def scale_to_fit(self, max_w, max_h):
 		w = self.get_width()
 		h = self.get_height()
-		print("wh = (%f, %f)" % (w, h))
 		if w * max_h > h * max_w:
-			print("scale = %f" % (max_w / w))
 			return max_w / w
 		else:
-			print("scale = %f" % (max_h / h))
 			return max_h / h
 
 	def scale(self, scale):

@@ -56,6 +56,9 @@ class PosterMakerWindow(Gtk.Window):
 		self.btn_choose_images.connect("clicked", self.choose_images)
 		box_settings.pack_start(self.btn_choose_images, False, False, 0)
 
+		self.lbl_images = Gtk.Label("0 images loaded")
+		box_settings.pack_start(self.lbl_images, False, False, 0)
+
 		label = Gtk.Label("Number of columns:", xalign=0)
 		box_settings.pack_start(label, False, False, 0)
 
@@ -147,6 +150,7 @@ class PosterMakerWindow(Gtk.Window):
 
 		if dialog.run() == Gtk.ResponseType.OK:
 			self.photolist = build_photolist(dialog.get_filenames())
+			self.lbl_images.set_text("%d images loaded" % len(self.photolist))
 
 			self.btn_preview.set_sensitive(False)
 			self.btn_save.set_sensitive(False)
@@ -271,7 +275,8 @@ class PosterMakerWindow(Gtk.Window):
 
 		This function is a bit tricky. It will create a new thread, to avoid
 		freezing the GUI. It will also create a new subprocess, to take
-		advantage of multi-core processors.
+		advantage of multi-core processors (and also because PIL seems to
+		have problems with threads).
 
 		The lock is here for synchronization: the thread must wait for the
 		"please wait" dialog to appear, to make sure it will not destroy it
@@ -327,7 +332,6 @@ class ComputingDialog(Gtk.Dialog):
 		self.timeout_id = GObject.timeout_add(50, self.on_timeout, None)
 
 		lock.release()
-		print("lock released")
 
 	def on_timeout(self, user_data):
 		self.progressbar.pulse()
