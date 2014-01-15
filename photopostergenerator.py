@@ -14,7 +14,7 @@ import os.path
 import PIL.Image
 from threading import Thread, Lock
 
-from libpostermaker import *
+from libphotopostergenerator import *
 
 def pil_img_to_raw(src_img):
 	# Save image to a temporary buffer
@@ -31,7 +31,7 @@ def gtk_img_from_raw(dest_img, contents):
 	dest_img.set_from_pixbuf(l.get_pixbuf())
 	l.close()
 
-class PosterMakerWindow(Gtk.Window):
+class PhotoPosterGeneratorWindow(Gtk.Window):
 
 	def __init__(self):
 		self.photolist = []
@@ -48,7 +48,7 @@ class PosterMakerWindow(Gtk.Window):
 		self.make_window()
 
 	def make_window(self):
-		Gtk.Window.__init__(self, title="PosterMaker")
+		Gtk.Window.__init__(self, title="Photo Poster Generator")
 
 		self.set_border_width(10)
 
@@ -133,7 +133,7 @@ class PosterMakerWindow(Gtk.Window):
 			self.btn_preview.set_sensitive(False)
 			self.btn_save.set_sensitive(False)
 			if len(self.photolist) > 0:
-				self.opts.no_cols = round(math.sqrt(len(self.photolist)))
+				self.opts.no_cols = int(round(math.sqrt(len(self.photolist))))
 
 				self.make_skeleton(button)
 				self.btn_skeleton.set_sensitive(True)
@@ -163,7 +163,7 @@ class PosterMakerWindow(Gtk.Window):
 
 		opts = PrintOptions(enlargement, PrintOptions.RENDER_SKELETON,
 							PrintOptions.QUALITY_FAST)
-		img = self.page.print(opts)
+		img = self.page.render(opts)
 
 		gtk_img_from_raw(self.img_skeleton, pil_img_to_raw(img))
 
@@ -184,7 +184,7 @@ class PosterMakerWindow(Gtk.Window):
 			This is the heavy work that will be executed in another process.
 			It sends its result to a pipe.
 			"""
-			img = self.page.print(opts)
+			img = self.page.render(opts)
 
 			conn.send(pil_img_to_raw(img))
 			conn.close()
@@ -236,7 +236,7 @@ class PosterMakerWindow(Gtk.Window):
 			"""
 			This is the heavy work that will be executed in another process.
 			"""
-			img = self.page.print(opts)
+			img = self.page.render(opts)
 			img.save(savefile)
 
 			conn.close()
@@ -399,7 +399,7 @@ class ComputingDialog(Gtk.Dialog):
 		return True
 
 def main():
-	win = PosterMakerWindow()
+	win = PhotoPosterGeneratorWindow()
 	win.connect("delete-event", Gtk.main_quit)
 	win.show_all()
 	Gtk.main()

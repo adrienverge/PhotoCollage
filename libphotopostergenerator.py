@@ -134,17 +134,17 @@ class Photo:
 
 		if img.size[0] * h > img.size[1] * w:
 			# Image is too large
-			img = img.resize((round(h * img.size[0] / img.size[1]), round(h)),
-							 method)
+			img = img.resize((int(round(h * img.size[0] / img.size[1])),
+							 int(round(h))), method)
 			img.crop(((img.size[0] - w) / 2, 0, (img.size[0] + w) / 2, h))
 		elif img.size[0] * h < img.size[1] * w:
 			# Image is too high
-			img = img.resize((round(w), round(w * img.size[1] / img.size[0])),
-							 method)
+			img = img.resize((int(round(w)),
+							 int(round(w * img.size[1] / img.size[0]))), method)
 			img.crop((0, (img.size[1] - h) / 2, w, (img.size[1] + h) / 2))
 		else:
-			img = img.resize((round(w), round(h)), method)
-		canvas.paste(img, (round(x), round(y)))
+			img = img.resize((int(round(w)), int(round(h))), method)
+		canvas.paste(img, (int(round(x)), int(round(y))))
 
 class PhotoExtent(Photo):
 
@@ -473,7 +473,7 @@ class Page:
 		for col in self.cols:
 			col.draw_photos(canvas, fast)
 
-	def print(self, opts):
+	def render(self, opts):
 		self.scale(opts.enlargement)
 
 		canvas = PIL.Image.new("RGB", (int(self.print_w), int(self.print_h)),
