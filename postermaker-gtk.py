@@ -10,6 +10,7 @@ __version__ = "1.0"
 from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
 import io
 from multiprocessing import Process, Pipe
+import os.path
 import PIL.Image
 from threading import Thread, Lock
 
@@ -35,6 +36,15 @@ class PosterMakerWindow(Gtk.Window):
 	def __init__(self):
 		self.photolist = []
 
+		class Options:
+			def __init__(self):
+				self.no_cols = 1
+				self.border_w = 2
+				self.border_c = "black"
+				self.out_w = 2000
+
+		self.opts = Options()
+
 		self.make_window()
 
 	def make_window(self):
@@ -42,96 +52,64 @@ class PosterMakerWindow(Gtk.Window):
 
 		self.set_border_width(10)
 
-		box_window = Gtk.Box(spacing=10)
+		box_window = Gtk.Box(spacing=10, orientation=Gtk.Orientation.VERTICAL)
 		self.add(box_window)
 
-		# -----------
-		#  First pan
-		# -----------
+		# -----------------------
+		#  Input and options pan
+		# -----------------------
 
-		box_settings = Gtk.Box(spacing=6, orientation=Gtk.Orientation.VERTICAL)
-		box_window.pack_start(box_settings, False, False, 0)
+		box = Gtk.Box(spacing=6, orientation=Gtk.Orientation.HORIZONTAL)
+		box_window.pack_start(box, False, False, 0)
 
-		self.btn_choose_images = Gtk.Button(label="Choose images")
+		self.btn_choose_images = Gtk.Button(label="Choose input images...")
 		self.btn_choose_images.connect("clicked", self.choose_images)
-		box_settings.pack_start(self.btn_choose_images, False, False, 0)
+		box.pack_start(self.btn_choose_images, False, False, 0)
 
-		self.lbl_images = Gtk.Label("0 images loaded")
-		box_settings.pack_start(self.lbl_images, False, False, 0)
+		self.lbl_images = Gtk.Label("0 images loaded", xalign=0.1)
+		box.pack_start(self.lbl_images, True, True, 0)
 
-		label = Gtk.Label("Number of columns:", xalign=0)
-		box_settings.pack_start(label, False, False, 0)
+		self.btn_opts = Gtk.Button(label="Options...")
+		self.btn_opts.connect("clicked", self.set_options)
+		box.pack_start(self.btn_opts, False, False, 0)
 
-		self.spn_nocols = Gtk.SpinButton()
-		self.spn_nocols.set_adjustment(Gtk.Adjustment(1, 1, 100, 1, 10, 0))
-		self.spn_nocols.set_numeric(True)
-		self.spn_nocols.set_update_policy(Gtk.SpinButtonUpdatePolicy.IF_VALID)
-		box_settings.pack_start(self.spn_nocols, False, False, 0)
+		# -----------------------
+		#  Computing buttons pan
+		# -----------------------
 
-		label = Gtk.Label("Border width (in percent):", xalign=0)
-		box_settings.pack_start(label, False, False, 0)
-
-		self.spn_border = Gtk.SpinButton()
-		self.spn_border.set_adjustment(Gtk.Adjustment(2, 0, 100, 1, 10, 0))
-		self.spn_border.set_numeric(True)
-		self.spn_border.set_update_policy(Gtk.SpinButtonUpdatePolicy.IF_VALID)
-		box_settings.pack_start(self.spn_border, False, False, 0)
-
-		label = Gtk.Label("Border color:", xalign=0)
-		box_settings.pack_start(label, False, False, 0)
-
-		self.cmb_bordercolor = Gtk.ComboBoxText()
-		self.cmb_bordercolor.insert(0, "black", "black")
-		self.cmb_bordercolor.insert(1, "white", "white")
-		self.cmb_bordercolor.set_active(0)
-		box_settings.pack_start(self.cmb_bordercolor, False, False, 0)
-
-		label = Gtk.Label("Poster width (in pixels):", xalign=0)
-		box_settings.pack_start(label, False, False, 0)
-
-		self.spn_outw = Gtk.SpinButton()
-		self.spn_outw.set_adjustment(Gtk.Adjustment(1000, 1, 100000, 1, 100, 0))
-		self.spn_outw.set_numeric(True)
-		self.spn_outw.set_update_policy(Gtk.SpinButtonUpdatePolicy.IF_VALID)
-		box_settings.pack_start(self.spn_outw, False, False, 0)
-
-		# ------------
-		#  Second pan
-		# ------------
-
-		box_skeleton = Gtk.Box(spacing=6, orientation=Gtk.Orientation.VERTICAL)
-		box_window.pack_start(box_skeleton, True, True, 0)
+		box = Gtk.Box(spacing=6)
+		box_window.pack_start(box, False, False, 0)
 
 		self.btn_skeleton = Gtk.Button(label="Generate a new layout")
 		self.btn_skeleton.connect("clicked", self.make_skeleton)
-		box_skeleton.pack_start(self.btn_skeleton, False, False, 0)
+		box.pack_start(self.btn_skeleton, True, True, 0)
+
+		self.btn_preview = Gtk.Button(label="Preview poster")
+		self.btn_preview.connect("clicked", self.make_preview)
+		box.pack_start(self.btn_preview, True, True, 0)
+
+		self.btn_save = Gtk.Button(label="Save full-resolution poster...")
+		self.btn_save.connect("clicked", self.save_poster)
+		box.pack_end(self.btn_save, True, True, 0)
+
+		# -------------------
+		#  Image preview pan
+		# -------------------
+
+		box = Gtk.Box(spacing=10)
+		box_window.pack_start(box, True, True, 0)
 
 		self.img_skeleton = Gtk.Image()
 		parse, color = Gdk.Color.parse("#888888")
 		self.img_skeleton.modify_bg(Gtk.StateType.NORMAL, color)
 		self.img_skeleton.set_size_request(300, 300)
-		box_skeleton.pack_start(self.img_skeleton, True, True, 0)
-
-		# -----------
-		#  Third pan
-		# -----------
-
-		box_preview = Gtk.Box(spacing=6, orientation=Gtk.Orientation.VERTICAL)
-		box_window.pack_start(box_preview, True, True, 0)
-
-		self.btn_preview = Gtk.Button(label="Preview poster")
-		self.btn_preview.connect("clicked", self.make_preview)
-		box_preview.pack_start(self.btn_preview, False, False, 0)
+		box.pack_start(self.img_skeleton, True, True, 0)
 
 		self.img_preview = Gtk.Image()
 		parse, color = Gdk.Color.parse("#888888")
 		self.img_preview.modify_bg(Gtk.StateType.NORMAL, color)
 		self.img_preview.set_size_request(300, 300)
-		box_preview.pack_start(self.img_preview, True, True, 0)
-
-		self.btn_save = Gtk.Button(label="Save full-resolution poster...")
-		self.btn_save.connect("clicked", self.save_poster)
-		box_preview.pack_end(self.btn_save, False, False, 0)
+		box.pack_start(self.img_preview, True, True, 0)
 
 		self.btn_skeleton.set_sensitive(False)
 		self.btn_preview.set_sensitive(False)
@@ -155,19 +133,26 @@ class PosterMakerWindow(Gtk.Window):
 			self.btn_preview.set_sensitive(False)
 			self.btn_save.set_sensitive(False)
 			if len(self.photolist) > 0:
-				self.spn_nocols.set_value(round(math.sqrt(len(self.photolist))))
+				self.opts.no_cols = round(math.sqrt(len(self.photolist)))
 
 				self.make_skeleton(button)
 				self.btn_skeleton.set_sensitive(True)
 
 		dialog.destroy()
 
+	def set_options(self, button):
+		dialog = OptionsDialog(self)
+		response = dialog.run()
+
+		if response == Gtk.ResponseType.OK:
+			dialog.apply_opts(self.opts)
+
+		dialog.destroy()
+
 	def make_skeleton(self, button):
 		random.shuffle(self.photolist)
 
-		no_cols = self.spn_nocols.get_value_as_int()
-
-		self.page = Page(1.0, no_cols)
+		self.page = Page(1.0, self.opts.no_cols)
 		self.page.fill(copy.deepcopy(self.photolist))
 		self.page.eat_space()
 		self.page.eat_space2()
@@ -185,14 +170,6 @@ class PosterMakerWindow(Gtk.Window):
 		self.btn_preview.set_sensitive(True)
 		self.btn_save.set_sensitive(True)
 
-	def get_border_width(self):
-		return self.spn_border.get_value_as_int()
-
-	def get_border_color(self):
-		iter = self.cmb_bordercolor.get_active_iter()
-		model = self.cmb_bordercolor.get_model()
-		return model[iter][1]
-
 	def make_preview(self, button):
 		w = self.img_preview.get_allocation().width
 		h = self.img_preview.get_allocation().height
@@ -200,7 +177,7 @@ class PosterMakerWindow(Gtk.Window):
 
 		opts = PrintOptions(enlargement, PrintOptions.RENDER_REAL,
 							PrintOptions.QUALITY_FAST)
-		opts.set_border(self.get_border_width(), self.get_border_color())
+		opts.set_border(self.opts.border_w, self.opts.border_c)
 
 		def big_job(conn):
 			"""
@@ -238,14 +215,17 @@ class PosterMakerWindow(Gtk.Window):
 		savefile = None
 
 		if dialog.run() == Gtk.ResponseType.OK:
-			w = self.spn_outw.get_value_as_int()
-			enlargement = w / self.page.get_width()
+			enlargement = self.opts.out_w / self.page.get_width()
 
 			opts = PrintOptions(enlargement, PrintOptions.RENDER_REAL,
 								PrintOptions.QUALITY_BEST)
-			opts.set_border(self.get_border_width(), self.get_border_color())
+			opts.set_border(self.opts.border_w, self.opts.border_c)
 
 			savefile = dialog.get_filename()
+			base, ext = os.path.splitext(savefile)
+			if not ext in (".jpg", ".jpeg", ".png", ".gif",
+						   ".ppm", ".tiff", ".bmp"):
+				savefile += ".jpg"
 
 		dialog.destroy()
 
@@ -306,6 +286,85 @@ class PosterMakerWindow(Gtk.Window):
 		if response == Gtk.ResponseType.CANCEL:
 			wr_conn.close()
 			process.terminate()
+
+class OptionsDialog(Gtk.Dialog):
+
+	def __init__(self, parent):
+		Gtk.Dialog.__init__(self, "Options", parent, 0,
+							(Gtk.STOCK_OK, Gtk.ResponseType.OK,
+							 Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
+
+		self.set_border_width(10)
+
+		box = self.get_content_area()
+		vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+		box.add(vbox)
+
+		box = Gtk.Box(spacing=6)
+		vbox.pack_start(box, False, False, 0)
+
+		label = Gtk.Label("Number of columns:", xalign=0)
+		box.pack_start(label, True, True, 0)
+
+		self.spn_nocols = Gtk.SpinButton()
+		self.spn_nocols.set_adjustment(Gtk.Adjustment(parent.opts.no_cols,
+													  1, 100, 1, 10, 0))
+		self.spn_nocols.set_numeric(True)
+		self.spn_nocols.set_update_policy(Gtk.SpinButtonUpdatePolicy.IF_VALID)
+		box.pack_start(self.spn_nocols, False, False, 0)
+
+		box = Gtk.Box(spacing=6)
+		vbox.pack_start(box, False, False, 0)
+
+		label = Gtk.Label("Border width (in percent):", xalign=0)
+		box.pack_start(label, True, True, 0)
+
+		self.spn_border = Gtk.SpinButton()
+		self.spn_border.set_adjustment(Gtk.Adjustment(parent.opts.border_w,
+													  0, 100, 1, 10, 0))
+		self.spn_border.set_numeric(True)
+		self.spn_border.set_update_policy(Gtk.SpinButtonUpdatePolicy.IF_VALID)
+		box.pack_start(self.spn_border, False, False, 0)
+
+		box = Gtk.Box(spacing=6)
+		vbox.pack_start(box, False, False, 0)
+
+		label = Gtk.Label("Border color:", xalign=0)
+		box.pack_start(label, True, True, 0)
+
+		colors = (
+			(0, "black", "black"),
+			(1, "white", "white")
+		)
+		self.cmb_bordercolor = Gtk.ComboBoxText()
+		for i, cid, clabel in colors:
+			self.cmb_bordercolor.insert(i, cid, clabel)
+			if cid == parent.opts.border_c:
+				self.cmb_bordercolor.set_active(i)
+
+		box.pack_start(self.cmb_bordercolor, False, False, 0)
+
+		box = Gtk.Box(spacing=6)
+		vbox.pack_start(box, False, False, 0)
+
+		label = Gtk.Label("Poster width (in pixels):", xalign=0)
+		box.pack_start(label, True, True, 0)
+
+		self.spn_outw = Gtk.SpinButton()
+		self.spn_outw.set_adjustment(Gtk.Adjustment(parent.opts.out_w,
+													1, 100000, 1, 100, 0))
+		self.spn_outw.set_numeric(True)
+		self.spn_outw.set_update_policy(Gtk.SpinButtonUpdatePolicy.IF_VALID)
+		box.pack_start(self.spn_outw, False, False, 0)
+
+		self.show_all()
+
+	def apply_opts(self, opts):
+		opts.no_cols = self.spn_nocols.get_value_as_int()
+		opts.border_w = self.spn_border.get_value_as_int()
+		iter = self.cmb_bordercolor.get_active_iter()
+		opts.border_c = self.cmb_bordercolor.get_model()[iter][1]
+		opts.out_w = self.spn_outw.get_value_as_int()
 
 class ComputingDialog(Gtk.Dialog):
 
