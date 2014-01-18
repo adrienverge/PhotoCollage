@@ -8,17 +8,17 @@ __license__ = "GPL"
 __version__ = "1.0"
 
 from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
-import io
+from io import BytesIO
 from multiprocessing import Process, Pipe
 import os.path
 import PIL.Image
-from threading import Thread, Lock
+from threading import Thread
 
-from libphotopostergenerator import *
+from photopostergeneratorlib import *
 
 def pil_img_to_raw(src_img):
 	# Save image to a temporary buffer
-	buf = io.BytesIO()
+	buf = BytesIO()
 	src_img.save(buf, 'ppm')
 	contents = buf.getvalue()
 	buf.close()
@@ -179,27 +179,25 @@ class PhotoPosterGeneratorWindow(Gtk.Window):
 							PrintOptions.QUALITY_FAST)
 		opts.set_border(self.opts.border_w, self.opts.border_c)
 
-		def big_job(conn):
-			"""
-			This is the heavy work that will be executed in another process.
-			It sends its result to a pipe.
-			"""
+		# Display a "please wait" dialog and do the job.
+
+		compdialog = ComputingDialog(self)
+
+		def big_job():
 			img = self.page.render(opts)
+			return pil_img_to_raw(img)
 
-			conn.send(pil_img_to_raw(img))
-			conn.close()
+		def on_finish(ret):
+			if ret != None:
+				gtk_img_from_raw(self.img_preview, ret)
+			compdialog.destroy()
 
-		def finish_job(conn):
-			"""
-			This is the final, lightweight work of displaying the image.
-			It gets the heavy work result from the pipe.
-			"""
-			try:
-				gtk_img_from_raw(self.img_preview, conn.recv())
-			except EOFError:
-				pass
+		t = WorkingThread(big_job, on_finish)
+		t.start()
 
-		self.do_computing(big_job, finish_job)
+		response = compdialog.run()
+		if response == Gtk.ResponseType.CANCEL:
+			t.stop_process()
 
 	def save_poster(self, button):
 		dialog = Gtk.FileChooserDialog("Save file", button.get_toplevel(),
@@ -232,60 +230,23 @@ class PhotoPosterGeneratorWindow(Gtk.Window):
 		if not savefile:
 			return
 
-		def big_job(conn):
-			"""
-			This is the heavy work that will be executed in another process.
-			"""
+		# Display a "please wait" dialog and do the job.
+
+		compdialog = ComputingDialog(self)
+
+		def big_job():
 			img = self.page.render(opts)
 			img.save(savefile)
 
-			conn.close()
-
-		def finish_job(conn):
-			"""
-			Nothing to do once the big job is done.
-			"""
-			pass
-
-		self.do_computing(big_job, finish_job)
-
-	def do_computing(self, big_job, finish_job):
-		"""
-		Displays a "please wait" dialog and do the job.
-
-		This function is a bit tricky. It will create a new thread, to avoid
-		freezing the GUI. It will also create a new subprocess, to take
-		advantage of multi-core processors (and also because PIL seems to
-		have problems with threads).
-
-		The lock is here for synchronization: the thread must wait for the
-		"please wait" dialog to appear, to make sure it will not destroy it
-		before it is created.
-		"""
-		lock = Lock()
-		lock.acquire()
-
-		compdialog = ComputingDialog(self, lock)
-
-		rd_conn, wr_conn = Pipe(False)
-		process = Process(target=big_job, args=(wr_conn,))
-
-		def thread_job(window):
-			lock.acquire()
-
-			process.start()
-			finish_job(rd_conn)
-			process.join()
-
+		def on_finish(ret):
 			compdialog.destroy()
 
-		thread = Thread(target=thread_job, args=(self,))
-		thread.start()
+		t = WorkingThread(big_job, on_finish)
+		t.start()
 
 		response = compdialog.run()
 		if response == Gtk.ResponseType.CANCEL:
-			wr_conn.close()
-			process.terminate()
+			t.stop_process()
 
 class OptionsDialog(Gtk.Dialog):
 
@@ -367,8 +328,8 @@ class OptionsDialog(Gtk.Dialog):
 		opts.out_w = self.spn_outw.get_value_as_int()
 
 class ComputingDialog(Gtk.Dialog):
-
-	def __init__(self, parent, lock):
+	"""Simple "please wait" dialog, with a "cancel" button."""
+	def __init__(self, parent):
 		Gtk.Dialog.__init__(self, "Please wait", parent, 0,
 							(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
 
@@ -390,15 +351,78 @@ class ComputingDialog(Gtk.Dialog):
 
 		self.timeout_id = GObject.timeout_add(50, self.on_timeout, None)
 
-		lock.release()
-
 	def on_timeout(self, user_data):
 		self.progressbar.pulse()
 
 		# Return True so that it continues to get called
 		return True
 
+class WorkingThread(Thread):
+	"""WorkingThread and WorkingProcess provide the ability to defer a heavy
+	task to another process, while keeping the GUI responsive.  Because of the
+	GIL, threads in python aren't really threads, so we need to spawn a new
+	process.  Besides, creating a new process make it possible to stop an
+	already began calculation by killing the process.
+
+	Launching an asynchronous task is done by creating a WorkingThread with two
+	arguments.  The first one is the heavy function, that will be executed in
+	another process, and that should return its output.  The second function
+	will be executed when the first one terminates, and should take the first
+	one's return value as input.
+
+	"""
+	def __init__(self, func, func_done):
+		Thread.__init__(self)
+
+		self.func = func
+		self.func_done = func_done
+
+		self.rd_conn, self.wr_conn = Pipe(False)
+		self.valid_output = True
+		self.p = WorkingProcess(self.func, self.rd_conn, self.wr_conn)
+
+	def run(self):
+		self.p.start()
+		self.wr_conn.close()
+
+		try:
+			func_ret = self.rd_conn.recv()
+			if not self.valid_output:
+				# In case the process was terminated abruptly
+				func_ret = None
+		except EOFError:
+			# In case the process was terminated abruptly
+			func_ret = None
+		finally:
+			self.func_done(func_ret)
+
+		self.rd_conn.close()
+
+	def stop_process(self):
+		self.valid_output = False
+		self.p.terminate()
+
+class WorkingProcess(Process):
+	"""WorkingProcess just executes the function it is given, after closing the
+	unused pipe ends.
+
+	"""
+	def __init__(self, func, rd_conn, wr_conn):
+		Process.__init__(self)
+
+		self.func = func
+		self.rd_conn = rd_conn
+		self.wr_conn = wr_conn
+
+	def run(self):
+		self.rd_conn.close()
+		self.wr_conn.send(self.func())
+		self.wr_conn.close()
+
 def main():
+	# Enable threading. Without that, threads hang!
+	GObject.threads_init()
+
 	win = PhotoPosterGeneratorWindow()
 	win.connect("delete-event", Gtk.main_quit)
 	win.show_all()
