@@ -150,7 +150,7 @@ class PhotoExtent(Photo):
 
 	def __init__(self, img, x, y):
 		self.img_ref = img
-		super(PhotoExtent, self).__init__(img.imagefile, img.w, img.h, x, y)
+		Photo.__init__(self, img.imagefile, img.w, img.h, x, y)
 
 class Column:
 
@@ -495,7 +495,10 @@ def build_photolist(filelist):
 	ret = []
 
 	for name in filelist:
-		img = PIL.Image.open(name)
+		try:
+			img = PIL.Image.open(name)
+		except IOError:
+			continue
 		w, h = img.size
 
 		orientation = 0
