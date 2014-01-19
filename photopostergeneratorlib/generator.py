@@ -2,13 +2,7 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2013 Adrien Vergé
 
-__author__ = "Adrien Vergé"
-__copyright__ = "Copyright 2013, Adrien Vergé"
-__license__ = "GPL"
-__version__ = "1.0"
-
-"""
-The design is based on LightBox, as presented in [1].
+"""The design is based on LightBox, as presented in [1].
 
 [1]: http://blog.vjeux.com/2012/image/image-layout-algorithm-lightbox.html
 
@@ -67,6 +61,13 @@ import math
 import PIL.Image
 import PIL.ImageDraw
 import random
+
+from version import APP_NAME, APP_VERSION
+
+__author__ = "Adrien Vergé"
+__copyright__ = "Copyright 2013, Adrien Vergé"
+__license__ = "GPL"
+__version__ = APP_VERSION
 
 def random_color():
 	r = random.randrange(256)

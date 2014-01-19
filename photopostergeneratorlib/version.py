@@ -2,6 +2,5 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2013 Adrien Vergé
 
-from photopostergeneratorlib import gtkgui
-
-gtkgui.main()
+APP_NAME = "photopostergenerator"
+APP_VERSION = "1.0"
