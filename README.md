@@ -13,9 +13,12 @@ user interface.  Photo Poster Generator is written in Python (compatible with
 versions 2 and 3) and requires the Python Imaging Library (PIL).
 
 Features:
-* allows the user to create new layouts until the right one appears
-* works even with a large number of images (> 100)
+* generate random new layouts until one suits the user
+* choose border color and width
+* save high-resolution image
+* works even with a large number of photos (> 100)
 * integrates into the GNOME environment
+* available in English and French
 
 Usage
 -----
