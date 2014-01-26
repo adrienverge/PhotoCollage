@@ -20,10 +20,18 @@ Features:
 * integrates into the GNOME environment
 * available in English and French
 
+Download
+--------
+
+Download the latest version in a
+[zip archive](https://github.com/adrienverge/photopostergenerator/archive/master.zip)
+or clone the
+[git repository](https://github.com/adrienverge/photopostergenerator.git).
+
 Usage
 -----
 
-Download the zip archive or clone the git repository, then run:
+Simply run:
 ```
 ./photopostergenerator
 ```
