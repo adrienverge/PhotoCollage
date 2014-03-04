@@ -38,14 +38,19 @@ Simply run:
 
 If it doesn't work, maybe you'll need to install the dependencies.
 
-On Debian/Ubuntu:
-```
-sudo apt-get install python-pil python-gtk2
-```
-
 On Fedora:
 ```
-sudo yum install python-pillow pygtk2
+sudo yum install python3-pillow python3-gobject
+```
+
+On Debian/Ubuntu:
+```
+sudo apt-get install python-pil python3-gi
+```
+
+On Arch Linux:
+```
+sudo pacman -S python-pillow python-gobject
 ```
 
 Installation
@@ -53,7 +58,7 @@ Installation
 
 To install it on your system, run:
 ```
-sudo python setup.py install
+sudo python3 setup.py install
 ```
 
 RPM and DEB packages to come...

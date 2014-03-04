@@ -1,6 +1,5 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (C) 2013 Adrien Vergé
+"Copyright (C) 2013 Adrien Vergé"
 
 import gettext
 from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
@@ -10,18 +9,18 @@ import os.path
 import PIL.Image
 from threading import Thread
 
-from generator import *
-from version import APP_NAME, APP_VERSION
+from .generator import *
+from .version import APP_NAME, APP_VERSION
 
 __author__ = "Adrien Vergé"
 __copyright__ = "Copyright 2013, Adrien Vergé"
-__license__ = "GPL"
+__license__ = "GPLv2"
 __version__ = APP_VERSION
 
 if os.path.isdir("locale"):
-	gettext.install(APP_NAME, "locale", unicode=True, names=["ngettext"])
+	gettext.install(APP_NAME, "locale", names=["ngettext"])
 else:
-	gettext.install(APP_NAME, unicode=True, names=["ngettext"])
+	gettext.install(APP_NAME, names=["ngettext"])
 _n = ngettext
 # xgettext --keyword=_n:1,2 -o photopostergenerator.pot `find . -name '*.py'`
 # cp photopostergenerator.pot locale/fr/LC_MESSAGES/photopostergenerator.po
@@ -446,6 +445,3 @@ def main():
 	win.connect("delete-event", Gtk.main_quit)
 	win.show_all()
 	Gtk.main()
-
-if __name__ == '__main__':
-	main()

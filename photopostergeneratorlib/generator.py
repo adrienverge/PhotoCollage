@@ -1,6 +1,5 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (C) 2013 Adrien Vergé
+"Copyright (C) 2013 Adrien Vergé"
 
 """The design is based on LightBox, as presented in [1].
 
@@ -62,11 +61,11 @@ import PIL.Image
 import PIL.ImageDraw
 import random
 
-from version import APP_NAME, APP_VERSION
+from .version import APP_NAME, APP_VERSION
 
 __author__ = "Adrien Vergé"
 __copyright__ = "Copyright 2013, Adrien Vergé"
-__license__ = "GPL"
+__license__ = "GPLv2"
 __version__ = APP_VERSION
 
 def random_color():
