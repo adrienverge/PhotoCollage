@@ -2,6 +2,6 @@ include LICENSE README.md
 include photopostergenerator
 recursive-include photopostergeneratorlib *.py
 include data/photopostergenerator.desktop
-include data/icons/photopostergenerator.png
+recursive-include data/icons/hicolor *
 recursive-include locale *.mo
 include setup.py
