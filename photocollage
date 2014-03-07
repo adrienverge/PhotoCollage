@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 "Copyright (C) 2013 Adrien Vergé"
 
-from photopostergeneratorlib import gtkgui
+from photocollagelib import gtkgui
 
 if __name__ == '__main__':
 	gtkgui.main()

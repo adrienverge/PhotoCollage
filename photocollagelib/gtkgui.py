@@ -22,10 +22,10 @@ if os.path.isdir("locale"):
 else:
 	gettext.install(APP_NAME, names=["ngettext"])
 _n = ngettext
-# xgettext --keyword=_n:1,2 -o photopostergenerator.pot `find . -name '*.py'`
-# cp photopostergenerator.pot locale/fr/LC_MESSAGES/photopostergenerator.po
-# msgfmt -o locale/fr/LC_MESSAGES/photopostergenerator.mo \
-#        locale/fr/LC_MESSAGES/photopostergenerator.po
+# xgettext --keyword=_n:1,2 -o photocollage.pot `find . -name '*.py'`
+# cp photocollage.pot locale/fr/LC_MESSAGES/photocollage.po
+# msgfmt -o locale/fr/LC_MESSAGES/photocollage.mo \
+#        locale/fr/LC_MESSAGES/photocollage.po
 
 def pil_img_to_raw(src_img):
 	# Save image to a temporary buffer
@@ -42,7 +42,7 @@ def gtk_img_from_raw(dest_img, contents):
 	dest_img.set_from_pixbuf(l.get_pixbuf())
 	l.close()
 
-class PhotoPosterGeneratorWindow(Gtk.Window):
+class PhotoCollageWindow(Gtk.Window):
 
 	def __init__(self):
 		self.photolist = []
@@ -59,7 +59,7 @@ class PhotoPosterGeneratorWindow(Gtk.Window):
 		self.make_window()
 
 	def make_window(self):
-		Gtk.Window.__init__(self, title=_("Photo Poster Generator"))
+		Gtk.Window.__init__(self, title=_("PhotoCollage"))
 
 		self.set_border_width(10)
 
@@ -441,7 +441,7 @@ def main():
 	# Enable threading. Without that, threads hang!
 	GObject.threads_init()
 
-	win = PhotoPosterGeneratorWindow()
+	win = PhotoCollageWindow()
 	win.connect("delete-event", Gtk.main_quit)
 	win.show_all()
 	Gtk.main()

@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Encoding=UTF-8
+Exec=photocollage
+Icon=photocollage
+Categories=GTK;GNOME;Utility;
+Terminal=false
+
+Name=PhotoCollage
+Comment=Graphical tool to make photo collage posters from multiple images
+
+Name[fr]=PhotoCollage
+Comment[fr]=Outil graphique pour fabriquer des posters en collant plusieurs photos

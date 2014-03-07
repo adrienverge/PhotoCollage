@@ -1,16 +1,26 @@
-Photo Poster Generator
-======================
+PhotoCollage
+============
 
-Photo Poster Generator is an application to make posters out of multiple
-photos.  It generates random layouts that place photos while taking advantage
-of all free space.  The algorithm tries to fill all space and keep each
-photo as large as possible.
+*Graphical tool to make a photo collage poster*
 
-![screenshot](https://raw.github.com/adrienverge/photopostergenerator/master/screenshot.png)
+PhotoCollage allows you to create photo collage posters.  It assembles the
+input photographs you give it to generate a big poster.  Photos are arranged
+to fill the whole poster, however you can influence the algorithm to change the
+final layout.  You can also set a custom border between photos, and save the
+generated image in the resolution you want.
+
+The algorithm generates random layouts that place photos while taking advantage
+of all free space.  It tries to fill all space while keeping each photo as
+large as possible.
+
+PhotoCollage does more or less the same as many commercial websites do, but
+for free and with open-source code.
+
+![screenshot](https://raw.github.com/adrienverge/PhotoCollage/master/screenshot.png)
 
 It provides a library to create photo layouts and posters, and a GTK graphical
-user interface.  Photo Poster Generator is written in Python (compatible with
-versions 2 and 3) and requires the Python Imaging Library (PIL).
+user interface.  PhotoCollage is written in Python (compatible with versions 2
+and 3) and requires the Python Imaging Library (PIL).
 
 Features:
 * generate random new layouts until one suits the user
@@ -24,16 +34,16 @@ Download
 --------
 
 Download the latest version in a
-[zip archive](https://github.com/adrienverge/photopostergenerator/archive/master.zip)
+[zip archive](https://github.com/adrienverge/PhotoCollage/archive/master.zip)
 or clone the
-[git repository](https://github.com/adrienverge/photopostergenerator.git).
+[git repository](https://github.com/adrienverge/PhotoCollage.git).
 
 Usage
 -----
 
 Simply run:
 ```
-./photopostergenerator
+./photocollage
 ```
 
 If it doesn't work, maybe you'll need to install the dependencies.

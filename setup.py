@@ -4,21 +4,22 @@
 
 from distutils.core import setup
 
-from photopostergeneratorlib.version import APP_NAME, APP_VERSION
+from photocollagelib.version import APP_NAME, APP_VERSION
 
 long_description = \
-	"Photo Poster Generator allows you to create a poster composed from many"+\
-	" input photographs.  The ways photos are arranged is optimized to fill "+\
-	"the whole poster, however you can influence the layout.  You can also "+\
-	"set a custom border between photos."
+	"PhotoCollage allows you to create photo collage posters.  It assembles "+\
+	"the input photographs you give it to generate a big poster.  Photos are"+\
+	" arranged to fill the whole poster, however you can influence the "+\
+	"algorithm to change the final layout.  You can also set a custom border"+\
+	" between photos, and save the generated image in the resolution you want."
 
 setup(
 	name = APP_NAME,
 	version = APP_VERSION,
 	author = "Adrien Vergé",
 	author_email = "adrienverge@gmail.com",
-	url = "https://github.com/adrienverge/photopostergenerator",
-	description = "A simple tool to make a poster from several images",
+	url = "https://github.com/adrienverge/photocollage",
+	description = "Graphical tool to make photo collage posters",
 	long_description = long_description,
 	license = "GPLv2",
 	platforms = ["linux"],
@@ -43,31 +44,31 @@ setup(
 		"Topic :: Multimedia :: Graphics",
 	],
 
-	packages = ["photopostergeneratorlib"],
-	scripts = ["photopostergenerator"],
+	packages = ["photocollagelib"],
+	scripts = ["photocollage"],
 	data_files = [
 	#	("share/doc/" + APP_NAME + "-" + APP_VERSION, ["README.md","LICENSE"]),
-		("share/applications", ["data/photopostergenerator.desktop"]),
+		("share/applications", ["data/photocollage.desktop"]),
 		("share/icons/hicolor/scalable/apps",
-			["data/icons/hicolor/scalable/apps/photopostergenerator.svg"]),
+			["data/icons/hicolor/scalable/apps/photocollage.svg"]),
 		("share/icons/hicolor/16x16/apps",
-			["data/icons/hicolor/16x16/apps/photopostergenerator.png"]),
+			["data/icons/hicolor/16x16/apps/photocollage.png"]),
 		("share/icons/hicolor/22x22/apps",
-			["data/icons/hicolor/22x22/apps/photopostergenerator.png"]),
+			["data/icons/hicolor/22x22/apps/photocollage.png"]),
 		("share/icons/hicolor/24x24/apps",
-			["data/icons/hicolor/24x24/apps/photopostergenerator.png"]),
+			["data/icons/hicolor/24x24/apps/photocollage.png"]),
 		("share/icons/hicolor/32x32/apps",
-			["data/icons/hicolor/32x32/apps/photopostergenerator.png"]),
+			["data/icons/hicolor/32x32/apps/photocollage.png"]),
 		("share/icons/hicolor/48x48/apps",
-			["data/icons/hicolor/48x48/apps/photopostergenerator.png"]),
+			["data/icons/hicolor/48x48/apps/photocollage.png"]),
 		("share/icons/hicolor/64x64/apps",
-			["data/icons/hicolor/64x64/apps/photopostergenerator.png"]),
+			["data/icons/hicolor/64x64/apps/photocollage.png"]),
 		("share/icons/hicolor/128x128/apps",
-			["data/icons/hicolor/128x128/apps/photopostergenerator.png"]),
+			["data/icons/hicolor/128x128/apps/photocollage.png"]),
 		("share/icons/hicolor/256x256/apps",
-			["data/icons/hicolor/256x256/apps/photopostergenerator.png"]),
+			["data/icons/hicolor/256x256/apps/photocollage.png"]),
 		("share/locale/fr/LC_MESSAGES",
-			["locale/fr/LC_MESSAGES/photopostergenerator.mo"]),
+			["locale/fr/LC_MESSAGES/photocollage.mo"]),
 	],
 
 	requires = [
