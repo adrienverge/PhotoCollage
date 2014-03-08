@@ -1,7 +1,7 @@
 PhotoCollage
 ============
 
-*Graphical tool to make a photo collage poster*
+*Graphical tool to make photo collage posters*
 
 PhotoCollage allows you to create photo collage posters.  It assembles the
 input photographs you give it to generate a big poster.  Photos are arranged
@@ -16,7 +16,7 @@ large as possible.
 PhotoCollage does more or less the same as many commercial websites do, but
 for free and with open-source code.
 
-![screenshot](https://raw.github.com/adrienverge/PhotoCollage/master/screenshot.png)
+![screenshot](https://github.com/adrienverge/PhotoCollage/raw/master/screenshots/photocollage-1.0-preview.png)
 
 It provides a library to create photo layouts and posters, and a GTK graphical
 user interface.  PhotoCollage is written in Python (compatible with versions 2

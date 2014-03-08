@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<application>
+ <id type="desktop">photocollage.desktop</id>
+ <licence>GPLv2</licence>
+ <name>PhotoCollage</name>
+ <summary>Graphical tool to make photo collage posters</summary>
+ <description>
+  <p>
+   PhotoCollage allows you to create photo collage posters.  It assembles the
+   input photographs you give it to generate a big poster.  Photos are arranged
+   to fill the whole poster, however you can influence the algorithm to change
+   the final layout.  You can also set a custom border between photos, and save
+   the generated image in the resolution you want.
+  </p>
+  <p>
+   The algorithm generates random layouts that place photos while taking
+   advantage of all free space.  It tries to fill all space while keeping each
+   photo as large as possible.
+  </p>
+  <p>
+   PhotoCollage does more or less the same as many commercial websites do, but
+   for free and with open-source code.
+  </p>
+ </description>
+ <screenshots>
+  <screenshot type="default" width="800" height="450">https://github.com/adrienverge/PhotoCollage/raw/master/screenshots/photocollage-1.0-preview.png</screenshot>
+ </screenshots>
+  <screenshot width="800" height="450">https://github.com/adrienverge/PhotoCollage/raw/master/screenshots/photocollage-1.0-options.png</screenshot>
+ </screenshots>
+ <url type="homepage">https://github.com/adrienverge/PhotoCollage</url>
+ <updatecontact>adrienverge@gmail.com</updatecontact>
+</application>

@@ -49,6 +49,7 @@ setup(
 	data_files = [
 	#	("share/doc/" + APP_NAME + "-" + APP_VERSION, ["README.md","LICENSE"]),
 		("share/applications", ["data/photocollage.desktop"]),
+		("share/appdata", ["data/photocollage.appdata.xml"]),
 		("share/icons/hicolor/scalable/apps",
 			["data/icons/hicolor/scalable/apps/photocollage.svg"]),
 		("share/icons/hicolor/16x16/apps",
