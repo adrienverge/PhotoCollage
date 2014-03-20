@@ -21,7 +21,7 @@ setup(
 	url = "https://github.com/adrienverge/photocollage",
 	description = "Graphical tool to make photo collage posters",
 	long_description = long_description,
-	license = "GPLv2",
+	license = "GPLv2+",
 	platforms = ["linux"],
 
 	classifiers = [

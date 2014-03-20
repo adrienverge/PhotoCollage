@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <application>
  <id type="desktop">photocollage.desktop</id>
- <licence>GPLv2</licence>
+ <licence>GPLv2+</licence>
  <name>PhotoCollage</name>
  <summary>Graphical tool to make photo collage posters</summary>
  <description>
