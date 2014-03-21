@@ -428,7 +428,7 @@ class WorkingThread(Thread):
 			# In case the process was terminated abruptly
 			func_ret = None
 		finally:
-			self.func_done(func_ret)
+			GObject.idle_add(self.func_done, func_ret)
 
 		self.rd_conn.close()
 
