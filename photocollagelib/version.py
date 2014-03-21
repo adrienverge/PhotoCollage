@@ -18,4 +18,4 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 """
 
 APP_NAME = "photocollage"
-APP_VERSION = "1.0.1"
+APP_VERSION = "1.0.2"

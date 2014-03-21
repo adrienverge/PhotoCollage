@@ -84,6 +84,43 @@ __copyright__ = "Copyright 2013, Adrien Vergé"
 __license__ = "GPLv2+"
 __version__ = APP_VERSION
 
+# File extensions supported by PIL.  Compiled from:
+# http://pillow.readthedocs.org/en/2.3.0/handbook/image-file-formats.html
+# and:
+# https://github.com/python-imaging/Pillow/blob/master/PIL/*ImagePlugin.py
+PIL_SUPPORTED_EXTS_RW = {
+	"BMP": ("bmp",),
+#	"EPS": ("ps", "eps",),	# doesn't seem to work
+	"GIF": ("gif",),
+	"IM": ("im",),
+	"JPEG": ("jfif", "jpe", "jpg", "jpeg",),
+	"MSP": ("msp",),
+	"PCX": ("pcx",),
+	"PNG": ("png",),
+	"PPM": ("pbm", "pgm", "ppm",),
+	"TGA": ("tga",),
+	"TIFF": ("tif", "tiff",),
+	"WebP": ("webp",),
+	"XBM": ("xbm",),
+}
+PIL_SUPPORTED_EXTS_RO = {
+	"CUR": ("cur",),
+	"DCX": ("dcx",),
+	"FLI": ("fli", "flc",),
+	"FPX": ("fpx",),
+	"GBR": ("gbr",),
+	"ICO": ("ico",),
+	"IPTC/NAA": ("iim",),
+	"PCD": ("pcd",),
+	"PSD": ("psd",),
+	"SGI": ("bw", "rgb", "rgba", "sgi",),
+	"XPM": ("xpm",),
+}
+PIL_SUPPORTED_EXTS_WO = {
+#	"PALM": ("palm",),		# doesn't seem to work
+#	"PDF": ("pdf",),		# doesn't seem to work
+}
+
 def random_color():
 	r = random.randrange(256)
 	g = random.randrange(256)

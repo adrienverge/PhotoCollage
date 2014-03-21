@@ -58,6 +58,64 @@ def gtk_img_from_raw(dest_img, contents):
 	dest_img.set_from_pixbuf(l.get_pixbuf())
 	l.close()
 
+def get_all_save_image_exts():
+	all_types = dict(list(PIL_SUPPORTED_EXTS_RW.items()) + \
+					 list(PIL_SUPPORTED_EXTS_WO.items()))
+	all = []
+	for type in all_types:
+		for ext in all_types[type]:
+			all.append(ext)
+
+	return all
+
+def set_open_image_filters(dialog):
+	"""Set our own filter because Gtk.FileFilter.add_pixbuf_formats() contains
+	formats not supported by PIL.
+
+	"""
+	# Do not show the filter to the user, just limit selectable files
+	imgfilter = Gtk.FileFilter()
+	imgfilter.set_name(_("All supported image formats"))
+
+	all_types = dict(list(PIL_SUPPORTED_EXTS_RW.items()) + \
+					 list(PIL_SUPPORTED_EXTS_RO.items()))
+	for type in all_types:
+		for ext in all_types[type]:
+			imgfilter.add_pattern("*." + ext)
+			imgfilter.add_pattern("*." + ext.upper())
+
+	dialog.add_filter(imgfilter)
+	dialog.set_filter(imgfilter)
+
+def set_save_image_filters(dialog):
+	"""Set our own filter because Gtk.FileFilter.add_pixbuf_formats() contains
+	formats not supported by PIL.
+
+	"""
+	all_types = dict(list(PIL_SUPPORTED_EXTS_RW.items()) + \
+					 list(PIL_SUPPORTED_EXTS_WO.items()))
+	filters = []
+
+	filters.append(Gtk.FileFilter())
+	flt = filters[-1]
+	flt.set_name(_("All supported image formats"))
+	for ext in get_all_save_image_exts():
+		flt.add_pattern("*." + ext)
+		flt.add_pattern("*." + ext.upper())
+	dialog.add_filter(flt)
+	dialog.set_filter(flt)
+
+	for type in all_types:
+		filters.append(Gtk.FileFilter())
+		flt = filters[-1]
+		name = _("%s image") % type
+		name += " (." + ", .".join(all_types[type]) + ")"
+		flt.set_name(name)
+		for ext in all_types[type]:
+			flt.add_pattern("*." + ext)
+			flt.add_pattern("*." + ext.upper())
+		dialog.add_filter(flt)
+
 class PhotoCollageWindow(Gtk.Window):
 
 	def __init__(self):
@@ -150,9 +208,7 @@ class PhotoCollageWindow(Gtk.Window):
 		dialog.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
 		dialog.add_button(Gtk.STOCK_OK, Gtk.ResponseType.OK)
 
-		filefilter = Gtk.FileFilter()
-		filefilter.add_pixbuf_formats()
-		dialog.set_filter(filefilter)
+		set_open_image_filters(dialog)
 
 		if dialog.run() == Gtk.ResponseType.OK:
 			self.photolist = build_photolist(dialog.get_filenames())
@@ -240,9 +296,7 @@ class PhotoCollageWindow(Gtk.Window):
 		dialog.add_button(Gtk.STOCK_OK, Gtk.ResponseType.OK)
 		dialog.set_do_overwrite_confirmation(True)
 
-		filefilter = Gtk.FileFilter()
-		filefilter.add_pixbuf_formats()
-		dialog.set_filter(filefilter)
+		set_save_image_filters(dialog)
 
 		savefile = None
 
@@ -255,8 +309,7 @@ class PhotoCollageWindow(Gtk.Window):
 
 			savefile = dialog.get_filename()
 			base, ext = os.path.splitext(savefile)
-			if not ext in (".jpg", ".jpeg", ".png", ".gif",
-						   ".ppm", ".tiff", ".bmp"):
+			if ext == "" or not ext[1:].lower() in get_all_save_image_exts():
 				savefile += ".jpg"
 
 		dialog.destroy()
