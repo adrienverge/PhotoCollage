@@ -30,45 +30,36 @@ Features:
 * integrates into the GNOME environment
 * available in English and French
 
-Download
---------
-
-Download the latest version in a
-[zip archive](https://github.com/adrienverge/PhotoCollage/archive/master.zip)
-or clone the
-[git repository](https://github.com/adrienverge/PhotoCollage.git).
-
 Usage
 -----
 
-Simply run:
+Download, decompress and run:
 ```
 ./photocollage
 ```
 
 If it doesn't work, maybe you'll need to install the dependencies.
 
-On Fedora:
-```
-sudo yum install python3-pillow python3-gobject
-```
+Dependencies on Fedora: `sudo yum install python3-pillow python3-gobject`
 
-On Debian/Ubuntu:
-```
-sudo apt-get install python-pil python3-gi
-```
+Dependencies on Debian/Ubuntu: `sudo apt-get install python-pil python3-gi`
 
-On Arch Linux:
-```
-sudo pacman -S python-pillow python-gobject
-```
+Dependencies on Arch Linux: `sudo pacman -S python-pillow python-gobject`
 
 Installation
 ------------
 
-To install it on your system, run:
+There's a package for Fedora.  It's as simple as:
 ```
+sudo yum install photocollage
+```
+
+If you don't have Fedora, or if you wish to install it manually on your system,
+run:
+```
+git clone https://github.com/adrienverge/PhotoCollage.git
+cd PhotoCollage
 sudo python3 setup.py install
 ```
 
-RPM and DEB packages to come...
+A launcher for PhotoCollage will then appear in your desktop menu!
