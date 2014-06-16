@@ -120,6 +120,8 @@ class PhotoCollageWindow(Gtk.Window):
 
 	def __init__(self):
 		self.photolist = []
+		self.skel_histo = []
+		self.current_skel = -1
 
 		class Options:
 			def __init__(self):
@@ -178,6 +180,27 @@ class PhotoCollageWindow(Gtk.Window):
 		self.btn_save.connect("clicked", self.save_poster)
 		box.pack_end(self.btn_save, True, True, 0)
 
+		# -------------
+		#  History pan
+		# -------------
+		box = Gtk.Box(spacing=6)
+		box_window.pack_start(box, False, False, 0)
+
+		self.btn_prev_skel = Gtk.Button(label=_("<"))
+		self.btn_prev_skel.connect("clicked", self.show_prev_skel)
+		box.pack_start(self.btn_prev_skel, False, False, 0)
+
+		self.lbl_histo = Gtk.Label(_("no history"), xalign=0.1)
+		box.pack_start(self.lbl_histo, False, False, 0)
+
+		self.btn_next_skel = Gtk.Button(label=_(">"))
+		self.btn_next_skel.connect("clicked", self.show_next_skel)
+		box.pack_start(self.btn_next_skel, False, False, 0)
+
+		self.btn_clear_histo = Gtk.Button(label=_("Clear history"))
+		self.btn_clear_histo.connect("clicked", self.clear_skel_histo)
+		box.pack_end(self.btn_clear_histo, False, False, 0)
+
 		# -------------------
 		#  Image preview pan
 		# -------------------
@@ -200,6 +223,9 @@ class PhotoCollageWindow(Gtk.Window):
 		self.btn_skeleton.set_sensitive(False)
 		self.btn_preview.set_sensitive(False)
 		self.btn_save.set_sensitive(False)
+		self.btn_prev_skel.set_sensitive(False)
+		self.btn_next_skel.set_sensitive(False)
+		self.btn_clear_histo.set_sensitive(False)
 
 	def choose_images(self, button):
 		dialog = Gtk.FileChooserDialog(_("Choose images"), button.get_toplevel(),
@@ -220,9 +246,10 @@ class PhotoCollageWindow(Gtk.Window):
 			else:
 				self.lbl_images.set_text(_("no image loaded"))
 
+			self.btn_skeleton.set_sensitive(False)
 			self.btn_preview.set_sensitive(False)
 			self.btn_save.set_sensitive(False)
-			if len(self.photolist) > 0:
+			if n > 0:
 				self.opts.no_cols = int(round(math.sqrt(len(self.photolist))))
 
 				self.make_skeleton(button)
@@ -240,30 +267,37 @@ class PhotoCollageWindow(Gtk.Window):
 		dialog.destroy()
 
 	def make_skeleton(self, button):
-		random.shuffle(self.photolist)
+		page = Page(self.photolist, 1.0, self.opts.no_cols)
+		page.fill()
+		page.eat_space()
+		page.eat_space2()
 
-		self.page = Page(1.0, self.opts.no_cols)
-		self.page.fill(copy.deepcopy(self.photolist))
-		self.page.eat_space()
-		self.page.eat_space2()
+		self.skel_histo.append(page)
+		self.current_skel = len(self.skel_histo) - 1
 
+		self.show_skeleton(page)
+
+		self.update_histo_pan()
+		self.btn_preview.set_sensitive(True)
+		self.btn_save.set_sensitive(True)
+
+	def show_skeleton(self, page):
 		w = self.img_skeleton.get_allocation().width
 		h = self.img_skeleton.get_allocation().height
-		enlargement = self.page.scale_to_fit(w, h)
+		enlargement = page.scale_to_fit(w, h)
 
 		opts = PrintOptions(enlargement, PrintOptions.RENDER_SKELETON,
 							PrintOptions.QUALITY_FAST)
-		img = self.page.render(opts)
+		img = page.render(opts)
 
 		gtk_img_from_raw(self.img_skeleton, pil_img_to_raw(img))
 
-		self.btn_preview.set_sensitive(True)
-		self.btn_save.set_sensitive(True)
 
 	def make_preview(self, button):
 		w = self.img_preview.get_allocation().width
 		h = self.img_preview.get_allocation().height
-		enlargement = self.page.scale_to_fit(w, h)
+		page = self.skel_histo[self.current_skel]
+		enlargement = page.scale_to_fit(w, h)
 
 		opts = PrintOptions(enlargement, PrintOptions.RENDER_REAL,
 							PrintOptions.QUALITY_FAST)
@@ -274,7 +308,7 @@ class PhotoCollageWindow(Gtk.Window):
 		compdialog = ComputingDialog(self)
 
 		def big_job():
-			img = self.page.render(opts)
+			img = page.render(opts)
 			return pil_img_to_raw(img)
 
 		def on_finish(ret):
@@ -300,8 +334,9 @@ class PhotoCollageWindow(Gtk.Window):
 
 		savefile = None
 
+		page = self.skel_histo[self.current_skel]
 		if dialog.run() == Gtk.ResponseType.OK:
-			enlargement = self.opts.out_w / self.page.get_width()
+			enlargement = self.opts.out_w / page.get_width()
 
 			opts = PrintOptions(enlargement, PrintOptions.RENDER_REAL,
 								PrintOptions.QUALITY_BEST)
@@ -322,7 +357,7 @@ class PhotoCollageWindow(Gtk.Window):
 		compdialog = ComputingDialog(self)
 
 		def big_job():
-			img = self.page.render(opts)
+			img = page.render(opts)
 			img.save(savefile)
 
 		def on_finish(ret):
@@ -334,6 +369,47 @@ class PhotoCollageWindow(Gtk.Window):
 		response = compdialog.run()
 		if response == Gtk.ResponseType.CANCEL:
 			t.stop_process()
+
+	def show_prev_skel(self, button):
+		if self.current_skel > 0:
+			self.current_skel -= 1
+			self.show_skeleton(self.skel_histo[self.current_skel])
+			self.update_lbl_images()
+			self.update_histo_pan()
+
+	def show_next_skel(self, button):
+		if self.current_skel < len(self.skel_histo) - 1:
+			self.current_skel += 1
+			self.show_skeleton(self.skel_histo[self.current_skel])
+			self.update_lbl_images()
+			self.update_histo_pan()
+
+	def clear_skel_histo(self, button):
+		# keep current skeleton
+		self.skel_histo = [self.skel_histo[self.current_skel]]
+		self.current_skel = 0
+		self.show_skeleton(self.skel_histo[self.current_skel])
+		self.update_histo_pan()
+
+	def update_lbl_images(self):
+		n = len(self.skel_histo[self.current_skel].photo_list)
+		self.lbl_images.set_text(
+			_n("%(num)d image loaded", "%(num)d images loaded", n)
+			% {"num": n})
+
+	def update_histo_pan(self):
+		if len(self.skel_histo) == 0:
+			self.lbl_histo.set_label(_("no history"))
+			self.btn_prev_skel.set_sensitive(False)
+			self.btn_next_skel.set_sensitive(False)
+			self.btn_clear_histo.set_sensitive(False)
+		else:
+			self.lbl_histo.set_label(_("{0} of {1}").format(
+				self.current_skel + 1,
+				len(self.skel_histo)))
+			self.btn_prev_skel.set_sensitive(self.current_skel > 0)
+			self.btn_next_skel.set_sensitive(self.current_skel < len(self.skel_histo) - 1)
+			self.btn_clear_histo.set_sensitive(len(self.skel_histo) > 1)
 
 class OptionsDialog(Gtk.Dialog):
 
