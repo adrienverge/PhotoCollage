@@ -1,0 +1,107 @@
+# PhotoCollage translation file
+# Copyright (C) 2014 Adrien Vergé
+# This file is distributed under the same license as the PhotoCollage package.
+# Adrien Vergé, 2014.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: fr\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2014-01-18 02:46-0500\n"
+"PO-Revision-Date: 2014-03-21 13:50-0500\n"
+"Last-Translator: Adrien Vergé\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n>1;\n"
+
+#: photocollagelib/gtkgui.py:78 photocollagelib/gtkgui.py:101
+msgid "All supported image formats"
+msgstr "Tous les formats d'image supportés"
+
+#: photocollagelib/gtkgui.py:111
+#, python-format
+msgid "%s image"
+msgstr "Image %s"
+
+#: photocollagelib/gtkgui.py:62
+msgid "PhotoCollage"
+msgstr "PhotoCollage"
+
+#: photocollagelib/gtkgui.py:76
+msgid "Choose input images..."
+msgstr "Choisir les images d'entrée..."
+
+#: photocollagelib/gtkgui.py:80 photocollagelib/gtkgui.py:149
+msgid "no image loaded"
+msgstr "aucune image chargée"
+
+#: photocollagelib/gtkgui.py:146
+#, python-format
+msgid "%(num)d image loaded"
+msgid_plural "%(num)d images loaded"
+msgstr[0] "%(num)d image chargée"
+msgstr[1] "%(num)d images chargées"
+
+#: photocollagelib/gtkgui.py:83
+msgid "Options..."
+msgstr "Options..."
+
+#: photocollagelib/gtkgui.py:94
+msgid "Generate a new layout"
+msgstr "Générer un nouvel agencement"
+
+#: photocollagelib/gtkgui.py:98
+msgid "Preview poster"
+msgstr "Prévisualiser le poster"
+
+#: photocollagelib/gtkgui.py:103
+msgid "Save full-resolution poster..."
+msgstr "Enregistrer le poster en haute résolution..."
+
+#: photocollagelib/gtkgui.py:131
+msgid "Choose images"
+msgstr "Choisir les images"
+
+#: photocollagelib/gtkgui.py:221
+msgid "Save file"
+msgstr "Enregistrer le fichier"
+
+#: photocollagelib/gtkgui.py:272
+msgid "Options"
+msgstr "Options"
+
+#: photocollagelib/gtkgui.py:285
+msgid "Number of columns:"
+msgstr "Nombre de colonnes :"
+
+#: photocollagelib/gtkgui.py:298
+msgid "Border width (in percent):"
+msgstr "Largeur de la bordure (en pourcent) :"
+
+#: photocollagelib/gtkgui.py:311
+msgid "Border color:"
+msgstr "Couleur de la bordure :"
+
+#: photocollagelib/gtkgui.py:315
+msgid "black"
+msgstr "noir"
+
+#: photocollagelib/gtkgui.py:316
+msgid "white"
+msgstr "blanc"
+
+#: photocollagelib/gtkgui.py:329
+msgid "Poster width (in pixels):"
+msgstr "Largeur du poster (en pixel) :"
+
+#: photocollagelib/gtkgui.py:351
+msgid "Please wait"
+msgstr "Veuillez patienter"
+
+#: photocollagelib/gtkgui.py:361
+msgid "Performing image computation..."
+msgstr "Calcul de l'image en cours..."

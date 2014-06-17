@@ -4,5 +4,6 @@ recursive-include photocollagelib *.py
 include data/photocollage.desktop
 include data/photocollage.appdata.xml
 recursive-include data/icons/hicolor *
-recursive-include locale *.mo
+include po/POTFILES.in
+recursive-include po *.po
 include setup.py
