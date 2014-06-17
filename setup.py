@@ -3,6 +3,7 @@
 "Copyright (C) 2013 Adrien Vergé"
 
 from distutils.core import setup
+from DistUtilsExtra.command import *
 
 from photocollagelib.version import APP_NAME, APP_VERSION
 
@@ -68,9 +69,12 @@ setup(
 			["data/icons/hicolor/128x128/apps/photocollage.png"]),
 		("share/icons/hicolor/256x256/apps",
 			["data/icons/hicolor/256x256/apps/photocollage.png"]),
-		("share/locale/fr/LC_MESSAGES",
-			["locale/fr/LC_MESSAGES/photocollage.mo"]),
 	],
+
+	cmdclass = {
+		"build": build_extra.build_extra,
+		"build_i18n": build_i18n.build_i18n
+	},
 
 	requires = [
 		"copy",
