@@ -129,8 +129,9 @@ def random_color():
 
 class Photo:
 
-	def __init__(self, imagefile, w, h, x=0, y=0):
+	def __init__(self, imagefile, color, w, h, x=0, y=0):
 		self.imagefile = imagefile
+		self.color = color
 
 		self.real_w = self.w = w
 		self.real_h = self.h = h
@@ -159,15 +160,13 @@ class Photo:
 		Xy = (self.print_x + self.print_w - 1, self.print_y)
 		XY = (self.print_x + self.print_w - 1, self.print_y + self.print_h - 1)
 
-		color = random_color()
-
 		draw = PIL.ImageDraw.Draw(canvas)
-		draw.line(xy + Xy, fill=color)
-		draw.line(xy + xY, fill=color)
-		draw.line(xY + XY, fill=color)
-		draw.line(Xy + XY, fill=color)
-		draw.line(xy + XY, fill=color)
-		draw.line(xY + Xy, fill=color)
+		draw.line(xy + Xy, fill=self.color)
+		draw.line(xy + xY, fill=self.color)
+		draw.line(xY + XY, fill=self.color)
+		draw.line(Xy + XY, fill=self.color)
+		draw.line(xy + XY, fill=self.color)
+		draw.line(xY + Xy, fill=self.color)
 
 	def draw_photo(self, canvas, w, h, x, y, fast):
 		img = PIL.Image.open(self.imagefile)
@@ -383,7 +382,10 @@ class PrintOptions:
 
 class Page:
 
-	def __init__(self, w, no_cols):
+	def __init__(self, photo_list, w, no_cols):
+		self.photo_list = copy.deepcopy(photo_list)
+		random.shuffle(self.photo_list)
+
 		self.w = w
 		self.no_cols = no_cols
 		self.cols = []
@@ -445,8 +447,8 @@ class Page:
 			c.imglist.append(img)
 			c.h += img.h
 
-	def fill(self, imglist):
-		for img in imglist:
+	def fill(self):
+		for img in self.photo_list:
 			self.append(img)
 
 	def get_width(self):
@@ -564,7 +566,8 @@ def build_photolist(filelist):
 		except:
 			pass
 
-		photo = Photo(name, w, h)
+		color = random_color()
+		photo = Photo(name, color, w, h)
 		photo.orientation = orientation
 
 		ret.append(photo)
