@@ -62,6 +62,18 @@ msgstr "Prévisualiser le poster"
 msgid "Save full-resolution poster..."
 msgstr "Enregistrer le poster en haute résolution..."
 
+#: ../photocollagelib/gtkgui.py:193 ../photocollagelib/gtkgui.py:402
+msgid "no history"
+msgstr "pas d'historique"
+
+#: ../photocollagelib/gtkgui.py:200
+msgid "Clear history"
+msgstr "Effacer l'historique"
+
+#: ../photocollagelib/gtkgui.py:407
+msgid "{0} of {1}"
+msgstr "{0} sur {1}"
+
 #: photocollagelib/gtkgui.py:131
 msgid "Choose images"
 msgstr "Choisir les images"
