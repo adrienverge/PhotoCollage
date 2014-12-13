@@ -24,7 +24,6 @@
  </description>
  <screenshots>
   <screenshot type="default" width="800" height="450">https://github.com/adrienverge/PhotoCollage/raw/master/screenshots/photocollage-1.0-preview.png</screenshot>
- </screenshots>
   <screenshot width="800" height="450">https://github.com/adrienverge/PhotoCollage/raw/master/screenshots/photocollage-1.0-options.png</screenshot>
  </screenshots>
  <url type="homepage">https://github.com/adrienverge/PhotoCollage</url>
