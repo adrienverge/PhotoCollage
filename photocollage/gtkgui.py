@@ -31,7 +31,7 @@ from photocollage.generator import PrintOptions
 from photocollage.generator import PIL_SUPPORTED_EXTS_RO
 from photocollage.generator import PIL_SUPPORTED_EXTS_RW
 from photocollage.generator import PIL_SUPPORTED_EXTS_WO
-from photocollage.version import APP_NAME, APP_VERSION
+from photocollage import APP_NAME, APP_VERSION
 
 __author__ = "Adrien Vergé"
 __copyright__ = "Copyright 2013, Adrien Vergé"

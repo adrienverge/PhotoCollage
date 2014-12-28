@@ -5,7 +5,7 @@
 from distutils.core import setup
 from DistUtilsExtra.command import build_extra, build_i18n
 
-from photocollage.version import APP_NAME, APP_VERSION
+from photocollage import APP_NAME, APP_VERSION
 
 long_description = (
     "PhotoCollage allows you to create photo collage posters.  It assembles "

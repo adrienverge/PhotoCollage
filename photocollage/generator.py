@@ -76,7 +76,7 @@ import PIL.Image
 import PIL.ImageDraw
 import random
 
-from photocollage.version import APP_VERSION
+from photocollage import APP_VERSION
 
 __author__ = "Adrien Vergé"
 __copyright__ = "Copyright 2013, Adrien Vergé"
