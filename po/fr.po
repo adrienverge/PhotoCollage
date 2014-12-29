@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: fr\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2014-01-18 02:46-0500\n"
-"PO-Revision-Date: 2014-03-21 13:50-0500\n"
+"PO-Revision-Date: 2014-12-29 20:05+0100\n"
 "Last-Translator: Adrien Vergé\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "Language: fr\n"
@@ -18,102 +18,90 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n>1;\n"
 
-#: photocollagelib/gtkgui.py:78 photocollagelib/gtkgui.py:101
+#: photocollage/gtkgui.py:73 photocollage/gtkgui.py:95
 msgid "All supported image formats"
 msgstr "Tous les formats d'image supportés"
 
-#: photocollagelib/gtkgui.py:111
+#: photocollage/gtkgui.py:105
 #, python-format
 msgid "%s image"
 msgstr "Image %s"
 
-#: photocollagelib/gtkgui.py:62
+#: photocollage/gtkgui.py:138
 msgid "PhotoCollage"
 msgstr "PhotoCollage"
 
-#: photocollagelib/gtkgui.py:76
-msgid "Choose input images..."
-msgstr "Choisir les images d'entrée..."
+#: photocollage/gtkgui.py:152
+msgid "Input images..."
+msgstr "Images sources..."
 
-#: photocollagelib/gtkgui.py:80 photocollagelib/gtkgui.py:149
+#: photocollage/gtkgui.py:159 photocollage/gtkgui.py:260
 msgid "no image loaded"
 msgstr "aucune image chargée"
 
-#: photocollagelib/gtkgui.py:146
+#: photocollage/gtkgui.py:163
+msgid "Save poster..."
+msgstr "Enregistrer le poster..."
+
+#: photocollage/gtkgui.py:189
+msgid "Regenerate"
+msgstr "Regénérer"
+
+#: photocollage/gtkgui.py:211
+msgid "Border..."
+msgstr "Bordure..."
+
+#: photocollage/gtkgui.py:240
+msgid "Choose images"
+msgstr "Choisir les images"
+
+#: photocollage/gtkgui.py:257
 #, python-format
 msgid "%(num)d image loaded"
 msgid_plural "%(num)d images loaded"
 msgstr[0] "%(num)d image chargée"
 msgstr[1] "%(num)d images chargées"
 
-#: photocollagelib/gtkgui.py:83
-msgid "Options..."
-msgstr "Options..."
+#: photocollage/gtkgui.py:290 photocollage/gtkgui.py:379
+msgid "An error occurred while rendering image."
+msgstr "Une erreur est survenue pendant la composition de l'image."
 
-#: photocollagelib/gtkgui.py:94
-msgid "Generate a new layout"
-msgstr "Générer un nouvel agencement"
-
-#: photocollagelib/gtkgui.py:98
-msgid "Preview poster"
-msgstr "Prévisualiser le poster"
-
-#: photocollagelib/gtkgui.py:103
-msgid "Save full-resolution poster..."
-msgstr "Enregistrer le poster en haute résolution..."
-
-#: ../photocollagelib/gtkgui.py:193 ../photocollagelib/gtkgui.py:402
-msgid "no history"
-msgstr "pas d'historique"
-
-#: ../photocollagelib/gtkgui.py:200
-msgid "Clear history"
-msgstr "Effacer l'historique"
-
-#: ../photocollagelib/gtkgui.py:407
-msgid "{0} of {1}"
-msgstr "{0} sur {1}"
-
-#: photocollagelib/gtkgui.py:131
-msgid "Choose images"
-msgstr "Choisir les images"
-
-#: photocollagelib/gtkgui.py:221
+#: photocollage/gtkgui.py:356
 msgid "Save file"
 msgstr "Enregistrer le fichier"
 
-#: photocollagelib/gtkgui.py:272
-msgid "Options"
-msgstr "Options"
+#: photocollage/gtkgui.py:408
+msgid "Border options"
+msgstr "Options de la bordure"
 
-#: photocollagelib/gtkgui.py:285
-msgid "Number of columns:"
-msgstr "Nombre de colonnes :"
+#: photocollage/gtkgui.py:420
+msgid "Border width (%):"
+msgstr "Épaisseur de la bordure (%) :"
 
-#: photocollagelib/gtkgui.py:298
-msgid "Border width (in percent):"
-msgstr "Largeur de la bordure (en pourcent) :"
-
-#: photocollagelib/gtkgui.py:311
+#: photocollage/gtkgui.py:429
 msgid "Border color:"
 msgstr "Couleur de la bordure :"
 
-#: photocollagelib/gtkgui.py:315
+#: photocollage/gtkgui.py:432
 msgid "black"
 msgstr "noir"
 
-#: photocollagelib/gtkgui.py:316
+#: photocollage/gtkgui.py:433
 msgid "white"
 msgstr "blanc"
 
-#: photocollagelib/gtkgui.py:329
+#: photocollage/gtkgui.py:445
 msgid "Poster width (in pixels):"
 msgstr "Largeur du poster (en pixel) :"
 
-#: photocollagelib/gtkgui.py:351
+#: photocollage/gtkgui.py:470
 msgid "Please wait"
 msgstr "Veuillez patienter"
 
-#: photocollagelib/gtkgui.py:361
+#: photocollage/gtkgui.py:479
 msgid "Performing image computation..."
 msgstr "Calcul de l'image en cours..."
+
+#: photocollage/gtkgui.py:499
+msgid "Error"
+msgstr "Erreur"

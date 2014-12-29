@@ -30,10 +30,9 @@ from photocollage.render import PIL_SUPPORTED_EXTS as EXTS
 gettext.textdomain(APP_NAME)
 _ = gettext.gettext
 _n = gettext.ngettext
-# xgettext --keyword=_n:1,2 -o photocollage.pot `find . -name '*.py'`
-# cp photocollage.pot locale/fr/LC_MESSAGES/photocollage.po
-# msgfmt -o locale/fr/LC_MESSAGES/photocollage.mo \
-#        locale/fr/LC_MESSAGES/photocollage.po
+# xgettext --keyword=_n:1,2 -o po/photocollage.pot $(find . -name '*.py')
+# cp po/photocollage.pot po/fr.po
+# msgfmt -o po/fr.mo po/fr.po
 
 
 def pil_img_to_raw(src_img):
