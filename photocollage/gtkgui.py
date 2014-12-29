@@ -21,22 +21,11 @@ import gettext
 from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
 from io import BytesIO
 import math
-from multiprocessing import Process, Pipe
 import os.path
-from threading import Thread
 
-from photocollage.generator import build_photolist
-from photocollage.generator import Page
-from photocollage.generator import PrintOptions
-from photocollage.generator import PIL_SUPPORTED_EXTS_RO
-from photocollage.generator import PIL_SUPPORTED_EXTS_RW
-from photocollage.generator import PIL_SUPPORTED_EXTS_WO
-from photocollage import APP_NAME, APP_VERSION
+from photocollage import APP_NAME, collage, render
+from photocollage.render import PIL_SUPPORTED_EXTS as EXTS
 
-__author__ = "Adrien Vergé"
-__copyright__ = "Copyright 2013, Adrien Vergé"
-__license__ = "GPLv2+"
-__version__ = APP_VERSION
 
 gettext.textdomain(APP_NAME)
 _ = gettext.gettext
@@ -60,13 +49,12 @@ def gtk_img_from_raw(dest_img, contents):
     # Fill pixbuf from this buffer
     l = GdkPixbuf.PixbufLoader.new_with_type("pnm")
     l.write(contents)
-    dest_img.set_from_pixbuf(l.get_pixbuf())
     l.close()
+    dest_img.set_from_pixbuf(l.get_pixbuf())
 
 
 def get_all_save_image_exts():
-    all_types = dict(list(PIL_SUPPORTED_EXTS_RW.items())
-                     + list(PIL_SUPPORTED_EXTS_WO.items()))
+    all_types = dict(list(EXTS.RW.items()) + list(EXTS.WO.items()))
     all = []
     for type in all_types:
         for ext in all_types[type]:
@@ -84,8 +72,7 @@ def set_open_image_filters(dialog):
     imgfilter = Gtk.FileFilter()
     imgfilter.set_name(_("All supported image formats"))
 
-    all_types = dict(list(PIL_SUPPORTED_EXTS_RW.items())
-                     + list(PIL_SUPPORTED_EXTS_RO.items()))
+    all_types = dict(list(EXTS.RW.items()) + list(EXTS.RO.items()))
     for type in all_types:
         for ext in all_types[type]:
             imgfilter.add_pattern("*." + ext)
@@ -100,8 +87,7 @@ def set_save_image_filters(dialog):
     formats not supported by PIL.
 
     """
-    all_types = dict(list(PIL_SUPPORTED_EXTS_RW.items())
-                     + list(PIL_SUPPORTED_EXTS_WO.items()))
+    all_types = dict(list(EXTS.RW.items()) + list(EXTS.WO.items()))
     filters = []
 
     filters.append(Gtk.FileFilter())
@@ -125,17 +111,22 @@ def set_save_image_filters(dialog):
         dialog.add_filter(flt)
 
 
-class PhotoCollageWindow(Gtk.Window):
+def gtk_run_in_main_thread(fn):
+    def my_fn(*args, **kwargs):
+        GObject.idle_add(fn, *args, **kwargs)
+    return my_fn
 
+
+class PhotoCollageWindow(Gtk.Window):
     def __init__(self):
         self.photolist = []
-        self.skel_histo = []
-        self.current_skel = -1
+        self.layout_histo = []
+        self.current_layout = -1
 
         class Options:
             def __init__(self):
                 self.no_cols = 1
-                self.border_w = 2
+                self.border_w = 0.02
                 self.border_c = "black"
                 self.out_w = 2000
 
@@ -152,63 +143,77 @@ class PhotoCollageWindow(Gtk.Window):
         self.add(box_window)
 
         # -----------------------
-        #  Input and options pan
+        #  Input and output pan
         # -----------------------
 
         box = Gtk.Box(spacing=6, orientation=Gtk.Orientation.HORIZONTAL)
         box_window.pack_start(box, False, False, 0)
 
-        self.btn_choose_images = Gtk.Button(label=_("Choose input images..."))
+        self.btn_choose_images = Gtk.Button(label=_("Input images..."))
+        self.btn_choose_images.set_image(Gtk.Image.new_from_stock(
+            Gtk.STOCK_OPEN, Gtk.IconSize.LARGE_TOOLBAR))
+        self.btn_choose_images.set_always_show_image(True)
         self.btn_choose_images.connect("clicked", self.choose_images)
         box.pack_start(self.btn_choose_images, False, False, 0)
 
-        self.lbl_images = Gtk.Label(_("no image loaded"), xalign=0.1)
-        box.pack_start(self.lbl_images, True, True, 0)
-
-        self.btn_opts = Gtk.Button(label=_("Options..."))
-        self.btn_opts.connect("clicked", self.set_options)
-        box.pack_start(self.btn_opts, False, False, 0)
-
-        # -----------------------
-        #  Computing buttons pan
-        # -----------------------
-
-        box = Gtk.Box(spacing=6)
-        box_window.pack_start(box, False, False, 0)
-
-        self.btn_skeleton = Gtk.Button(label=_("Generate a new layout"))
-        self.btn_skeleton.connect("clicked", self.make_skeleton)
-        box.pack_start(self.btn_skeleton, True, True, 0)
-
-        self.btn_preview = Gtk.Button(label=_("Preview poster"))
-        self.btn_preview.connect("clicked", self.make_preview)
-        box.pack_start(self.btn_preview, True, True, 0)
+        self.lbl_images = Gtk.Label(_("no image loaded"))
+        box.pack_start(self.lbl_images, False, False, 0)
 
         # TODO: Open a dialog to ask the output image resolution
-        self.btn_save = Gtk.Button(label=_("Save full-resolution poster..."))
+        self.btn_save = Gtk.Button(label=_("Save poster..."))
+        self.btn_save.set_image(Gtk.Image.new_from_stock(
+            Gtk.STOCK_SAVE_AS, Gtk.IconSize.LARGE_TOOLBAR))
+        self.btn_save.set_always_show_image(True)
         self.btn_save.connect("clicked", self.save_poster)
-        box.pack_end(self.btn_save, True, True, 0)
+        box.pack_end(self.btn_save, False, False, 0)
 
-        # -------------
-        #  History pan
-        # -------------
+        # -----------------------
+        #  Tools pan
+        # -----------------------
+
         box = Gtk.Box(spacing=6)
         box_window.pack_start(box, False, False, 0)
 
-        self.btn_prev_skel = Gtk.Button(label="<")
-        self.btn_prev_skel.connect("clicked", self.show_prev_skel)
-        box.pack_start(self.btn_prev_skel, False, False, 0)
+        self.btn_undo = Gtk.Button()
+        self.btn_undo.set_image(Gtk.Image.new_from_stock(
+            Gtk.STOCK_UNDO, Gtk.IconSize.LARGE_TOOLBAR))
+        self.btn_undo.connect("clicked", self.select_prev_layout)
+        box.pack_start(self.btn_undo, False, False, 0)
+        self.lbl_current_layout = Gtk.Label(" ")
+        box.pack_start(self.lbl_current_layout, False, False, 0)
+        self.btn_redo = Gtk.Button()
+        self.btn_redo.set_image(Gtk.Image.new_from_stock(
+            Gtk.STOCK_REDO, Gtk.IconSize.LARGE_TOOLBAR))
+        self.btn_redo.connect("clicked", self.select_next_layout)
+        box.pack_start(self.btn_redo, False, False, 0)
+        self.btn_new_layout = Gtk.Button(label=_("Regenerate"))
+        self.btn_new_layout.set_image(Gtk.Image.new_from_stock(
+            Gtk.STOCK_REFRESH, Gtk.IconSize.LARGE_TOOLBAR))
+        self.btn_new_layout.set_always_show_image(True)
+        self.btn_new_layout.connect("clicked", self.regenerate_layout)
+        box.pack_start(self.btn_new_layout, False, False, 0)
 
-        self.lbl_histo = Gtk.Label(_("no history"), xalign=0.1)
-        box.pack_start(self.lbl_histo, False, False, 0)
+        box.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
 
-        self.btn_next_skel = Gtk.Button(label=">")
-        self.btn_next_skel.connect("clicked", self.show_next_skel)
-        box.pack_start(self.btn_next_skel, False, False, 0)
+        self.btn_less_cols = Gtk.Button()
+        self.btn_less_cols.set_image(Gtk.Image.new_from_stock(
+            Gtk.STOCK_GOTO_BOTTOM, Gtk.IconSize.LARGE_TOOLBAR))
+        self.btn_less_cols.connect("clicked", self.less_cols)
+        box.pack_start(self.btn_less_cols, False, False, 0)
+        self.btn_more_cols = Gtk.Button()
+        self.btn_more_cols.set_image(Gtk.Image.new_from_stock(
+            Gtk.STOCK_GOTO_LAST, Gtk.IconSize.LARGE_TOOLBAR))
+        self.btn_more_cols.connect("clicked", self.more_cols)
+        box.pack_start(self.btn_more_cols, False, False, 0)
 
-        self.btn_clear_histo = Gtk.Button(label=_("Clear history"))
-        self.btn_clear_histo.connect("clicked", self.clear_skel_histo)
-        box.pack_end(self.btn_clear_histo, False, False, 0)
+        box.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
+
+        self.btn_border = Gtk.Button(label=_("Border..."))
+        self.btn_border.set_image(Gtk.Image.new_from_stock(
+            Gtk.STOCK_SELECT_COLOR, Gtk.IconSize.LARGE_TOOLBAR))
+        self.btn_border.set_always_show_image(True)
+        self.btn_border.connect("clicked", self.set_border_options)
+        box.pack_end(self.btn_border, False, False, 0)
 
         # -------------------
         #  Image preview pan
@@ -217,24 +222,19 @@ class PhotoCollageWindow(Gtk.Window):
         box = Gtk.Box(spacing=10)
         box_window.pack_start(box, True, True, 0)
 
-        self.img_skeleton = Gtk.Image()
-        parse, color = Gdk.Color.parse("#888888")
-        self.img_skeleton.modify_bg(Gtk.StateType.NORMAL, color)
-        self.img_skeleton.set_size_request(300, 300)
-        box.pack_start(self.img_skeleton, True, True, 0)
-
         self.img_preview = Gtk.Image()
         parse, color = Gdk.Color.parse("#888888")
         self.img_preview.modify_bg(Gtk.StateType.NORMAL, color)
-        self.img_preview.set_size_request(300, 300)
+        self.img_preview.set_size_request(600, 400)
         box.pack_start(self.img_preview, True, True, 0)
 
-        self.btn_skeleton.set_sensitive(False)
-        self.btn_preview.set_sensitive(False)
         self.btn_save.set_sensitive(False)
-        self.btn_prev_skel.set_sensitive(False)
-        self.btn_next_skel.set_sensitive(False)
-        self.btn_clear_histo.set_sensitive(False)
+
+        self.btn_undo.set_sensitive(False)
+        self.btn_redo.set_sensitive(False)
+        self.btn_new_layout.set_sensitive(False)
+        self.btn_less_cols.set_sensitive(False)
+        self.btn_more_cols.set_sensitive(False)
 
     def choose_images(self, button):
         dialog = Gtk.FileChooserDialog(_("Choose images"),
@@ -247,8 +247,11 @@ class PhotoCollageWindow(Gtk.Window):
         set_open_image_filters(dialog)
 
         if dialog.run() == Gtk.ResponseType.OK:
-            self.photolist = build_photolist(dialog.get_filenames())
+            self.photolist = render.build_photolist(dialog.get_filenames())
+            dialog.destroy()
+
             n = len(self.photolist)
+            # self.lbl_images.set_text(str(n))
             if n > 0:
                 self.lbl_images.set_text(
                     _n("%(num)d image loaded", "%(num)d images loaded", n)
@@ -256,179 +259,154 @@ class PhotoCollageWindow(Gtk.Window):
             else:
                 self.lbl_images.set_text(_("no image loaded"))
 
-            self.btn_skeleton.set_sensitive(False)
-            self.btn_preview.set_sensitive(False)
-            self.btn_save.set_sensitive(False)
             if n > 0:
-                self.opts.no_cols = int(round(math.sqrt(len(self.photolist))))
+                self.opts.no_cols = int(round(
+                    1.5 * math.sqrt(len(self.photolist))))
 
-                self.make_skeleton(button)
-                self.btn_skeleton.set_sensitive(True)
+                self.regenerate_layout()
+        else:
+            dialog.destroy()
 
-        dialog.destroy()
+    def render_preview(self):
+        page = self.layout_histo[self.current_layout]
 
-    def set_options(self, button):
-        dialog = OptionsDialog(self)
-        response = dialog.run()
-
-        if response == Gtk.ResponseType.OK:
-            dialog.apply_opts(self.opts)
-
-        dialog.destroy()
-
-    def make_skeleton(self, button):
-        page = Page(self.photolist, 1.0, self.opts.no_cols)
-        page.fill()
-        page.eat_space()
-        page.eat_space2()
-
-        self.skel_histo.append(page)
-        self.current_skel = len(self.skel_histo) - 1
-
-        self.show_skeleton(page)
-
-        self.update_histo_pan()
-        self.btn_preview.set_sensitive(True)
-        self.btn_save.set_sensitive(True)
-
-    def show_skeleton(self, page):
-        w = self.img_skeleton.get_allocation().width
-        h = self.img_skeleton.get_allocation().height
-        enlargement = page.scale_to_fit(w, h)
-
-        opts = PrintOptions(enlargement, PrintOptions.RENDER_SKELETON,
-                            PrintOptions.QUALITY_FAST)
-        img = page.render(opts)
-
-        gtk_img_from_raw(self.img_skeleton, pil_img_to_raw(img))
-
-    def make_preview(self, button):
         w = self.img_preview.get_allocation().width
         h = self.img_preview.get_allocation().height
-        page = self.skel_histo[self.current_skel]
-        enlargement = page.scale_to_fit(w, h)
-
-        opts = PrintOptions(enlargement, PrintOptions.RENDER_REAL,
-                            PrintOptions.QUALITY_FAST)
-        opts.set_border(self.opts.border_w, self.opts.border_c)
+        page.scale_to_fit(w, h)
 
         # Display a "please wait" dialog and do the job.
-
         compdialog = ComputingDialog(self)
 
-        def big_job():
-            img = page.render(opts)
-            return pil_img_to_raw(img)
+        def on_update(ret):
+            gtk_img_from_raw(self.img_preview, pil_img_to_raw(ret))
 
         def on_finish(ret):
-            if ret is not None:
-                gtk_img_from_raw(self.img_preview, ret)
+            gtk_img_from_raw(self.img_preview, pil_img_to_raw(ret))
             compdialog.destroy()
+            self.btn_save.set_sensitive(True)
 
-        t = WorkingThread(big_job, on_finish)
+        def on_fail(ret):
+            dialog = ErrorDialog(
+                self, _("An error occurred while rendering image."))
+            compdialog.destroy()
+            dialog.run()
+            dialog.destroy()
+            self.btn_save.set_sensitive(False)
+
+        t = render.RenderingTask(page,
+                                 border_width=self.opts.border_w * page.w,
+                                 border_color=self.opts.border_c,
+                                 interactive=True,
+                                 on_update=gtk_run_in_main_thread(on_update),
+                                 on_finish=gtk_run_in_main_thread(on_finish),
+                                 on_fail=gtk_run_in_main_thread(on_fail))
         t.start()
 
         response = compdialog.run()
         if response == Gtk.ResponseType.CANCEL:
-            t.stop_process()
+            t.abort()
+
+    def regenerate_layout(self, button=None):
+        page = collage.Page(1.0, self.opts.no_cols)
+        for photo in self.photolist:
+            page.add_cell(photo)
+        page.adjust()
+
+        self.layout_histo.append(page)
+        self.current_layout = len(self.layout_histo) - 1
+        self.update_tool_buttons()
+        self.render_preview()
+
+    def select_prev_layout(self, button):
+        self.current_layout -= 1
+        self.update_tool_buttons()
+        self.render_preview()
+
+    def select_next_layout(self, button):
+        self.current_layout += 1
+        self.update_tool_buttons()
+        self.render_preview()
+
+    def less_cols(self, button):
+        self.opts.no_cols = max(1, self.opts.no_cols - 1)
+        self.regenerate_layout()
+
+    def more_cols(self, button):
+        self.opts.no_cols += 1
+        self.regenerate_layout()
+
+    def set_border_options(self, button):
+        dialog = BorderOptionsDialog(self)
+        response = dialog.run()
+        if response == Gtk.ResponseType.OK:
+            dialog.apply_opts(self.opts)
+            dialog.destroy()
+            if self.layout_histo:
+                self.render_preview()
+        else:
+            dialog.destroy()
 
     def save_poster(self, button):
+        page = self.layout_histo[self.current_layout]
+
+        enlargement = self.opts.out_w / page.w
+        page.scale(enlargement)
+
         dialog = Gtk.FileChooserDialog(_("Save file"), button.get_toplevel(),
                                        Gtk.FileChooserAction.SAVE)
         dialog.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
         dialog.add_button(Gtk.STOCK_OK, Gtk.ResponseType.OK)
         dialog.set_do_overwrite_confirmation(True)
-
         set_save_image_filters(dialog)
-
-        savefile = None
-
-        page = self.skel_histo[self.current_skel]
-        if dialog.run() == Gtk.ResponseType.OK:
-            enlargement = self.opts.out_w / page.get_width()
-
-            opts = PrintOptions(enlargement, PrintOptions.RENDER_REAL,
-                                PrintOptions.QUALITY_BEST)
-            opts.set_border(self.opts.border_w, self.opts.border_c)
-
-            savefile = dialog.get_filename()
-            base, ext = os.path.splitext(savefile)
-            if ext == "" or not ext[1:].lower() in get_all_save_image_exts():
-                savefile += ".jpg"
-
+        if dialog.run() != Gtk.ResponseType.OK:
+            dialog.destroy()
+            return
+        savefile = dialog.get_filename()
+        base, ext = os.path.splitext(savefile)
+        if ext == "" or not ext[1:].lower() in get_all_save_image_exts():
+            savefile += ".jpg"
         dialog.destroy()
 
-        if not savefile:
-            return
-
         # Display a "please wait" dialog and do the job.
-
         compdialog = ComputingDialog(self)
-
-        def big_job():
-            img = page.render(opts)
-            img.save(savefile)
 
         def on_finish(ret):
             compdialog.destroy()
 
-        t = WorkingThread(big_job, on_finish)
+        def on_fail(ret):
+            dialog = ErrorDialog(
+                self, _("An error occurred while rendering image."))
+            compdialog.destroy()
+            dialog.run()
+            dialog.destroy()
+
+        t = render.RenderingTask(page,
+                                 border_width=self.opts.border_w * page.w,
+                                 border_color=self.opts.border_c,
+                                 output_file=savefile,
+                                 on_finish=gtk_run_in_main_thread(on_finish),
+                                 on_fail=gtk_run_in_main_thread(on_fail))
         t.start()
 
         response = compdialog.run()
         if response == Gtk.ResponseType.CANCEL:
-            t.stop_process()
+            t.abort()
 
-    def show_prev_skel(self, button):
-        if self.current_skel > 0:
-            self.current_skel -= 1
-            self.show_skeleton(self.skel_histo[self.current_skel])
-            self.update_lbl_images()
-            self.update_histo_pan()
-
-    def show_next_skel(self, button):
-        if self.current_skel < len(self.skel_histo) - 1:
-            self.current_skel += 1
-            self.show_skeleton(self.skel_histo[self.current_skel])
-            self.update_lbl_images()
-            self.update_histo_pan()
-
-    def clear_skel_histo(self, button):
-        # keep current skeleton
-        self.skel_histo = [self.skel_histo[self.current_skel]]
-        self.current_skel = 0
-        self.show_skeleton(self.skel_histo[self.current_skel])
-        self.update_histo_pan()
-
-    def update_lbl_images(self):
-        n = len(self.skel_histo[self.current_skel].photo_list)
-        self.lbl_images.set_text(
-            _n("%(num)d image loaded", "%(num)d images loaded", n)
-            % {"num": n})
-
-    def update_histo_pan(self):
-        if len(self.skel_histo) == 0:
-            self.lbl_histo.set_label(_("no history"))
-            self.btn_prev_skel.set_sensitive(False)
-            self.btn_next_skel.set_sensitive(False)
-            self.btn_clear_histo.set_sensitive(False)
-        else:
-            self.lbl_histo.set_label(_("{0} of {1}").format(
-                self.current_skel + 1,
-                len(self.skel_histo)))
-            self.btn_prev_skel.set_sensitive(self.current_skel > 0)
-            self.btn_next_skel.set_sensitive(
-                self.current_skel < len(self.skel_histo) - 1)
-            self.btn_clear_histo.set_sensitive(len(self.skel_histo) > 1)
+    def update_tool_buttons(self):
+        self.btn_undo.set_sensitive(self.current_layout > 0)
+        self.btn_redo.set_sensitive(
+            self.current_layout < len(self.layout_histo) - 1)
+        self.lbl_current_layout.set_label(str(self.current_layout + 1))
+        self.btn_new_layout.set_sensitive(True)
+        self.btn_less_cols.set_sensitive(self.opts.no_cols > 1)
+        self.btn_more_cols.set_sensitive(True)
 
 
-class OptionsDialog(Gtk.Dialog):
-
+class BorderOptionsDialog(Gtk.Dialog):
     def __init__(self, parent):
-        Gtk.Dialog.__init__(self, _("Options"), parent, 0,
+        Gtk.Dialog.__init__(self, _("Border options"), parent, 0,
                             (Gtk.STOCK_OK, Gtk.ResponseType.OK,
                              Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
-
         self.set_border_width(10)
 
         box = self.get_content_area()
@@ -438,27 +416,10 @@ class OptionsDialog(Gtk.Dialog):
         box = Gtk.Box(spacing=6)
         vbox.pack_start(box, False, False, 0)
 
-        label = Gtk.Label(_("Number of columns:"), xalign=0)
+        label = Gtk.Label(_("Border width (%):"), xalign=0)
         box.pack_start(label, True, True, 0)
 
-        self.spn_nocols = Gtk.SpinButton()
-        self.spn_nocols.set_adjustment(Gtk.Adjustment(parent.opts.no_cols,
-                                                      1, 100, 1, 10, 0))
-        self.spn_nocols.set_numeric(True)
-        self.spn_nocols.set_update_policy(Gtk.SpinButtonUpdatePolicy.IF_VALID)
-        box.pack_start(self.spn_nocols, False, False, 0)
-
-        box = Gtk.Box(spacing=6)
-        vbox.pack_start(box, False, False, 0)
-
-        label = Gtk.Label(_("Border width (in percent):"), xalign=0)
-        box.pack_start(label, True, True, 0)
-
-        self.spn_border = Gtk.SpinButton()
-        self.spn_border.set_adjustment(Gtk.Adjustment(parent.opts.border_w,
-                                                      0, 100, 1, 10, 0))
-        self.spn_border.set_numeric(True)
-        self.spn_border.set_update_policy(Gtk.SpinButtonUpdatePolicy.IF_VALID)
+        self.spn_border = Gtk.Entry(text=str(100.0 * parent.opts.border_w))
         box.pack_start(self.spn_border, False, False, 0)
 
         box = Gtk.Box(spacing=6)
@@ -467,10 +428,8 @@ class OptionsDialog(Gtk.Dialog):
         label = Gtk.Label(_("Border color:"), xalign=0)
         box.pack_start(label, True, True, 0)
 
-        colors = (
-            (0, "black", _("black")),
-            (1, "white", _("white"))
-        )
+        colors = ((0, "black", _("black")),
+                  (1, "white", _("white")))
         self.cmb_bordercolor = Gtk.ComboBoxText()
         for i, cid, clabel in colors:
             self.cmb_bordercolor.insert(i, cid, clabel)
@@ -495,8 +454,10 @@ class OptionsDialog(Gtk.Dialog):
         self.show_all()
 
     def apply_opts(self, opts):
-        opts.no_cols = self.spn_nocols.get_value_as_int()
-        opts.border_w = self.spn_border.get_value_as_int()
+        try:
+            opts.border_w = float(self.spn_border.get_text()) / 100.0
+        except ValueError:
+            pass
         iter = self.cmb_bordercolor.get_active_iter()
         opts.border_c = self.cmb_bordercolor.get_model()[iter][1]
         opts.out_w = self.spn_outw.get_value_as_int()
@@ -507,7 +468,6 @@ class ComputingDialog(Gtk.Dialog):
     def __init__(self, parent):
         Gtk.Dialog.__init__(self, _("Please wait"), parent, 0,
                             (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
-
         self.set_default_size(300, -1)
         self.set_border_width(10)
 
@@ -533,68 +493,14 @@ class ComputingDialog(Gtk.Dialog):
         return True
 
 
-class WorkingThread(Thread):
-    """WorkingThread and WorkingProcess provide the ability to defer a heavy
-    task to another process, while keeping the GUI responsive.  Because of the
-    GIL, threads in python aren't really threads, so we need to spawn a new
-    process.  Besides, creating a new process make it possible to stop an
-    already began calculation by killing the process.
-
-    Launching an asynchronous task is done by creating a WorkingThread with two
-    arguments.  The first one is the heavy function, that will be executed in
-    another process, and that should return its output.  The second function
-    will be executed when the first one terminates, and should take the first
-    one's return value as input.
-
-    """
-    def __init__(self, func, func_done):
-        Thread.__init__(self)
-
-        self.func = func
-        self.func_done = func_done
-
-        self.rd_conn, self.wr_conn = Pipe(False)
-        self.valid_output = True
-        self.p = WorkingProcess(self.func, self.rd_conn, self.wr_conn)
-
-    def run(self):
-        self.p.start()
-        self.wr_conn.close()
-
-        try:
-            func_ret = self.rd_conn.recv()
-            if not self.valid_output:
-                # In case the process was terminated abruptly
-                func_ret = None
-        except EOFError:
-            # In case the process was terminated abruptly
-            func_ret = None
-        finally:
-            GObject.idle_add(self.func_done, func_ret)
-
-        self.rd_conn.close()
-
-    def stop_process(self):
-        self.valid_output = False
-        self.p.terminate()
-
-
-class WorkingProcess(Process):
-    """WorkingProcess just executes the function it is given, after closing the
-    unused pipe ends.
-
-    """
-    def __init__(self, func, rd_conn, wr_conn):
-        Process.__init__(self)
-
-        self.func = func
-        self.rd_conn = rd_conn
-        self.wr_conn = wr_conn
-
-    def run(self):
-        self.rd_conn.close()
-        self.wr_conn.send(self.func())
-        self.wr_conn.close()
+class ErrorDialog(Gtk.Dialog):
+    def __init__(self, parent, message):
+        super().__init__(_("Error"), parent, 0,
+                         (Gtk.STOCK_OK, Gtk.ResponseType.OK))
+        self.set_border_width(10)
+        box = self.get_content_area()
+        box.add(Gtk.Label(message))
+        self.show_all()
 
 
 def main():

@@ -19,3 +19,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 APP_NAME = "photocollage"
 APP_VERSION = "1.1.1"
+
+__author__ = "Adrien Vergé"
+__copyright__ = "Copyright 2013, Adrien Vergé"
+__license__ = "GPLv2+"
+__version__ = APP_VERSION
