@@ -23,7 +23,7 @@ from io import BytesIO
 import math
 import os.path
 
-from photocollage import APP_NAME, collage, render
+from photocollage import APP_NAME, artwork, collage, render
 from photocollage.render import PIL_SUPPORTED_EXTS as EXTS
 
 
@@ -196,13 +196,13 @@ class PhotoCollageWindow(Gtk.Window):
         box.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
 
         self.btn_less_cols = Gtk.Button()
-        self.btn_less_cols.set_image(Gtk.Image.new_from_stock(
-            Gtk.STOCK_GOTO_BOTTOM, Gtk.IconSize.LARGE_TOOLBAR))
+        self.btn_less_cols.set_image(Gtk.Image.new_from_pixbuf(
+            artwork.load_pixbuf(artwork.ICON_EXPAND_VERTICALLY)))
         self.btn_less_cols.connect("clicked", self.less_cols)
         box.pack_start(self.btn_less_cols, False, False, 0)
         self.btn_more_cols = Gtk.Button()
-        self.btn_more_cols.set_image(Gtk.Image.new_from_stock(
-            Gtk.STOCK_GOTO_LAST, Gtk.IconSize.LARGE_TOOLBAR))
+        self.btn_more_cols.set_image(Gtk.Image.new_from_pixbuf(
+            artwork.load_pixbuf(artwork.ICON_EXPAND_HORIZONTALLY)))
         self.btn_more_cols.connect("clicked", self.more_cols)
         box.pack_start(self.btn_more_cols, False, False, 0)
 
@@ -293,13 +293,14 @@ class PhotoCollageWindow(Gtk.Window):
             dialog.destroy()
             self.btn_save.set_sensitive(False)
 
-        t = render.RenderingTask(page,
-                                 border_width=self.opts.border_w * page.w,
-                                 border_color=self.opts.border_c,
-                                 interactive=True,
-                                 on_update=gtk_run_in_main_thread(on_update),
-                                 on_finish=gtk_run_in_main_thread(on_finish),
-                                 on_fail=gtk_run_in_main_thread(on_fail))
+        t = render.RenderingTask(
+            page,
+            border_width=self.opts.border_w * max(page.w, page.h),
+            border_color=self.opts.border_c,
+            interactive=True,
+            on_update=gtk_run_in_main_thread(on_update),
+            on_finish=gtk_run_in_main_thread(on_finish),
+            on_fail=gtk_run_in_main_thread(on_fail))
         t.start()
 
         response = compdialog.run()
@@ -380,12 +381,12 @@ class PhotoCollageWindow(Gtk.Window):
             dialog.run()
             dialog.destroy()
 
-        t = render.RenderingTask(page,
-                                 border_width=self.opts.border_w * page.w,
-                                 border_color=self.opts.border_c,
-                                 output_file=savefile,
-                                 on_finish=gtk_run_in_main_thread(on_finish),
-                                 on_fail=gtk_run_in_main_thread(on_fail))
+        t = render.RenderingTask(
+            page,
+            border_width=self.opts.border_w * max(page.w, page.h),
+            border_color=self.opts.border_c, output_file=savefile,
+            on_finish=gtk_run_in_main_thread(on_finish),
+            on_fail=gtk_run_in_main_thread(on_fail))
         t.start()
 
         response = compdialog.run()
