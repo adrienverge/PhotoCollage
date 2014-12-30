@@ -117,6 +117,13 @@ class Cell(object):
         self.extent = None
         self.h = self.w * self.wanted_ratio
 
+    def __repr__(self):
+        """Representation of the cell in ASCII art"""
+        end = "]"
+        if self.extent is not None:
+            end = "--"
+        return "[%d %d%s" % (self.w, self.h, end)
+
     @property
     def x(self):
         return self.parents[0].x
@@ -152,6 +159,12 @@ class Cell(object):
     def scale(self, alpha):
         self.h *= alpha
 
+    def is_extended(self):
+        return hasattr(self, 'extent') and self.extent is not None
+
+    def is_extension(self):
+        return isinstance(self, CellExtent)
+
     def content_coords(self):
         """Returns the coordinates of the contained image
 
@@ -184,7 +197,14 @@ class CellExtent(Cell):
     def __init__(self, cell):
         self.origin = cell
         self.origin.extent = self
-        self.parents = cell.parents
+
+    def __repr__(self):
+        """Representation of the cell in ASCII art"""
+        return "------]"
+
+    @property
+    def parents(self):
+        return (self.origin.parents[1],)
 
     @property
     def photo(self):
@@ -222,6 +242,10 @@ class Column(object):
         self.cells = []
         self.w = w
 
+    def __repr__(self):
+        """Representation of the column in ASCII art"""
+        return "\n".join(c.__repr__() for c in self.cells)
+
     @property
     def h(self):
         """Returns the column's total height
@@ -253,18 +277,16 @@ class Column(object):
         prev = None
         for c in self.parent.cols:
             if self is c:
-                break
+                return prev
             prev = c
-        return prev
 
     def right_neighbor(self):
         """Returns the column on the right of this one"""
         prev = None
         for c in reversed(self.parent.cols):
             if self is c:
-                break
+                return prev
             prev = c
-        return prev
 
     def adjust_height(self, target_h):
         """Set the column's height to a given value by resizing cells"""
@@ -281,7 +303,7 @@ class Column(object):
         groups.append(Group(0))
         for c in self.cells:
             # While a cell extent is not reached, keep add cells to the group
-            if not isinstance(c, CellExtent):
+            if not c.is_extension():
                 groups[-1].cells.append(c)
             else:
                 # Close current group and create a new one
@@ -309,7 +331,7 @@ class Column(object):
         wanted_widths = []
         for c in self.cells:
             x, y, w, h = c.content_coords()
-            if isinstance(c, CellExtent) or c.extent:  # extended cell
+            if c.is_extended() or c.is_extension():  # extended cell
                 wanted_widths.append(w / 2.0)
             else:  # regular cell
                 wanted_widths.append(w)
@@ -337,6 +359,39 @@ class Page(object):
         for i in range(no_cols):
             self.cols.append(Column(self, col_w))
 
+    def __repr__(self):
+        """Representation of the page in ASCII art
+
+        Returns something like:
+        [62 52]    [125 134-- ------]    [62 87]
+        [62 47]    [62 66]    [125 132-- [62 45]
+        [62 46]    ------]    [62 49]    ------]
+        [62 78]    ------]    [62 49]    [62 45]
+        [125 102-- ------]    [62 49]    [62 65]
+        [125 135--            [62 85]    [62 53]
+        [125 91--             [125 89--  [62 64]
+                                 ------]
+        """
+        lines = []
+        n = 0
+        end = False
+        while not end:
+            lines.append("")
+            end = True
+            for col in self.cols:
+                cells = col.__repr__().split("\n")
+                w = max(len(cell) for cell in cells)
+                if col != self.cols[-1]:
+                    w += 1
+                cell = w * " "
+                if n < len(cells):
+                    cell = cells[n] + (w - len(cells[n])) * " "
+                    if n < len(cells) - 1:
+                        end = False
+                lines[-1] += cell
+            n += 1
+        return "\n".join(lines)
+
     @property
     def w(self):
         return sum(c.w for c in self.cols)
@@ -349,8 +404,8 @@ class Page(object):
         for c in self.cols:
             c.scale(alpha)
 
-    def scale_to_fit(self, max_w, max_h):
-        if self.w * max_h > self.h * max_w:
+    def scale_to_fit(self, max_w, max_h=None):
+        if max_h is None or self.w * max_h > self.h * max_w:
             self.scale(max_w / self.w)
         else:
             self.scale(max_h / self.h)

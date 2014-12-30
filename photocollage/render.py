@@ -24,9 +24,10 @@ from threading import Thread
 import PIL.Image
 import PIL.ImageDraw
 
-from photocollage.collage import CellExtent, Photo
+from photocollage.collage import Photo
 
 
+QUALITY_SKEL = 0
 QUALITY_FAST = 1
 QUALITY_BEST = 2
 
@@ -152,24 +153,25 @@ class RenderingTask(Thread):
             self.draw_skeleton(self.canvas)
             self.draw_borders(self.canvas)
 
-            for col in self.page.cols:
-                for c in col.cells:
-                    if isinstance(c, CellExtent):
-                        continue
+            if self.quality != QUALITY_SKEL:
+                for col in self.page.cols:
+                    for c in col.cells:
+                        if c.is_extension():
+                            continue
 
-                    if self.interactive and self.on_update:
-                        w, h, raw = self.do_in_subprocess(self.resize_photo, c,
-                                                          return_raw=True)
-                        img = PIL.Image.fromstring("RGB", (w, h), raw)
-                        self.paste_photo(self.canvas, c, img)
-                        self.draw_borders(self.canvas)
-                        self.on_update(self.canvas)
-                    else:
-                        img = self.resize_photo(c)
-                        self.paste_photo(self.canvas, c, img)
+                        if self.interactive and self.on_update:
+                            w, h, raw = self.do_in_subprocess(
+                                self.resize_photo, c, return_raw=True)
+                            img = PIL.Image.fromstring("RGB", (w, h), raw)
+                            self.paste_photo(self.canvas, c, img)
+                            self.draw_borders(self.canvas)
+                            self.on_update(self.canvas)
+                        else:
+                            img = self.resize_photo(c)
+                            self.paste_photo(self.canvas, c, img)
 
-            if not self.interactive:
-                self.draw_borders(self.canvas)
+                if not self.interactive:
+                    self.draw_borders(self.canvas)
 
             if self.output_file:
                 self.canvas.save(self.output_file)
@@ -215,7 +217,7 @@ class RenderingTask(Thread):
     def draw_skeleton(self, canvas):
         for col in self.page.cols:
             for c in col.cells:
-                if isinstance(c, CellExtent):
+                if c.is_extension():
                     continue
                 color = random_color()
                 x, y, w, h = c.content_coords()
@@ -254,7 +256,7 @@ class RenderingTask(Thread):
             # Draw vertical borders
             if col.x > 0:
                 for c in col.cells:
-                    if not isinstance(c, CellExtent):
+                    if not c.is_extension():
                         xy = (col.x - border / 2, c.y)
                         XY = (col.x + border / 2, c.y + c.h)
                         draw.rectangle(xy + XY, color)
