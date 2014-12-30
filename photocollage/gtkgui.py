@@ -415,19 +415,17 @@ class BorderOptionsDialog(Gtk.Dialog):
 
         box = Gtk.Box(spacing=6)
         vbox.pack_start(box, False, False, 0)
-
         label = Gtk.Label(_("Border width (%):"), xalign=0)
         box.pack_start(label, True, True, 0)
-
-        self.spn_border = Gtk.Entry(text=str(100.0 * parent.opts.border_w))
-        box.pack_start(self.spn_border, False, False, 0)
+        self.etr_border = Gtk.Entry(text=str(100.0 * parent.opts.border_w))
+        self.etr_border.connect("changed", self.validate_float)
+        self.etr_border.last_valid_text = self.etr_border.get_text()
+        box.pack_start(self.etr_border, False, False, 0)
 
         box = Gtk.Box(spacing=6)
         vbox.pack_start(box, False, False, 0)
-
         label = Gtk.Label(_("Border color:"), xalign=0)
         box.pack_start(label, True, True, 0)
-
         colors = ((0, "black", _("black")),
                   (1, "white", _("white")))
         self.cmb_bordercolor = Gtk.ComboBoxText()
@@ -435,15 +433,12 @@ class BorderOptionsDialog(Gtk.Dialog):
             self.cmb_bordercolor.insert(i, cid, clabel)
             if cid == parent.opts.border_c:
                 self.cmb_bordercolor.set_active(i)
-
         box.pack_start(self.cmb_bordercolor, False, False, 0)
 
         box = Gtk.Box(spacing=6)
         vbox.pack_start(box, False, False, 0)
-
         label = Gtk.Label(_("Poster width (in pixels):"), xalign=0)
         box.pack_start(label, True, True, 0)
-
         self.spn_outw = Gtk.SpinButton()
         self.spn_outw.set_adjustment(Gtk.Adjustment(parent.opts.out_w,
                                                     1, 100000, 1, 100, 0))
@@ -453,11 +448,16 @@ class BorderOptionsDialog(Gtk.Dialog):
 
         self.show_all()
 
-    def apply_opts(self, opts):
+    def validate_float(self, entry):
+        entry_text = entry.get_text() or '0'
         try:
-            opts.border_w = float(self.spn_border.get_text()) / 100.0
+            float(entry_text)
+            entry.last_valid_text = entry_text
         except ValueError:
-            pass
+            entry.set_text(entry.last_valid_text)
+
+    def apply_opts(self, opts):
+        opts.border_w = float(self.etr_border.get_text() or '0') / 100.0
         iter = self.cmb_bordercolor.get_active_iter()
         opts.border_c = self.cmb_bordercolor.get_model()[iter][1]
         opts.out_w = self.spn_outw.get_value_as_int()
