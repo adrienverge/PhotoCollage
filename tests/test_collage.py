@@ -25,21 +25,28 @@ from photocollage.collage import Page, Photo
 
 class TestCollage(unittest.TestCase):
     def setUp(self):
-        # Disable random in placing cells
-        patch("random.choice", new=Mock(side_effect=lambda x: x[0])).start()
-        self.p = Mock()
+        self.p1 = Mock()
+        self.p2 = Mock()
+
+    def force_cell_position(self, pos):
+        """Disable random in placing cells"""
+        self.p1.stop()
+        self.p1 = patch("random.choice",
+                        new=Mock(side_effect=lambda x: x[pos]))
+        self.p1.start()
 
     def prevent_cell_extension(self):
-        self.p.stop()
-        self.p = patch("random.random", new=Mock(side_effect=lambda: 0.0))
-        self.p.start()
+        self.p2.stop()
+        self.p2 = patch("random.random", new=Mock(side_effect=lambda: 0.0))
+        self.p2.start()
 
     def force_cell_extension(self):
-        self.p.stop()
-        self.p = patch("random.random", new=Mock(side_effect=lambda: 1.0))
-        self.p.start()
+        self.p2.stop()
+        self.p2 = patch("random.random", new=Mock(side_effect=lambda: 1.0))
+        self.p2.start()
 
     def test_next_free_col(self):
+        self.force_cell_position(0)
         self.prevent_cell_extension()
 
         page = Page(100, 4)
@@ -69,6 +76,140 @@ class TestCollage(unittest.TestCase):
         page.add_cell(Photo("img", 10, 50))
         wanted = ("[20 30-- ------] [20 20-- ------] [10 10]\n"
                   "                                  [10 50]")
+        self.assertEqual(repr(page), wanted)
+
+    def test_bottom_hole_A1(self):
+        """
+        ----------------------
+        |      |      |      |
+        |      |-------------|
+        |------|             |
+        |      |--------------
+        |      |      |
+        ---------------
+        """
+        page = Page(30, 3)
+        self.force_cell_position(0)
+        self.prevent_cell_extension()
+        page.add_cell(Photo("img", 10, 15))
+        page.add_cell(Photo("img", 10, 10))
+        page.add_cell(Photo("img", 10, 10))
+        self.force_cell_extension()
+        page.add_cell(Photo("img", 10, 5))
+        self.prevent_cell_extension()
+        page.add_cell(Photo("img", 10, 15))
+        page.add_cell(Photo("img", 10, 10))
+
+        wanted = ("[10 15] [10 10]  [10 10]\n"
+                  "[10 15] [20 10-- ------]\n"
+                  "        [10 10]         ")
+        self.assertEqual(repr(page), wanted)
+
+        page.remove_bottom_holes()
+        wanted = ("[10 15] [10 10]  [10 10]\n"
+                  "[10 15] [20 10-- ------]\n"
+                  "        [20 10-- ------]")
+        self.assertEqual(repr(page), wanted)
+
+    def test_bottom_hole_A2(self):
+        """
+        ----------------------
+        |      |      |      |
+        |      |-------------|
+        |------|             |
+        |      |--------------
+        |      |      |      |
+        --------      --------
+        """
+        page = Page(30, 3)
+        self.force_cell_position(0)
+        self.prevent_cell_extension()
+        page.add_cell(Photo("img", 10, 15))
+        page.add_cell(Photo("img", 10, 10))
+        page.add_cell(Photo("img", 10, 10))
+        self.force_cell_extension()
+        page.add_cell(Photo("img", 10, 5))
+        self.prevent_cell_extension()
+        page.add_cell(Photo("img", 10, 15))
+        self.force_cell_position(1)
+        page.add_cell(Photo("img", 10, 10))
+
+        wanted = ("[10 15] [10 10]  [10 10]\n"
+                  "[10 15] [20 10-- ------]\n"
+                  "                 [10 10]")
+        self.assertEqual(repr(page), wanted)
+
+        page.remove_bottom_holes()
+        wanted = ("[10 15] [10 10]  [10 10]\n"
+                  "[10 15] [20 10-- ------]\n"
+                  "        [20 10-- ------]")
+        self.assertEqual(repr(page), wanted)
+
+    def test_bottom_hole_B2(self):
+        """
+        ----------------------
+        |      |      |      |
+        |-------------|------|
+        |             |      |
+        ---------------------|
+               |             |
+               ---------------
+        """
+        page = Page(30, 3)
+        self.force_cell_position(0)
+        self.prevent_cell_extension()
+        page.add_cell(Photo("img", 10, 10))
+        page.add_cell(Photo("img", 10, 10))
+        page.add_cell(Photo("img", 10, 10))
+        self.force_cell_extension()
+        page.add_cell(Photo("img", 10, 5))
+        self.prevent_cell_extension()
+        page.add_cell(Photo("img", 10, 10))
+        self.force_cell_position(2)
+        self.force_cell_extension()
+        page.add_cell(Photo("img", 10, 5))
+
+        wanted = ("[10 10]  [10 10]  [10 10]\n"
+                  "[20 10-- ------]  [10 10]\n"
+                  "         [20 10-- ------]")
+        self.assertEqual(repr(page), wanted)
+
+        page.remove_bottom_holes()
+        wanted = ("[10 10]  [10 10] [10 10]\n"
+                  "[20 10-- ------] [10 10]\n"
+                  "[20 10-- ------]        ")
+        self.assertEqual(repr(page), wanted)
+
+    def test_bottom_hole_B1(self):
+        """
+        ----------------------
+        |      |      |      |
+        |------|-------------|
+        |      |             |
+        |---------------------
+        |             |
+        ---------------
+        """
+        page = Page(30, 3)
+        self.force_cell_position(0)
+        self.prevent_cell_extension()
+        page.add_cell(Photo("img", 10, 10))
+        page.add_cell(Photo("img", 10, 10))
+        page.add_cell(Photo("img", 10, 10))
+        page.add_cell(Photo("img", 10, 10))
+        self.force_cell_extension()
+        page.add_cell(Photo("img", 10, 5))
+        page.add_cell(Photo("img", 10, 5))
+
+        wanted = ("[10 10]  [10 10]  [10 10]\n"
+                  "[10 10]  [20 10-- ------]\n"
+                  "[20 10-- ------]         ")
+        self.assertEqual(repr(page), wanted)
+
+        page.remove_bottom_holes()
+        wanted = ("[10 10] [10 10]  [10 10]\n"
+                  "[10 10] [20 10-- ------]\n"
+                  "        [20 10-- ------]")
         self.assertEqual(repr(page), wanted)
 
 if __name__ == '__main__':

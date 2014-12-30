@@ -79,12 +79,6 @@ Phase C: Adapt columns' width.
 import random
 
 
-# TODO: Sometimes one or more cells are not displayed because they are outside
-# the canvas limits, possibly because extended cells on top of it.
-# It produces this error at rendering:
-#   SystemError: tile cannot extend outside image
-
-
 class Photo(object):
     def __init__(self, filename, w, h, orientation=0):
         self.filename = filename
@@ -191,6 +185,22 @@ class Cell(object):
             x = self.x
             y = self.y
         return x, y, w, h
+
+    def top_neighbor(self):
+        """Returns the cell above this one"""
+        prev = None
+        for c in self.parents[0].cells:
+            if self is c:
+                return prev
+            prev = c
+
+    def bottom_neighbor(self):
+        """Returns the cell below this one"""
+        prev = None
+        for c in reversed(self.parents[0].cells):
+            if self is c:
+                return prev
+            prev = c
 
 
 class CellExtent(Cell):
@@ -450,6 +460,84 @@ class Page(object):
             if len(c.cells) == 0:
                 self.cols.remove(c)
 
+    def remove_bottom_holes(self):
+        """Remove holes created by extended cells
+
+        Example (case A):
+        The bottom-right cell should be extended to fill the hole.
+        ----------------------             ----------------------
+        |      |      |      |             |      |      |      |
+        |      |-------------|             |      |-------------|
+        |------|             |             |------|             |
+        |      |--------------             |      |--------------
+        |      |      |  ^                 |      |  ^   |      |
+        --------------- hole               -------- hole --------
+
+        Example (case B):
+        The bottom cell should be moved under the other extended cell.
+        ----------------------             ----------------------
+        |      |      |      |             |      |      |      |
+        |------|-------------|             |-------------|------|
+        |      |             |             |             |      |
+        |---------------------             ---------------------|
+        |             |   <-- hole      hole ->   |             |
+        ---------------                           ---------------
+
+        """
+        for col in self.cols:
+            cell = col.cells[-1]
+            if cell == col.cells[0]:
+                continue
+
+            # Case A
+            # If cell is not extended, is below an extended cell and has no
+            # neighbour under the latter, it should be extended.
+            if not cell.is_extended() and not cell.is_extension():
+                # Case A1
+                if cell.top_neighbor().is_extended() \
+                        and cell.top_neighbor().extent \
+                        .bottom_neighbor() is None:
+                    # Extend cell to right
+                    extent = CellExtent(cell)
+                    col.right_neighbor().cells.append(extent)
+                    cell.parents = (col, col.right_neighbor())
+                # Case A2
+                elif cell.top_neighbor().is_extension() \
+                        and cell.top_neighbor().origin \
+                        .bottom_neighbor() is None:
+                    # Extend cell to left
+                    col.cells.remove(cell)
+                    col.left_neighbor().cells.append(cell)
+                    extent = CellExtent(cell)
+                    col.cells.append(extent)
+                    cell.parents = (col.left_neighbor(), col)
+            # Case B
+            # If cell is extented and one of the cells above is extended too,
+            # the bottom cell should be placed right below the top one.
+            elif cell.is_extended() and cell.extent.bottom_neighbor() is None:
+                # Case B1
+                if cell.extent.top_neighbor().is_extended() \
+                        and cell.extent.top_neighbor().extent \
+                        .bottom_neighbor() is None:
+                    # Move cell to right
+                    col.cells.remove(cell)
+                    col.right_neighbor().cells.remove(cell.extent)
+                    col.right_neighbor().cells.append(cell)
+                    col.right_neighbor().right_neighbor().cells \
+                        .append(cell.extent)
+                    cell.parents = (col.right_neighbor(),
+                                    col.right_neighbor().right_neighbor())
+                # Case B2
+                elif cell.top_neighbor().is_extension() \
+                        and cell.top_neighbor().origin \
+                        .bottom_neighbor() is None:
+                    # Move cell to left
+                    col.cells.remove(cell)
+                    col.right_neighbor().cells.remove(cell.extent)
+                    col.left_neighbor().cells.append(cell)
+                    col.cells.append(cell.extent)
+                    cell.parents = (col.left_neighbor(), col)
+
     def adjust_cols_heights(self):
         """Set all columns' heights to same value by shrinking them"""
         target_h = sum([c.h for c in self.cols]) / len(self.cols)
@@ -463,5 +551,6 @@ class Page(object):
 
     def adjust(self):
         self.remove_empty_cols()
+        self.remove_bottom_holes()
         self.adjust_cols_heights()
         self.adjust_cols_widths()
