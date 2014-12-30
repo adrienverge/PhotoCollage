@@ -122,7 +122,7 @@ class PhotoCollageWindow(Gtk.Window):
         self.layout_histo = []
         self.current_layout = -1
 
-        class Options:
+        class Options(object):
             def __init__(self):
                 self.no_cols = 1
                 self.border_w = 0.02
@@ -158,7 +158,6 @@ class PhotoCollageWindow(Gtk.Window):
         self.lbl_images = Gtk.Label(_("no image loaded"))
         box.pack_start(self.lbl_images, False, False, 0)
 
-        # TODO: Open a dialog to ask the output image resolution
         self.btn_save = Gtk.Button(label=_("Save poster..."))
         self.btn_save.set_image(Gtk.Image.new_from_stock(
             Gtk.STOCK_SAVE_AS, Gtk.IconSize.LARGE_TOOLBAR))
@@ -349,10 +348,17 @@ class PhotoCollageWindow(Gtk.Window):
     def save_poster(self, button):
         page = self.layout_histo[self.current_layout]
 
-        enlargement = self.opts.out_w / page.w
+        dialog = SaveImageDialog(self, self.opts, page.ratio)
+        if dialog.run() != Gtk.ResponseType.OK:
+            dialog.destroy()
+            return
+        self.opts.out_w = dialog.get_poster_width()
+        dialog.destroy()
+
+        enlargement = float(self.opts.out_w) / page.w
         page.scale(enlargement)
 
-        dialog = Gtk.FileChooserDialog(_("Save file"), button.get_toplevel(),
+        dialog = Gtk.FileChooserDialog(_("Save image"), button.get_toplevel(),
                                        Gtk.FileChooserAction.SAVE)
         dialog.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
         dialog.add_button(Gtk.STOCK_OK, Gtk.ResponseType.OK)
@@ -436,17 +442,6 @@ class BorderOptionsDialog(Gtk.Dialog):
                 self.cmb_bordercolor.set_active(i)
         box.pack_start(self.cmb_bordercolor, False, False, 0)
 
-        box = Gtk.Box(spacing=6)
-        vbox.pack_start(box, False, False, 0)
-        label = Gtk.Label(_("Poster width (in pixels):"), xalign=0)
-        box.pack_start(label, True, True, 0)
-        self.spn_outw = Gtk.SpinButton()
-        self.spn_outw.set_adjustment(Gtk.Adjustment(parent.opts.out_w,
-                                                    1, 100000, 1, 100, 0))
-        self.spn_outw.set_numeric(True)
-        self.spn_outw.set_update_policy(Gtk.SpinButtonUpdatePolicy.IF_VALID)
-        box.pack_start(self.spn_outw, False, False, 0)
-
         self.show_all()
 
     def validate_float(self, entry):
@@ -461,7 +456,52 @@ class BorderOptionsDialog(Gtk.Dialog):
         opts.border_w = float(self.etr_border.get_text() or '0') / 100.0
         iter = self.cmb_bordercolor.get_active_iter()
         opts.border_c = self.cmb_bordercolor.get_model()[iter][1]
-        opts.out_w = self.spn_outw.get_value_as_int()
+
+
+class SaveImageDialog(Gtk.Dialog):
+    def __init__(self, parent, opts, ratio):
+        Gtk.Dialog.__init__(self, _("Save image"), parent, 0,
+                            (Gtk.STOCK_OK, Gtk.ResponseType.OK,
+                             Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
+        self.set_border_width(10)
+
+        self.ratio = ratio
+
+        box = self.get_content_area()
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        box.add(vbox)
+
+        box = Gtk.Box(spacing=6)
+        vbox.pack_start(box, False, False, 0)
+        box.pack_start(Gtk.Label(_("Poster width:"), xalign=0), True, True, 0)
+        self.spn_outw = Gtk.SpinButton()
+        self.spn_outw.set_adjustment(Gtk.Adjustment(0, 1, 100000, 1, 100, 0))
+        self.spn_outw.set_value(opts.out_w)
+        self.spn_outw.set_numeric(True)
+        self.spn_outw.set_update_policy(Gtk.SpinButtonUpdatePolicy.IF_VALID)
+        self.spn_outw.connect("changed", self.update_height)
+        box.pack_start(self.spn_outw, False, False, 0)
+        box.pack_end(Gtk.Label(_("pixels"), xalign=0), False, False, 0)
+
+        box = Gtk.Box(spacing=6)
+        vbox.pack_start(box, False, False, 0)
+        box.pack_start(Gtk.Label(_("Poster height:"), xalign=0), True, True, 0)
+        self.spn_outh = Gtk.SpinButton()
+        self.spn_outh.set_adjustment(Gtk.Adjustment(0, 1, 100000, 1, 100, 0))
+        self.spn_outh.set_sensitive(False)
+        box.pack_start(self.spn_outh, False, False, 0)
+        box.pack_end(Gtk.Label(_("pixels"), xalign=0), False, False, 0)
+
+        self.update_height()
+
+        self.show_all()
+
+    def update_height(self, entry=None):
+        self.spn_outh.set_value(
+            int(round(self.ratio * self.spn_outw.get_value_as_int())))
+
+    def get_poster_width(self):
+        return self.spn_outw.get_value_as_int()
 
 
 class ComputingDialog(Gtk.Dialog):

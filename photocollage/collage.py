@@ -410,6 +410,10 @@ class Page(object):
     def h(self):
         return max(c.h for c in self.cols)
 
+    @property
+    def ratio(self):
+        return self.h / self.w
+
     def scale(self, alpha):
         for c in self.cols:
             c.scale(alpha)
