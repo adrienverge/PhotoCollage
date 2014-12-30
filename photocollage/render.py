@@ -117,6 +117,30 @@ class RenderingCanceled(Exception):
     pass
 
 
+class RenderingProcess(Process):
+    """Perform actual computation and return the image
+
+    RenderingProcess is given a function to execute (to render an image), and
+    returns what it is asked to (whether the raw image, or nothing).
+
+    """
+    def __init__(self, rd_conn, wr_conn, fn, *args, **kwargs):
+        super().__init__()
+
+        self.rd_conn = rd_conn
+        self.wr_conn = wr_conn
+        self.fn = fn
+        self.fn_args = args
+        self.fn_kwargs = kwargs
+
+    def run(self):
+        # Close the unused pipe ends
+        self.rd_conn.close()
+
+        self.wr_conn.send(self.fn(*self.fn_args, **self.fn_kwargs))
+        self.wr_conn.close()
+
+
 class RenderingTask(Thread):
     """Execution thread to do the actual poster rendering
 
@@ -130,89 +154,45 @@ class RenderingTask(Thread):
     """
     def __init__(self, page, border_width=0.02, border_color=(0, 0, 0),
                  quality=QUALITY_FAST, output_file=None, interactive=False,
-                 on_update=None, on_finish=None, on_fail=None):
+                 on_update=None, on_complete=None, on_fail=None):
         super().__init__()
 
         self.page = page
         self.border_width = border_width
         self.border_color = border_color
         self.quality = quality
-        self.output_file = output_file
-        self.interactive = interactive
+
         self.on_update = on_update
-        self.on_finish = on_finish
+        self.on_complete = on_complete
         self.on_fail = on_fail
 
+        self.processes = []
         self.canceled = False
 
-    def run(self):
-        try:
-            self.canvas = PIL.Image.new(
-                "RGB", (int(self.page.w), int(self.page.h)), "white")
-
-            self.draw_skeleton(self.canvas)
-            self.draw_borders(self.canvas)
-
-            if self.quality != QUALITY_SKEL:
-                for col in self.page.cols:
-                    for c in col.cells:
-                        if c.is_extension():
-                            continue
-
-                        if self.interactive and self.on_update:
-                            w, h, raw = self.do_in_subprocess(
-                                self.resize_photo, c, return_raw=True)
-                            img = PIL.Image.fromstring("RGB", (w, h), raw)
-                            self.paste_photo(self.canvas, c, img)
-                            self.draw_borders(self.canvas)
-                            self.on_update(self.canvas)
-                        else:
-                            img = self.resize_photo(c)
-                            self.paste_photo(self.canvas, c, img)
-
-                if not self.interactive:
-                    self.draw_borders(self.canvas)
-
-            if self.output_file:
-                self.canvas.save(self.output_file)
-        except RenderingCanceled:
-            pass
-        except:
-            if self.on_fail:
-                self.on_fail(self.canvas)
-            return
-
-        if self.on_finish:
-            self.on_finish(self.canvas)
-
     def do_in_subprocess(self, fn, *fn_args, **fn_kwargs):
-        self.rd_conn, self.wr_conn = Pipe(False)
-        self.p = WorkingProcess(self.rd_conn, self.wr_conn,
-                                fn, *fn_args, **fn_kwargs)
-        self.valid_output = True
-
-        self.p.start()
-        self.wr_conn.close()
+        rd_conn, wr_conn = Pipe(False)
+        process = RenderingProcess(rd_conn, wr_conn,
+                                   fn, *fn_args, **fn_kwargs)
+        self.processes.append(process)
+        process.start()
+        wr_conn.close()
 
         try:
-            fn_ret = self.rd_conn.recv()
-        except EOFError:
-            # In case the process was terminated abruptly
-            self.valid_output = False
-
-        self.rd_conn.close()
-
-        if self.canceled:
-            raise RenderingCanceled()
-        elif not self.valid_output:
+            output = rd_conn.recv()
+            rd_conn.close()
+            return output
+        # except EOFError:
+        #     # In case the process was terminated abruptly
+        except:
+            rd_conn.close()
+            if self.canceled:
+                raise RenderingCanceled()
             raise RenderingFailed()
-        else:
-            return fn_ret
 
     def abort(self):
-        self.valid_output = False
         self.canceled = True
-        self.p.terminate()
+        for process in self.processes:
+            process.terminate()
 
     def draw_skeleton(self, canvas):
         for col in self.page.cols:
@@ -262,7 +242,7 @@ class RenderingTask(Thread):
                         draw.rectangle(xy + XY, color)
         return canvas
 
-    def resize_photo(self, cell, return_raw=False):
+    def resize_photo(self, cell, raw_output=False):
         img = PIL.Image.open(cell.photo.filename)
 
         # Rotate image is EXIF says so
@@ -299,7 +279,7 @@ class RenderingTask(Thread):
         # Cannot return the PIL.Image object because it seems not to be handled
         # by pickle, so not passable through a multiprocessing pipe.
         # So we use this trick:
-        if return_raw:
+        if raw_output:
             return img.size[0], img.size[1], img.tostring()
         return img
 
@@ -308,21 +288,64 @@ class RenderingTask(Thread):
         return canvas
 
 
-class WorkingProcess(Process):
-    """WorkingProcess just executes the function it is given, after closing the
-    unused pipe ends.
+class BatchRenderingTask(RenderingTask):
+    def __init__(self, output_file, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.output_file = output_file
 
-    """
-    def __init__(self, rd_conn, wr_conn, fn, *args, **kwargs):
-        super().__init__()
+    def compose_and_save_poster(self):
+        canvas = PIL.Image.new(
+            "RGB", (int(self.page.w), int(self.page.h)), "white")
 
-        self.rd_conn = rd_conn
-        self.wr_conn = wr_conn
-        self.fn = fn
-        self.fn_args = args
-        self.fn_kwargs = kwargs
+        for col in self.page.cols:
+            for c in col.cells:
+                if c.is_extension():
+                    continue
+                img = self.resize_photo(c)
+                self.paste_photo(canvas, c, img)
+        self.draw_borders(canvas)
+
+        canvas.save(self.output_file)
 
     def run(self):
-        self.rd_conn.close()
-        self.wr_conn.send(self.fn(*self.fn_args, **self.fn_kwargs))
-        self.wr_conn.close()
+        try:
+            self.do_in_subprocess(self.compose_and_save_poster)
+            if self.on_complete:
+                self.on_complete()
+        except RenderingCanceled:
+            pass
+        except:
+            if self.on_fail:
+                self.on_fail()
+
+
+class InteractiveRenderingTask(RenderingTask):
+    def run(self):
+        try:
+            canvas = PIL.Image.new(
+                "RGB", (int(self.page.w), int(self.page.h)), "white")
+
+            self.draw_skeleton(canvas)
+            self.draw_borders(canvas)
+
+            if self.quality != QUALITY_SKEL:
+                for col in self.page.cols:
+                    for c in col.cells:
+                        if c.is_extension():
+                            continue
+                        w, h, raw = self.do_in_subprocess(
+                            self.resize_photo, c, raw_output=True)
+                        img = PIL.Image.fromstring("RGB", (w, h), raw)
+                        self.paste_photo(canvas, c, img)
+                        self.draw_borders(canvas)
+
+                        if self.on_update:
+                            self.on_update(canvas)
+
+            if self.on_complete:
+                self.on_complete(canvas)
+        except RenderingCanceled:
+            pass
+        except:
+            if self.on_fail:
+                self.on_fail()

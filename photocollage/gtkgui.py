@@ -279,12 +279,12 @@ class PhotoCollageWindow(Gtk.Window):
         def on_update(ret):
             gtk_img_from_raw(self.img_preview, pil_img_to_raw(ret))
 
-        def on_finish(ret):
+        def on_complete(ret):
             gtk_img_from_raw(self.img_preview, pil_img_to_raw(ret))
             compdialog.destroy()
             self.btn_save.set_sensitive(True)
 
-        def on_fail(ret):
+        def on_fail():
             dialog = ErrorDialog(
                 self, _("An error occurred while rendering image."))
             compdialog.destroy()
@@ -292,19 +292,19 @@ class PhotoCollageWindow(Gtk.Window):
             dialog.destroy()
             self.btn_save.set_sensitive(False)
 
-        t = render.RenderingTask(
+        t = render.InteractiveRenderingTask(
             page,
             border_width=self.opts.border_w * max(page.w, page.h),
             border_color=self.opts.border_c,
-            interactive=True,
             on_update=gtk_run_in_main_thread(on_update),
-            on_finish=gtk_run_in_main_thread(on_finish),
+            on_complete=gtk_run_in_main_thread(on_complete),
             on_fail=gtk_run_in_main_thread(on_fail))
         t.start()
 
         response = compdialog.run()
         if response == Gtk.ResponseType.CANCEL:
             t.abort()
+            compdialog.destroy()
 
     def regenerate_layout(self, button=None):
         page = collage.Page(1.0, self.opts.no_cols)
@@ -370,27 +370,28 @@ class PhotoCollageWindow(Gtk.Window):
         # Display a "please wait" dialog and do the job.
         compdialog = ComputingDialog(self)
 
-        def on_finish(ret):
+        def on_complete():
             compdialog.destroy()
 
-        def on_fail(ret):
+        def on_fail():
             dialog = ErrorDialog(
                 self, _("An error occurred while rendering image."))
             compdialog.destroy()
             dialog.run()
             dialog.destroy()
 
-        t = render.RenderingTask(
-            page,
+        t = render.BatchRenderingTask(
+            savefile, page,
             border_width=self.opts.border_w * max(page.w, page.h),
-            border_color=self.opts.border_c, output_file=savefile,
-            on_finish=gtk_run_in_main_thread(on_finish),
+            border_color=self.opts.border_c,
+            on_complete=gtk_run_in_main_thread(on_complete),
             on_fail=gtk_run_in_main_thread(on_fail))
         t.start()
 
         response = compdialog.run()
         if response == Gtk.ResponseType.CANCEL:
             t.abort()
+            compdialog.destroy()
 
     def update_tool_buttons(self):
         self.btn_undo.set_sensitive(self.current_layout > 0)
