@@ -90,9 +90,17 @@ msgstr "noir"
 msgid "white"
 msgstr "blanc"
 
-#: photocollage/gtkgui.py:445
-msgid "Poster width (in pixels):"
-msgstr "Largeur du poster (en pixel) :"
+#: photocollage/gtkgui.py:477
+msgid "Poster width:"
+msgstr "Largeur du poster :"
+
+#: photocollage/gtkgui.py:485 photocollage/gtkgui.py:494
+msgid "pixels"
+msgstr "pixels"
+
+#: photocollage/gtkgui.py:489
+msgid "Poster height:"
+msgstr "Hauteur du poster :"
 
 #: photocollage/gtkgui.py:470
 msgid "Please wait"
