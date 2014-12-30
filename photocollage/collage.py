@@ -456,9 +456,12 @@ class Page(object):
         self.add_cell_single_col(col, photo)
 
     def remove_empty_cols(self):
-        for c in self.cols:
-            if len(c.cells) == 0:
-                self.cols.remove(c)
+        i = 0
+        while i < len(self.cols):
+            if len(self.cols[i].cells) == 0:
+                self.cols.pop(i)
+            else:
+                i += 1
 
     def remove_bottom_holes(self):
         """Remove holes created by extended cells

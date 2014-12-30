@@ -78,6 +78,17 @@ class TestCollage(unittest.TestCase):
                   "                                  [10 50]")
         self.assertEqual(repr(page), wanted)
 
+    def test_remove_empty_cols(self):
+        page = Page(1, 100)
+        self.prevent_cell_extension()
+        page.add_cell(Photo("img", 10, 10))
+        page.add_cell(Photo("img", 10, 10))
+        page.add_cell(Photo("img", 10, 10))
+        page.add_cell(Photo("img", 10, 10))
+        page.add_cell(Photo("img", 10, 10))
+        page.remove_empty_cols()
+        self.assertEqual(len(page.cols), 5)
+
     def test_bottom_hole_A1(self):
         """
         ----------------------
