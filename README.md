@@ -3,14 +3,14 @@ PhotoCollage
 
 *Graphical tool to make photo collage posters*
 
-PhotoCollage allows you to create photo collage posters.  It assembles the
-input photographs you give it to generate a big poster.  Photos are arranged
+PhotoCollage allows you to create photo collage posters. It assembles the
+input photographs you give it to generate a big poster. Photos are arranged
 to fill the whole poster, however you can influence the algorithm to change the
-final layout.  You can also set a custom border between photos, and save the
+final layout. You can also set a custom border between photos, and save the
 generated image in the resolution you want.
 
 The algorithm generates random layouts that place photos while taking advantage
-of all free space.  It tries to fill all space while keeping each photo as
+of all free space. It tries to fill all space while keeping each photo as
 large as possible.
 
 PhotoCollage does more or less the same as many commercial websites do, but
@@ -19,7 +19,7 @@ for free and with open-source code.
 ![screenshot](https://github.com/adrienverge/PhotoCollage/raw/v1.2.0/screenshots/photocollage-1.2-preview.png)
 
 It provides a library to create photo layouts and posters, and a GTK graphical
-user interface.  PhotoCollage is written in Python (compatible with versions 2
+user interface. PhotoCollage is written in Python (compatible with versions 2
 and 3) and requires the Python Imaging Library (PIL).
 
 Features:
@@ -47,9 +47,9 @@ Installation
 * Manual installation (for other OS):
   ```
   # Install dependencies
-  sudo yum install python3-pillow python3-gobject
-  sudo apt-get install python3-pil python3-gi
-  sudo pacman -S python-pillow python-gobject
+  sudo yum install python3-pillow python3-gobject python3-distutils-extra
+  sudo apt-get install python3-pil python3-gi python3-distutils-extra
+  sudo pacman -S python-pillow python-gobject python-distutils-extra
   # Install PhotoCollage
   git clone https://github.com/adrienverge/PhotoCollage.git
   cd PhotoCollage
@@ -61,7 +61,7 @@ Usage
 
 After install a launcher for PhotoCollage will appear in your desktop menu.
 
-If it doesn't, just run:
+If it doesn't, just run the command:
 ```
-./photocollage
+photocollage
 ```
