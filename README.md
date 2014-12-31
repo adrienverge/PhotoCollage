@@ -25,6 +25,7 @@ and 3) and requires the Python Imaging Library (PIL).
 Features:
 * generate random new layouts until one suits the user
 * choose border color and width
+* possible to swap photos in the generated grid
 * save high-resolution image
 * works even with a large number of photos (> 100)
 * integrates into the GNOME environment

@@ -18,6 +18,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 """
 
 import cairo
+import copy
 import gettext
 from gi.repository import Gtk, Gdk, GObject
 from io import BytesIO
@@ -215,7 +216,7 @@ class PhotoCollageWindow(Gtk.Window):
         box = Gtk.Box(spacing=10)
         box_window.pack_start(box, True, True, 0)
 
-        self.img_preview = ImagePreviewArea()
+        self.img_preview = ImagePreviewArea(self)
         self.img_preview.set_size_request(600, 400)
         box.pack_start(self.img_preview, True, True, 0)
 
@@ -269,10 +270,10 @@ class PhotoCollageWindow(Gtk.Window):
         compdialog = ComputingDialog(self)
 
         def on_update(ret):
-            self.img_preview.image = pil_image_to_cairo_surface(ret)
+            self.img_preview.set_image(ret, page)
 
         def on_complete(ret):
-            self.img_preview.image = pil_image_to_cairo_surface(ret)
+            self.img_preview.set_image(ret, page)
             compdialog.destroy()
             self.btn_save.set_sensitive(True)
 
@@ -298,16 +299,19 @@ class PhotoCollageWindow(Gtk.Window):
             t.abort()
             compdialog.destroy()
 
+    def generate_from_page(self, page):
+        self.layout_histo.append(page)
+        self.current_layout = len(self.layout_histo) - 1
+        self.update_tool_buttons()
+        self.render_preview()
+
     def regenerate_layout(self, button=None):
         page = collage.Page(1.0, self.opts.no_cols)
         for photo in self.photolist:
             page.add_cell(photo)
         page.adjust()
 
-        self.layout_histo.append(page)
-        self.current_layout = len(self.layout_histo) - 1
-        self.update_tool_buttons()
-        self.render_preview()
+        self.generate_from_page(page)
 
     def select_prev_layout(self, button):
         self.current_layout -= 1
@@ -403,24 +407,121 @@ class PhotoCollageWindow(Gtk.Window):
 
 
 class ImagePreviewArea(Gtk.DrawingArea):
-    def __init__(self):
+    """Area to display the poster preview and react to user actions"""
+    INSENSITIVE, FLYING, SWAPING = range(3)
+
+    def __init__(self, parent):
         super().__init__()
+        self.parent = parent
 
         parse, color = Gdk.Color.parse("#888888")
         self.modify_bg(Gtk.StateType.NORMAL, color)
 
-        self.image = None
-
+        # http://www.pygtk.org/pygtk2tutorial/sec-EventHandling.html
+        # https://developer.gnome.org/gdk3/stable/gdk3-Events.html#GdkEventMask
         self.connect("draw", self.draw)
+        self.connect("motion-notify-event", self.motion_notify_event)
+        self.connect("leave-notify-event", self.motion_notify_event)
+        self.connect("button-press-event", self.button_press_event)
+        self.connect("button-release-event", self.button_release_event)
+        self.set_events(Gdk.EventMask.EXPOSURE_MASK
+                        | Gdk.EventMask.LEAVE_NOTIFY_MASK
+                        | Gdk.EventMask.BUTTON_PRESS_MASK
+                        | Gdk.EventMask.BUTTON_RELEASE_MASK
+                        | Gdk.EventMask.POINTER_MOTION_MASK)
+
+        self.image = None
+        self.mode = self.INSENSITIVE
+
+        class SwapEnd(object):
+            def __init__(self, cell=None, x=0, y=0):
+                self.cell = cell
+                self.x = x
+                self.y = y
+
+        self.x, self.y = 0, 0
+        self.swap_origin = SwapEnd()
+        self.swap_dest = SwapEnd()
+
+    def set_image(self, image, page):
+        self.image = pil_image_to_cairo_surface(image)
+        # The Page object must be copied deep. Otherwise, swaping photos in a
+        # new page would also affect the original page (in history). The deep
+        # copy is done here (not in button_release_event) because references
+        # to cells are gathered in other functions, so that making the copy
+        # at the end would invalidate these references.
+        self.page = copy.deepcopy(page)
+        self.mode = self.FLYING
+        self.queue_draw()
+
+    def get_image_offset(self):
+        return (round((self.get_allocation().width
+                       - self.image.get_width()) / 2.0),
+                round((self.get_allocation().height
+                       - self.image.get_height()) / 2.0))
+
+    def get_pos_in_image(self, x, y):
+        if self.image is not None:
+            x0, y0 = self.get_image_offset()
+            return (int(round(x - x0)), int(round(y - y0)))
+        return (int(round(x)), int(round(y)))
+
+    def paint_image_border(self, context, cell, dash=None):
+        x0, y0 = self.get_image_offset()
+
+        context.set_source_rgb(1.0, 1.0, 0.0)
+        context.set_line_width(2)
+        if dash is not None:
+            context.set_dash(dash)
+        context.rectangle(x0 + cell.x + 1, y0 + cell.y + 1,
+                          cell.w - 2, cell.h - 2)
+        context.stroke()
 
     def draw(self, widget, context):
         if self.image is not None:
-            w0, h0 = self.get_allocation().width, self.get_allocation().height
-            w1, h1 = self.image.get_width(), self.image.get_height()
-            context.set_source_surface(self.image,
-                                       round((w0 - w1) / 2.0),
-                                       round((h0 - h1) / 2.0))
+            x0, y0 = self.get_image_offset()
+            context.set_source_surface(self.image, x0, y0)
             context.paint()
+
+            if self.mode == self.FLYING:
+                cell = self.page.get_cell_at_position(self.x, self.y)
+                if cell:
+                    self.paint_image_border(context, cell)
+            elif self.mode == self.SWAPING:
+                self.paint_image_border(context, self.swap_origin.cell, (3, 3))
+                cell = self.page.get_cell_at_position(self.x, self.y)
+                if cell and cell != self.swap_origin.cell:
+                    self.paint_image_border(context, cell, (3, 3))
+
+        return False
+
+    def motion_notify_event(self, widget, event):
+        self.x, self.y = self.get_pos_in_image(event.x, event.y)
+        widget.queue_draw()
+
+    def button_press_event(self, widget, event):
+        if self.mode == self.FLYING:
+            self.swap_origin.x, self.swap_origin.y = \
+                self.get_pos_in_image(event.x, event.y)
+            self.swap_origin.cell = self.page.get_cell_at_position(
+                self.swap_origin.x, self.swap_origin.y)
+            if self.swap_origin.cell:
+                self.mode = self.SWAPING
+        widget.queue_draw()
+
+    def button_release_event(self, widget, event):
+        if self.mode == self.SWAPING:
+            self.swap_dest.x, self.swap_dest.y = \
+                self.get_pos_in_image(event.x, event.y)
+            self.swap_dest.cell = self.page.get_cell_at_position(
+                self.swap_dest.x, self.swap_dest.y)
+            if self.swap_dest.cell \
+                    and self.swap_origin.cell != self.swap_dest.cell:
+                self.page.swap_photos(self.swap_origin.cell,
+                                      self.swap_dest.cell)
+                self.parent.generate_from_page(self.page)
+            self.mode = self.FLYING
+        widget.queue_draw()
 
 
 class BorderOptionsDialog(Gtk.Dialog):

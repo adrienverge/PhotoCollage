@@ -561,3 +561,16 @@ class Page(object):
         self.remove_bottom_holes()
         self.adjust_cols_heights()
         self.adjust_cols_widths()
+
+    def get_cell_at_position(self, x, y):
+        for col in self.cols:
+            if x >= col.x and x < col.x + col.w:
+                for cell in col.cells:
+                    if y >= cell.y and y < cell.y + cell.h:
+                        if cell.is_extension():
+                            return cell.origin
+                        return cell
+        return None
+
+    def swap_photos(self, cell1, cell2):
+        cell1.photo, cell2.photo = cell2.photo, cell1.photo
