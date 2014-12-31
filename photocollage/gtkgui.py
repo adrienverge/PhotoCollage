@@ -17,8 +17,9 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
 
+import cairo
 import gettext
-from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
+from gi.repository import Gtk, Gdk, GObject
 from io import BytesIO
 import math
 import os.path
@@ -35,21 +36,15 @@ _n = gettext.ngettext
 # msgfmt -o po/fr.mo po/fr.po
 
 
-def pil_img_to_raw(src_img):
-    # Save image to a temporary buffer
+def pil_image_to_cairo_surface(src):
+    # TODO: cairo.ImageSurface.create_for_data() is not yet available in
+    # Python 3, so we use PNG as an intermediate.
     buf = BytesIO()
-    src_img.save(buf, "ppm")
-    contents = buf.getvalue()
+    src.save(buf, "png")
+    buf.seek(0)
+    surface = cairo.ImageSurface.create_from_png(buf)
     buf.close()
-    return contents
-
-
-def gtk_img_from_raw(dest_img, contents):
-    # Fill pixbuf from this buffer
-    l = GdkPixbuf.PixbufLoader.new_with_type("pnm")
-    l.write(contents)
-    l.close()
-    dest_img.set_from_pixbuf(l.get_pixbuf())
+    return surface
 
 
 def get_all_save_image_exts():
@@ -220,9 +215,7 @@ class PhotoCollageWindow(Gtk.Window):
         box = Gtk.Box(spacing=10)
         box_window.pack_start(box, True, True, 0)
 
-        self.img_preview = Gtk.Image()
-        parse, color = Gdk.Color.parse("#888888")
-        self.img_preview.modify_bg(Gtk.StateType.NORMAL, color)
+        self.img_preview = ImagePreviewArea()
         self.img_preview.set_size_request(600, 400)
         box.pack_start(self.img_preview, True, True, 0)
 
@@ -276,10 +269,10 @@ class PhotoCollageWindow(Gtk.Window):
         compdialog = ComputingDialog(self)
 
         def on_update(ret):
-            gtk_img_from_raw(self.img_preview, pil_img_to_raw(ret))
+            self.img_preview.image = pil_image_to_cairo_surface(ret)
 
         def on_complete(ret):
-            gtk_img_from_raw(self.img_preview, pil_img_to_raw(ret))
+            self.img_preview.image = pil_image_to_cairo_surface(ret)
             compdialog.destroy()
             self.btn_save.set_sensitive(True)
 
@@ -407,6 +400,27 @@ class PhotoCollageWindow(Gtk.Window):
         self.btn_new_layout.set_sensitive(True)
         self.btn_less_cols.set_sensitive(self.opts.no_cols > 1)
         self.btn_more_cols.set_sensitive(True)
+
+
+class ImagePreviewArea(Gtk.DrawingArea):
+    def __init__(self):
+        super().__init__()
+
+        parse, color = Gdk.Color.parse("#888888")
+        self.modify_bg(Gtk.StateType.NORMAL, color)
+
+        self.image = None
+
+        self.connect("draw", self.draw)
+
+    def draw(self, widget, context):
+        if self.image is not None:
+            w0, h0 = self.get_allocation().width, self.get_allocation().height
+            w1, h1 = self.image.get_width(), self.image.get_height()
+            context.set_source_surface(self.image,
+                                       round((w0 - w1) / 2.0),
+                                       round((h0 - h1) / 2.0))
+            context.paint()
 
 
 class BorderOptionsDialog(Gtk.Dialog):

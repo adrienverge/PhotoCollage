@@ -78,6 +78,7 @@ setup(
     },
 
     requires=[
+        "cairo",
         "copy",
         "gettext",
         "gi.repository",
