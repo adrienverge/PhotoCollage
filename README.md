@@ -16,7 +16,7 @@ large as possible.
 PhotoCollage does more or less the same as many commercial websites do, but
 for free and with open-source code.
 
-![screenshot](https://github.com/adrienverge/PhotoCollage/raw/master/screenshots/photocollage-1.0-preview.png)
+![screenshot](https://github.com/adrienverge/PhotoCollage/raw/v1.2.0/screenshots/photocollage-1.2-preview.png)
 
 It provides a library to create photo layouts and posters, and a GTK graphical
 user interface.  PhotoCollage is written in Python (compatible with versions 2
