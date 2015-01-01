@@ -10,10 +10,10 @@ from photocollage import APP_NAME, APP_VERSION
 
 long_description = (
     "PhotoCollage allows you to create photo collage posters. It assembles "
-    "the input photographs you give it to generate a big poster. Photos are "
-    "arranged to fill the whole poster, however you can influence the "
-    "algorithm to change the final layout. You can also set a custom border "
-    "between photos, and save the generated image in the resolution you want.")
+    "the input photographs it is given to generate a big poster. Photos are "
+    "automatically arranged to fill the whole poster, then you can change the "
+    "final layout, dimensions, border or swap photos in the generated grid. "
+    "Eventually the final poster image can we saved in any size.")
 
 setup(
     name=APP_NAME,

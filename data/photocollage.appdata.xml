@@ -6,15 +6,15 @@
  <summary>Graphical tool to make photo collage posters</summary>
  <description>
   <p>
-   PhotoCollage allows you to create photo collage posters.  It assembles the
-   input photographs you give it to generate a big poster.  Photos are arranged
-   to fill the whole poster, however you can influence the algorithm to change
-   the final layout.  You can also set a custom border between photos, and save
-   the generated image in the resolution you want.
+   PhotoCollage allows you to create photo collage posters. It assembles the
+   input photographs it is given to generate a big poster. Photos are
+   automatically arranged to fill the whole poster, then you can change the
+   final layout, dimensions, border or swap photos in the generated grid.
+   Eventually the final poster image can we saved in any size.
   </p>
   <p>
    The algorithm generates random layouts that place photos while taking
-   advantage of all free space.  It tries to fill all space while keeping each
+   advantage of all free space. It tries to fill all space while keeping each
    photo as large as possible.
   </p>
   <p>
