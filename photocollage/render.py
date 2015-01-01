@@ -293,11 +293,11 @@ class BatchRenderingTask(RenderingTask):
         super().__init__(*args, **kwargs)
         self.output_file = output_file
 
-    def compose_and_save_poster(self):
+    def compose_and_save_poster(self, page, output_file):
         canvas = PIL.Image.new(
-            "RGB", (int(self.page.w), int(self.page.h)), "white")
+            "RGB", (int(page.w), int(page.h)), "white")
 
-        for col in self.page.cols:
+        for col in page.cols:
             for c in col.cells:
                 if c.is_extension():
                     continue
@@ -305,11 +305,12 @@ class BatchRenderingTask(RenderingTask):
                 self.paste_photo(canvas, c, img)
         self.draw_borders(canvas)
 
-        canvas.save(self.output_file)
+        canvas.save(output_file)
 
     def run(self):
         try:
-            self.do_in_subprocess(self.compose_and_save_poster)
+            self.do_in_subprocess(self.compose_and_save_poster, self.page,
+                                  self.output_file)
             if self.on_complete:
                 self.on_complete()
         except RenderingCanceled:
@@ -329,6 +330,9 @@ class InteractiveRenderingTask(RenderingTask):
             self.draw_borders(canvas)
 
             if self.quality != QUALITY_SKEL:
+                n = sum([len([cell for cell in col.cells if not
+                              cell.is_extension()]) for col in self.page.cols])
+                i = 0.0
                 for col in self.page.cols:
                     for c in col.cells:
                         if c.is_extension():
@@ -340,7 +344,8 @@ class InteractiveRenderingTask(RenderingTask):
                         self.draw_borders(canvas)
 
                         if self.on_update:
-                            self.on_update(canvas)
+                            i += 1
+                            self.on_update(canvas, i / n)
 
             if self.on_complete:
                 self.on_complete(canvas)

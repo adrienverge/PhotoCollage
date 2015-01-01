@@ -269,11 +269,12 @@ class PhotoCollageWindow(Gtk.Window):
         # Display a "please wait" dialog and do the job.
         compdialog = ComputingDialog(self)
 
-        def on_update(ret):
-            self.img_preview.set_image(ret, page)
+        def on_update(img, fraction_complete):
+            self.img_preview.set_image(img, page)
+            compdialog.update(fraction_complete)
 
-        def on_complete(ret):
-            self.img_preview.set_image(ret, page)
+        def on_complete(img):
+            self.img_preview.set_image(img, page)
             compdialog.destroy()
             self.btn_save.set_sensitive(True)
 
@@ -371,7 +372,7 @@ class PhotoCollageWindow(Gtk.Window):
         dialog.destroy()
 
         # Display a "please wait" dialog and do the job.
-        compdialog = ComputingDialog(self)
+        compdialog = PulsingComputingDialog(self)
 
         def on_complete():
             compdialog.destroy()
@@ -635,18 +636,26 @@ class ComputingDialog(Gtk.Dialog):
         vbox.pack_start(label, True, True, 0)
 
         self.progressbar = Gtk.ProgressBar()
-        self.progressbar.pulse()
+        self.progressbar.set_fraction(0)
         vbox.pack_start(self.progressbar, True, True, 0)
 
         self.show_all()
+
+    def update(self, fraction):
+        self.progressbar.set_fraction(fraction)
+
+
+class PulsingComputingDialog(ComputingDialog):
+    def __init__(self, parent):
+        super().__init__(parent)
+
+        self.progressbar.pulse()
 
         self.timeout_id = GObject.timeout_add(50, self.on_timeout, None)
 
     def on_timeout(self, user_data):
         self.progressbar.pulse()
-
-        # Return True so that it continues to get called
-        return True
+        return True  # return True so that it continues to get called
 
 
 class ErrorDialog(Gtk.Dialog):
