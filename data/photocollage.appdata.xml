@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <application>
  <id type="desktop">photocollage.desktop</id>
- <licence>GPLv2+</licence>
+ <metadata_license>CC-BY-3.0</metadata_license>
+ <project_license>GPL-2.0+</project_license>
  <name>PhotoCollage</name>
  <summary>Graphical tool to make photo collage posters</summary>
  <description>
@@ -28,5 +29,5 @@
   </screenshot>
  </screenshots>
  <url type="homepage">https://github.com/adrienverge/PhotoCollage</url>
- <updatecontact>adrienverge@gmail.com</updatecontact>
+ <updatecontact>adrienverge_at_gmail.com</updatecontact>
 </application>
