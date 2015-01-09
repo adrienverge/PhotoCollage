@@ -3,7 +3,7 @@ Type=Application
 Encoding=UTF-8
 Exec=photocollage
 Icon=photocollage
-Categories=GTK;GNOME;Utility;
+Categories=Graphics;2DGraphics;RasterGraphics;GTK;
 Terminal=false
 
 Name=PhotoCollage
