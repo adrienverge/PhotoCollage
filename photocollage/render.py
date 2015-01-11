@@ -85,6 +85,11 @@ def random_color():
     return (r, g, b)
 
 
+class BadPhoto(Exception):
+    def __init__(self, photoname):
+        self.photoname = photoname
+
+
 def build_photolist(filelist):
     ret = []
 
@@ -92,7 +97,7 @@ def build_photolist(filelist):
         try:
             img = PIL.Image.open(name)
         except IOError:
-            continue
+            raise BadPhoto(name)
         w, h = img.size
 
         orientation = 0

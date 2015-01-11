@@ -223,28 +223,30 @@ class PhotoCollageWindow(Gtk.Window):
 
         self.btn_undo.set_sensitive(False)
         self.btn_redo.set_sensitive(False)
-        self.btn_new_layout.set_sensitive(False)
-        self.btn_less_cols.set_sensitive(False)
-        self.btn_more_cols.set_sensitive(False)
 
         self.update_photolist([])
 
     def update_photolist(self, source_images):
-        self.photolist = render.build_photolist(source_images)
+        try:
+            self.photolist = render.build_photolist(source_images)
 
-        n = len(self.photolist)
-        if n > 0:
-            self.lbl_images.set_text(_n("%(num)d image loaded",
-                                        "%(num)d images loaded", n)
-                                     % {"num": n})
-        else:
-            self.lbl_images.set_text(_("no image loaded"))
-
-        if n > 0:
-            self.opts.no_cols = int(round(
-                1.5 * math.sqrt(len(self.photolist))))
-
-            self.regenerate_layout()
+            n = len(self.photolist)
+            if n > 0:
+                self.lbl_images.set_text(_n("%(num)d image loaded",
+                                            "%(num)d images loaded", n)
+                                         % {"num": n})
+                self.opts.no_cols = int(round(
+                    1.5 * math.sqrt(len(self.photolist))))
+                self.regenerate_layout()
+            else:
+                self.lbl_images.set_text(_("no image loaded"))
+                self.update_tool_buttons()
+        except render.BadPhoto as e:
+            dialog = ErrorDialog(
+                self, _("This image could not be opened:\n\"%(imgname)s\".")
+                % {"imgname": e.photoname})
+            dialog.run()
+            dialog.destroy()
 
     def choose_images(self, button):
         dialog = Gtk.FileChooserDialog(_("Choose images"),
@@ -403,10 +405,12 @@ class PhotoCollageWindow(Gtk.Window):
         self.btn_undo.set_sensitive(self.current_layout > 0)
         self.btn_redo.set_sensitive(
             self.current_layout < len(self.layout_histo) - 1)
-        self.lbl_current_layout.set_label(str(self.current_layout + 1))
-        self.btn_new_layout.set_sensitive(True)
-        self.btn_less_cols.set_sensitive(self.opts.no_cols > 1)
-        self.btn_more_cols.set_sensitive(True)
+        if self.current_layout >= 0:
+            self.lbl_current_layout.set_label(str(self.current_layout + 1))
+        self.btn_new_layout.set_sensitive(self.current_layout >= 0)
+        self.btn_less_cols.set_sensitive(self.current_layout >= 0
+                                         and self.opts.no_cols > 1)
+        self.btn_more_cols.set_sensitive(self.current_layout >= 0)
 
 
 class ImagePreviewArea(Gtk.DrawingArea):

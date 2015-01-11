@@ -51,16 +51,25 @@ msgstr "Regénérer"
 msgid "Border..."
 msgstr "Bordure..."
 
-#: photocollage/gtkgui.py:240
-msgid "Choose images"
-msgstr "Choisir les images"
-
 #: photocollage/gtkgui.py:257
 #, python-format
 msgid "%(num)d image loaded"
 msgid_plural "%(num)d images loaded"
 msgstr[0] "%(num)d image chargée"
 msgstr[1] "%(num)d images chargées"
+
+#: photocollage/gtkgui.py:246
+#, python-format
+msgid ""
+"This image could not be opened:\n"
+"\"%(imgname)s\"."
+msgstr ""
+"Cette image n'a pas pu être ouverte :\n"
+"\"%(imgname)s\"."
+
+#: photocollage/gtkgui.py:240
+msgid "Choose images"
+msgstr "Choisir les images"
 
 #: photocollage/gtkgui.py:290 photocollage/gtkgui.py:379
 msgid "An error occurred while rendering image."
