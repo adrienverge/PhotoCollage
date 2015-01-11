@@ -218,6 +218,10 @@ class PhotoCollageWindow(Gtk.Window):
 
         self.img_preview = ImagePreviewArea(self)
         self.img_preview.set_size_request(600, 400)
+        self.img_preview.connect("drag-data-received", self.on_drag)
+        self.img_preview.drag_dest_set(Gtk.DestDefaults.ALL, [],
+                                       Gdk.DragAction.COPY)
+        self.img_preview.drag_dest_add_text_targets()
         box.pack_start(self.img_preview, True, True, 0)
 
         self.btn_save.set_sensitive(False)
@@ -263,6 +267,13 @@ class PhotoCollageWindow(Gtk.Window):
             self.update_photolist(dialog.get_filenames())
 
         dialog.destroy()
+
+    def on_drag(self, widget, drag_context, x, y, data, info, time):
+        files = data.get_text().splitlines()
+        for i in range(len(files)):
+            if files[i].startswith("file://"):
+                files[i] = files[i][7:]
+        self.update_photolist(files)
 
     def render_preview(self):
         page = self.layout_histo[self.current_layout]
