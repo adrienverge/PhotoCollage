@@ -114,7 +114,6 @@ def gtk_run_in_main_thread(fn):
 
 class PhotoCollageWindow(Gtk.Window):
     def __init__(self):
-        self.photolist = []
         self.layout_histo = []
         self.current_layout = -1
 
@@ -228,6 +227,25 @@ class PhotoCollageWindow(Gtk.Window):
         self.btn_less_cols.set_sensitive(False)
         self.btn_more_cols.set_sensitive(False)
 
+        self.update_photolist([])
+
+    def update_photolist(self, source_images):
+        self.photolist = render.build_photolist(source_images)
+
+        n = len(self.photolist)
+        if n > 0:
+            self.lbl_images.set_text(_n("%(num)d image loaded",
+                                        "%(num)d images loaded", n)
+                                     % {"num": n})
+        else:
+            self.lbl_images.set_text(_("no image loaded"))
+
+        if n > 0:
+            self.opts.no_cols = int(round(
+                1.5 * math.sqrt(len(self.photolist))))
+
+            self.regenerate_layout()
+
     def choose_images(self, button):
         dialog = Gtk.FileChooserDialog(_("Choose images"),
                                        button.get_toplevel(),
@@ -239,25 +257,9 @@ class PhotoCollageWindow(Gtk.Window):
         set_open_image_filters(dialog)
 
         if dialog.run() == Gtk.ResponseType.OK:
-            self.photolist = render.build_photolist(dialog.get_filenames())
-            dialog.destroy()
+            self.update_photolist(dialog.get_filenames())
 
-            n = len(self.photolist)
-            # self.lbl_images.set_text(str(n))
-            if n > 0:
-                self.lbl_images.set_text(
-                    _n("%(num)d image loaded", "%(num)d images loaded", n)
-                    % {"num": n})
-            else:
-                self.lbl_images.set_text(_("no image loaded"))
-
-            if n > 0:
-                self.opts.no_cols = int(round(
-                    1.5 * math.sqrt(len(self.photolist))))
-
-                self.regenerate_layout()
-        else:
-            dialog.destroy()
+        dialog.destroy()
 
     def render_preview(self):
         page = self.layout_histo[self.current_layout]
