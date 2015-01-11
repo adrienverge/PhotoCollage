@@ -24,6 +24,7 @@ from gi.repository import Gtk, Gdk, GObject
 from io import BytesIO
 import math
 import os.path
+import sys
 
 from photocollage import APP_NAME, artwork, collage, render
 from photocollage.render import PIL_SUPPORTED_EXTS as EXTS
@@ -681,4 +682,9 @@ def main():
     win = PhotoCollageWindow()
     win.connect("delete-event", Gtk.main_quit)
     win.show_all()
+
+    # If arguments are given, treat them as input images
+    if len(sys.argv) > 1:
+        win.update_photolist(sys.argv[1:])
+
     Gtk.main()
