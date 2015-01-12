@@ -130,7 +130,7 @@ class RenderingProcess(Process):
 
     """
     def __init__(self, rd_conn, wr_conn, fn, *args, **kwargs):
-        super().__init__()
+        super(RenderingProcess, self).__init__()
 
         self.rd_conn = rd_conn
         self.wr_conn = wr_conn
@@ -160,7 +160,7 @@ class RenderingTask(Thread):
     def __init__(self, page, border_width=0.02, border_color=(0, 0, 0),
                  quality=QUALITY_FAST, output_file=None, interactive=False,
                  on_update=None, on_complete=None, on_fail=None):
-        super().__init__()
+        super(RenderingTask, self).__init__()
 
         self.page = page
         self.border_width = border_width
@@ -295,7 +295,7 @@ class RenderingTask(Thread):
 
 class BatchRenderingTask(RenderingTask):
     def __init__(self, output_file, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super(BatchRenderingTask, self).__init__(*args, **kwargs)
         self.output_file = output_file
 
     def compose_and_save_poster(self, page, output_file):

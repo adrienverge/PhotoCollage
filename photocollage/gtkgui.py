@@ -115,6 +115,7 @@ def gtk_run_in_main_thread(fn):
 
 class PhotoCollageWindow(Gtk.Window):
     def __init__(self):
+        super(PhotoCollageWindow, self).__init__(title=_("PhotoCollage"))
         self.layout_histo = []
         self.current_layout = -1
 
@@ -130,8 +131,6 @@ class PhotoCollageWindow(Gtk.Window):
         self.make_window()
 
     def make_window(self):
-        Gtk.Window.__init__(self, title=_("PhotoCollage"))
-
         self.set_border_width(10)
 
         box_window = Gtk.Box(spacing=10, orientation=Gtk.Orientation.VERTICAL)
@@ -430,7 +429,7 @@ class ImagePreviewArea(Gtk.DrawingArea):
     INSENSITIVE, FLYING, SWAPING = range(3)
 
     def __init__(self, parent):
-        super().__init__()
+        super(ImagePreviewArea, self).__init__()
         self.parent = parent
 
         parse, color = Gdk.Color.parse("#888888")
@@ -545,9 +544,10 @@ class ImagePreviewArea(Gtk.DrawingArea):
 
 class BorderOptionsDialog(Gtk.Dialog):
     def __init__(self, parent):
-        Gtk.Dialog.__init__(self, _("Border options"), parent, 0,
-                            (Gtk.STOCK_OK, Gtk.ResponseType.OK,
-                             Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
+        super(BorderOptionsDialog, self).__init__(
+            ("Border options"), parent, 0,
+            (Gtk.STOCK_OK, Gtk.ResponseType.OK,
+             Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
         self.set_border_width(10)
 
         box = self.get_content_area()
@@ -594,9 +594,10 @@ class BorderOptionsDialog(Gtk.Dialog):
 
 class SaveImageDialog(Gtk.Dialog):
     def __init__(self, parent, opts, ratio):
-        Gtk.Dialog.__init__(self, _("Save image"), parent, 0,
-                            (Gtk.STOCK_OK, Gtk.ResponseType.OK,
-                             Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
+        super(SaveImageDialog, self).__init__(
+            _("Save image"), parent, 0,
+            (Gtk.STOCK_OK, Gtk.ResponseType.OK,
+             Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
         self.set_border_width(10)
 
         self.ratio = ratio
@@ -641,8 +642,9 @@ class SaveImageDialog(Gtk.Dialog):
 class ComputingDialog(Gtk.Dialog):
     """Simple "please wait" dialog, with a "cancel" button."""
     def __init__(self, parent):
-        Gtk.Dialog.__init__(self, _("Please wait"), parent, 0,
-                            (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
+        super(ComputingDialog, self).__init__(
+            _("Please wait"), parent, 0, (Gtk.STOCK_CANCEL,
+                                          Gtk.ResponseType.CANCEL))
         self.set_default_size(300, -1)
         self.set_border_width(10)
 
@@ -665,7 +667,7 @@ class ComputingDialog(Gtk.Dialog):
 
 class PulsingComputingDialog(ComputingDialog):
     def __init__(self, parent):
-        super().__init__(parent)
+        super(PulsingComputingDialog, self).__init__(parent)
 
         self.progressbar.pulse()
 
@@ -678,8 +680,8 @@ class PulsingComputingDialog(ComputingDialog):
 
 class ErrorDialog(Gtk.Dialog):
     def __init__(self, parent, message):
-        super().__init__(_("Error"), parent, 0,
-                         (Gtk.STOCK_OK, Gtk.ResponseType.OK))
+        super(ErrorDialog, self).__init__(_("Error"), parent, 0,
+                                          (Gtk.STOCK_OK, Gtk.ResponseType.OK))
         self.set_border_width(10)
         box = self.get_content_area()
         box.add(Gtk.Label(message))
