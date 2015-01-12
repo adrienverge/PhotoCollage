@@ -263,9 +263,11 @@ class PhotoCollageWindow(Gtk.Window):
         set_open_image_filters(dialog)
 
         if dialog.run() == Gtk.ResponseType.OK:
-            self.update_photolist(dialog.get_filenames())
-
-        dialog.destroy()
+            files = dialog.get_filenames()
+            dialog.destroy()
+            self.update_photolist(files)
+        else:
+            dialog.destroy()
 
     def on_drag(self, widget, drag_context, x, y, data, info, time):
         files = data.get_text().splitlines()
