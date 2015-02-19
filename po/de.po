@@ -1,0 +1,124 @@
+# PhotoCollage translation file
+# Copyright (C) 2014 Adrien Vergé
+# This file is distributed under the same license as the PhotoCollage package.
+# Adrien Vergé, 2014.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: de_DE\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2014-01-18 02:46-0500\n"
+"PO-Revision-Date: 2015-02-19 00:23+0100\n"
+"Last-Translator: Frank Quotschalla <gutschy@Computer-Retro.de>\n"
+"Language-Team: Frank Quotschalla <gutschy@Computer-Retro.de>\n"
+"Language: de_DE\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n>1;\n"
+"X-Generator: Poedit 1.6.10\n"
+
+#: photocollage/gtkgui.py:73 photocollage/gtkgui.py:95
+msgid "All supported image formats"
+msgstr "Alle unterstützte Bildformate"
+
+#: photocollage/gtkgui.py:105
+#, python-format
+msgid "%s image"
+msgstr "Bild %s"
+
+#: photocollage/gtkgui.py:138
+msgid "PhotoCollage"
+msgstr "PhotoCollage"
+
+#: photocollage/gtkgui.py:152
+msgid "Input images..."
+msgstr "Bildquelle..."
+
+#: photocollage/gtkgui.py:159 photocollage/gtkgui.py:260
+msgid "no image loaded"
+msgstr "Kein Bild geladen"
+
+#: photocollage/gtkgui.py:163
+msgid "Save poster..."
+msgstr "Speichere Poster..."
+
+#: photocollage/gtkgui.py:189
+msgid "Regenerate"
+msgstr "Erneuern"
+
+#: photocollage/gtkgui.py:211
+msgid "Border..."
+msgstr "Rahmen..."
+
+#: photocollage/gtkgui.py:257
+#, python-format
+msgid "%(num)d image loaded"
+msgid_plural "%(num)d images loaded"
+msgstr[0] "%(num)d Bild geladen"
+msgstr[1] "%(num)d Bilder geladen"
+
+#: photocollage/gtkgui.py:246
+#, python-format
+msgid ""
+"This image could not be opened:\n"
+"\"%(imgname)s\"."
+msgstr ""
+"Dieses Bild kann nicht geöffnet werden:\n"
+"\"%(imgname)s\"."
+
+#: photocollage/gtkgui.py:240
+msgid "Choose images"
+msgstr "Bilder auswählen"
+
+#: photocollage/gtkgui.py:290 photocollage/gtkgui.py:379
+msgid "An error occurred while rendering image."
+msgstr "Ein Fehler ist beim generieren des Bildes aufgetreten."
+
+#: photocollage/gtkgui.py:356
+msgid "Save file"
+msgstr "Speichere Datei"
+
+#: photocollage/gtkgui.py:408
+msgid "Border options"
+msgstr "Rahmen Einstellungen"
+
+#: photocollage/gtkgui.py:420
+msgid "Border width (%):"
+msgstr "Rahmen Breite (%) :"
+
+#: photocollage/gtkgui.py:429
+msgid "Border color:"
+msgstr "Rahmen Farbe:"
+
+#: photocollage/gtkgui.py:432
+msgid "black"
+msgstr "schwarz"
+
+#: photocollage/gtkgui.py:433
+msgid "white"
+msgstr "weiss"
+
+#: photocollage/gtkgui.py:477
+msgid "Poster width:"
+msgstr "Postergröße:"
+
+#: photocollage/gtkgui.py:485 photocollage/gtkgui.py:494
+msgid "pixels"
+msgstr "Bildpunkte"
+
+#: photocollage/gtkgui.py:489
+msgid "Poster height:"
+msgstr "Posterhöhe:"
+
+#: photocollage/gtkgui.py:470
+msgid "Please wait"
+msgstr "Bitte warten"
+
+#: photocollage/gtkgui.py:479
+msgid "Performing image computation..."
+msgstr "kalkuliere Bildberechnung..."
+
+#: photocollage/gtkgui.py:499
+msgid "Error"
+msgstr "Fehler"
