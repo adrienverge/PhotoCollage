@@ -6,6 +6,7 @@
  <name>PhotoCollage</name>
  <summary>Graphical tool to make photo collage posters</summary>
  <summary xml:lang="de">Grafisches Werkzeug zum erstellen von Foto-Collagen Poster</summary>
+ <summary xml:lang="fr">Outil graphique pour fabriquer des posters en collant plusieurs photos</summary>
  <description>
   <p>
    PhotoCollage allows you to create photo collage posters. It assembles the
@@ -39,6 +40,23 @@
   <p xml:lang="de">
    PhotoCollage tut mehr oder weniger das selbe was viele kommerzielle
    Webseiten tun, ist aber frei und kommt mit Open-Source Quellcode.
+  </p>
+  <p xml:lang="fr">
+   PhotoCollage permet de créer des posters de photo-collages. Il assemble les
+   photos qu'on lui donne pour générer un grand poster. Les photos sont
+   automatiquement arrangées pour remplir le poster entièrement ; vous pouvez
+   ensuite changer la structure finale, les dimensions, les bordures ou
+   intervertir des photos dans le maillage généré. Finalement le poster final
+   peut être sauvegardé en n'importe quelle résolution.
+  </p>
+  <p xml:lang="fr">
+   L'algorithme place les photos dans un maillage généré aléatoirement, en
+   remplissant l'espace libre. Il essaie de ne laisser aucun trou, tout en
+   gardant chaque photo aussi grande que possible.
+  </p>
+  <p xml:lang="fr">
+   PhotoCollage fait plus ou moins ce que beaucoup de sites web commerciaux
+   font, mais gratuitement et avec du code open-source.
   </p>
  </description>
  <screenshots>
