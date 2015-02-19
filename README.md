@@ -45,6 +45,11 @@ Installation
   sudo apt-get install photocollage
   ```
 
+* Using pip (for other OS):
+  ```
+  sudo pip3 install photocollage  # you may need to use python3-pip instead of pip3
+  ```
+
 * Manual installation (for other OS):
   ```
   # Install dependencies
