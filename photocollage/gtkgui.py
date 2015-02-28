@@ -37,6 +37,7 @@ _n = gettext.ngettext
 # cp po/photocollage.pot po/fr.po
 # msgfmt -o po/fr.mo po/fr.po
 
+(TARGET_TYPE_TEXT, TARGET_TYPE_URI) = range(2)
 
 def pil_image_to_cairo_surface(src):
     # TODO: cairo.ImageSurface.create_for_data() is not yet available in
@@ -220,7 +221,11 @@ class PhotoCollageWindow(Gtk.Window):
         self.img_preview.connect("drag-data-received", self.on_drag)
         self.img_preview.drag_dest_set(Gtk.DestDefaults.ALL, [],
                                        Gdk.DragAction.COPY)
-        self.img_preview.drag_dest_add_text_targets()
+        targets = Gtk.TargetList.new([])
+        targets.add_text_targets(TARGET_TYPE_TEXT)
+        targets.add_uri_targets(TARGET_TYPE_URI)
+        self.img_preview.drag_dest_set_target_list(targets)
+
         box.pack_start(self.img_preview, True, True, 0)
 
         self.btn_save.set_sensitive(False)
@@ -270,10 +275,16 @@ class PhotoCollageWindow(Gtk.Window):
             dialog.destroy()
 
     def on_drag(self, widget, drag_context, x, y, data, info, time):
-        files = data.get_text().splitlines()
+        if info == TARGET_TYPE_TEXT:
+            files = data.get_text().splitlines()
+        elif info == TARGET_TYPE_URI:
+            # Can only handle local URIs
+            files = [f for f in data.get_uris() if f.startswith("file://")]
+
         for i in range(len(files)):
             if files[i].startswith("file://"):
-                files[i] = files[i][7:]
+                import urllib.parse
+                files[i] = urllib.parse.unquote(files[i][7:])
         self.update_photolist(files)
 
     def render_preview(self):
