@@ -547,7 +547,7 @@ class ImagePreviewArea(Gtk.DrawingArea):
 class BorderOptionsDialog(Gtk.Dialog):
     def __init__(self, parent):
         super(BorderOptionsDialog, self).__init__(
-            ("Border options"), parent, 0,
+            _("Border options"), parent, 0,
             (Gtk.STOCK_OK, Gtk.ResponseType.OK,
              Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
         self.set_border_width(10)
