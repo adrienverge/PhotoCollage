@@ -11,3 +11,9 @@ From the project's root directory, run:
 ```
 nosetests-3.4
 ```
+
+And also:
+
+```
+flake8 .
+```
