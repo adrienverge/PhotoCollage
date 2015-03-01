@@ -224,7 +224,6 @@ class PhotoCollageWindow(Gtk.Window):
         self.img_preview.drag_dest_set(Gtk.DestDefaults.ALL, [],
                                        Gdk.DragAction.COPY)
         targets = Gtk.TargetList.new([])
-        
         targets.add_text_targets(PhotoCollageWindow.TARGET_TYPE_TEXT)
         targets.add_uri_targets(PhotoCollageWindow.TARGET_TYPE_URI)
         self.img_preview.drag_dest_set_target_list(targets)
