@@ -32,8 +32,8 @@ msgid "PhotoCollage"
 msgstr "PhotoCollage"
 
 #: photocollage/gtkgui.py:152
-msgid "Input images..."
-msgstr "Images sources..."
+msgid "Add images..."
+msgstr "Ajouter des images..."
 
 #: photocollage/gtkgui.py:159 photocollage/gtkgui.py:260
 msgid "no image loaded"
@@ -50,13 +50,6 @@ msgstr "Regénérer"
 #: photocollage/gtkgui.py:211
 msgid "Border..."
 msgstr "Bordure..."
-
-#: photocollage/gtkgui.py:257
-#, python-format
-msgid "%(num)d image loaded"
-msgid_plural "%(num)d images loaded"
-msgstr[0] "%(num)d image chargée"
-msgstr[1] "%(num)d images chargées"
 
 #: photocollage/gtkgui.py:246
 #, python-format

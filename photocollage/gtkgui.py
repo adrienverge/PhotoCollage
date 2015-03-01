@@ -164,15 +164,12 @@ class PhotoCollageWindow(Gtk.Window):
         box = Gtk.Box(spacing=6, orientation=Gtk.Orientation.HORIZONTAL)
         box_window.pack_start(box, False, False, 0)
 
-        self.btn_choose_images = Gtk.Button(label=_("Input images..."))
+        self.btn_choose_images = Gtk.Button(label=_("Add images..."))
         self.btn_choose_images.set_image(Gtk.Image.new_from_stock(
             Gtk.STOCK_OPEN, Gtk.IconSize.LARGE_TOOLBAR))
         self.btn_choose_images.set_always_show_image(True)
         self.btn_choose_images.connect("clicked", self.choose_images)
         box.pack_start(self.btn_choose_images, False, False, 0)
-
-        self.lbl_images = Gtk.Label(_("no image loaded"))
-        box.pack_start(self.lbl_images, False, False, 0)
 
         self.btn_save = Gtk.Button(label=_("Save poster..."))
         self.btn_save.set_image(Gtk.Image.new_from_stock(
@@ -255,21 +252,21 @@ class PhotoCollageWindow(Gtk.Window):
 
         self.update_photolist([])
 
-    def update_photolist(self, source_images):
+    def update_photolist(self, new_images):
         try:
-            photolist = render.build_photolist(source_images)
+            photolist = []
+            if self.history_index >= 0:
+                photolist = copy.copy(
+                    self.history[self.history_index].photolist)
+            photolist.extend(render.build_photolist(new_images))
 
             n = len(photolist)
             if n > 0:
-                self.lbl_images.set_text(_n("%(num)d image loaded",
-                                            "%(num)d images loaded", n)
-                                         % {"num": n})
                 self.opts.no_cols = int(round(1.5 * math.sqrt(n)))
                 new_collage = UserCollage(photolist)
                 new_collage.make_page(self.opts.no_cols)
                 self.render_from_new_collage(new_collage)
             else:
-                self.lbl_images.set_text(_("no image loaded"))
                 self.update_tool_buttons()
         except render.BadPhoto as e:
             dialog = ErrorDialog(
