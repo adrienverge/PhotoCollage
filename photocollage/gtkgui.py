@@ -113,14 +113,32 @@ def gtk_run_in_main_thread(fn):
     return my_fn
 
 
+class UserCollage(object):
+    """Represents a user-defined collage
+
+    A UserCollage contains a list of photos (referenced by filenames) and a
+    collage.Page object describing their layout in a final poster.
+
+    """
+    def __init__(self, photolist, page=None):
+        self.photolist = photolist
+        self.page = page
+
+    def make_page(self, no_cols):
+        self.page = collage.Page(1.0, no_cols)
+        for photo in self.photolist:
+            self.page.add_cell(photo)
+        self.page.adjust()
+
+
 class PhotoCollageWindow(Gtk.Window):
     TARGET_TYPE_TEXT = 1
     TARGET_TYPE_URI = 2
 
     def __init__(self):
         super(PhotoCollageWindow, self).__init__(title=_("PhotoCollage"))
-        self.layout_histo = []
-        self.current_layout = -1
+        self.history = []
+        self.history_index = -1
 
         class Options(object):
             def __init__(self):
@@ -175,8 +193,8 @@ class PhotoCollageWindow(Gtk.Window):
             Gtk.STOCK_UNDO, Gtk.IconSize.LARGE_TOOLBAR))
         self.btn_undo.connect("clicked", self.select_prev_layout)
         box.pack_start(self.btn_undo, False, False, 0)
-        self.lbl_current_layout = Gtk.Label(" ")
-        box.pack_start(self.lbl_current_layout, False, False, 0)
+        self.lbl_history_index = Gtk.Label(" ")
+        box.pack_start(self.lbl_history_index, False, False, 0)
         self.btn_redo = Gtk.Button()
         self.btn_redo.set_image(Gtk.Image.new_from_stock(
             Gtk.STOCK_REDO, Gtk.IconSize.LARGE_TOOLBAR))
@@ -239,16 +257,17 @@ class PhotoCollageWindow(Gtk.Window):
 
     def update_photolist(self, source_images):
         try:
-            self.photolist = render.build_photolist(source_images)
+            photolist = render.build_photolist(source_images)
 
-            n = len(self.photolist)
+            n = len(photolist)
             if n > 0:
                 self.lbl_images.set_text(_n("%(num)d image loaded",
                                             "%(num)d images loaded", n)
                                          % {"num": n})
-                self.opts.no_cols = int(round(
-                    1.5 * math.sqrt(len(self.photolist))))
-                self.regenerate_layout()
+                self.opts.no_cols = int(round(1.5 * math.sqrt(n)))
+                new_collage = UserCollage(photolist)
+                new_collage.make_page(self.opts.no_cols)
+                self.render_from_new_collage(new_collage)
             else:
                 self.lbl_images.set_text(_("no image loaded"))
                 self.update_tool_buttons()
@@ -289,21 +308,21 @@ class PhotoCollageWindow(Gtk.Window):
         self.update_photolist(files)
 
     def render_preview(self):
-        page = self.layout_histo[self.current_layout]
+        collage = self.history[self.history_index]
 
         w = self.img_preview.get_allocation().width
         h = self.img_preview.get_allocation().height
-        page.scale_to_fit(w, h)
+        collage.page.scale_to_fit(w, h)
 
         # Display a "please wait" dialog and do the job.
         compdialog = ComputingDialog(self)
 
         def on_update(img, fraction_complete):
-            self.img_preview.set_image(img, page)
+            self.img_preview.set_collage(img, collage)
             compdialog.update(fraction_complete)
 
         def on_complete(img):
-            self.img_preview.set_image(img, page)
+            self.img_preview.set_collage(img, collage)
             compdialog.destroy()
             self.btn_save.set_sensitive(True)
 
@@ -316,8 +335,9 @@ class PhotoCollageWindow(Gtk.Window):
             self.btn_save.set_sensitive(False)
 
         t = render.InteractiveRenderingTask(
-            page,
-            border_width=self.opts.border_w * max(page.w, page.h),
+            collage.page,
+            border_width=self.opts.border_w * max(collage.page.w,
+                                                  collage.page.h),
             border_color=self.opts.border_c,
             on_update=gtk_run_in_main_thread(on_update),
             on_complete=gtk_run_in_main_thread(on_complete),
@@ -329,27 +349,26 @@ class PhotoCollageWindow(Gtk.Window):
             t.abort()
             compdialog.destroy()
 
-    def generate_from_page(self, page):
-        self.layout_histo.append(page)
-        self.current_layout = len(self.layout_histo) - 1
+    def render_from_new_collage(self, collage):
+        self.history.append(collage)
+        self.history_index = len(self.history) - 1
         self.update_tool_buttons()
         self.render_preview()
 
     def regenerate_layout(self, button=None):
-        page = collage.Page(1.0, self.opts.no_cols)
-        for photo in self.photolist:
-            page.add_cell(photo)
-        page.adjust()
+        current_collage = self.history[self.history_index]
+        new_collage = UserCollage(current_collage.photolist)
+        new_collage.make_page(self.opts.no_cols)
 
-        self.generate_from_page(page)
+        self.render_from_new_collage(new_collage)
 
     def select_prev_layout(self, button):
-        self.current_layout -= 1
+        self.history_index -= 1
         self.update_tool_buttons()
         self.render_preview()
 
     def select_next_layout(self, button):
-        self.current_layout += 1
+        self.history_index += 1
         self.update_tool_buttons()
         self.render_preview()
 
@@ -367,23 +386,23 @@ class PhotoCollageWindow(Gtk.Window):
         if response == Gtk.ResponseType.OK:
             dialog.apply_opts(self.opts)
             dialog.destroy()
-            if self.layout_histo:
+            if self.history:
                 self.render_preview()
         else:
             dialog.destroy()
 
     def save_poster(self, button):
-        page = self.layout_histo[self.current_layout]
+        collage = self.history[self.history_index]
 
-        dialog = SaveImageDialog(self, self.opts, page.ratio)
+        dialog = SaveImageDialog(self, self.opts, collage.page.ratio)
         if dialog.run() != Gtk.ResponseType.OK:
             dialog.destroy()
             return
         self.opts.out_w = dialog.get_poster_width()
         dialog.destroy()
 
-        enlargement = float(self.opts.out_w) / page.w
-        page.scale(enlargement)
+        enlargement = float(self.opts.out_w) / collage.page.w
+        collage.page.scale(enlargement)
 
         dialog = Gtk.FileChooserDialog(_("Save image"), button.get_toplevel(),
                                        Gtk.FileChooserAction.SAVE)
@@ -414,8 +433,9 @@ class PhotoCollageWindow(Gtk.Window):
             dialog.destroy()
 
         t = render.BatchRenderingTask(
-            savefile, page,
-            border_width=self.opts.border_w * max(page.w, page.h),
+            savefile, collage.page,
+            border_width=self.opts.border_w * max(collage.page.w,
+                                                  collage.page.h),
             border_color=self.opts.border_c,
             on_complete=gtk_run_in_main_thread(on_complete),
             on_fail=gtk_run_in_main_thread(on_fail))
@@ -427,15 +447,15 @@ class PhotoCollageWindow(Gtk.Window):
             compdialog.destroy()
 
     def update_tool_buttons(self):
-        self.btn_undo.set_sensitive(self.current_layout > 0)
+        self.btn_undo.set_sensitive(self.history_index > 0)
         self.btn_redo.set_sensitive(
-            self.current_layout < len(self.layout_histo) - 1)
-        if self.current_layout >= 0:
-            self.lbl_current_layout.set_label(str(self.current_layout + 1))
-        self.btn_new_layout.set_sensitive(self.current_layout >= 0)
-        self.btn_less_cols.set_sensitive(self.current_layout >= 0
+            self.history_index < len(self.history) - 1)
+        if self.history_index >= 0:
+            self.lbl_history_index.set_label(str(self.history_index + 1))
+        self.btn_new_layout.set_sensitive(self.history_index >= 0)
+        self.btn_less_cols.set_sensitive(self.history_index >= 0
                                          and self.opts.no_cols > 1)
-        self.btn_more_cols.set_sensitive(self.current_layout >= 0)
+        self.btn_more_cols.set_sensitive(self.history_index >= 0)
 
 
 class ImagePreviewArea(Gtk.DrawingArea):
@@ -475,14 +495,14 @@ class ImagePreviewArea(Gtk.DrawingArea):
         self.swap_origin = SwapEnd()
         self.swap_dest = SwapEnd()
 
-    def set_image(self, image, page):
+    def set_collage(self, image, collage):
         self.image = pil_image_to_cairo_surface(image)
-        # The Page object must be copied deep. Otherwise, swaping photos in a
-        # new page would also affect the original page (in history). The deep
-        # copy is done here (not in button_release_event) because references
-        # to cells are gathered in other functions, so that making the copy
-        # at the end would invalidate these references.
-        self.page = copy.deepcopy(page)
+        # The Collage object must be deeply copied. Otherwise, swaping photos
+        # in a new page would also affect the original page (in history).
+        # The deep copy is done here (not in button_release_event) because
+        # references to cells are gathered in other functions, so that making
+        # the copy at the end would invalidate these references.
+        self.collage = copy.deepcopy(collage)
         self.mode = self.FLYING
         self.queue_draw()
 
@@ -516,12 +536,12 @@ class ImagePreviewArea(Gtk.DrawingArea):
             context.paint()
 
             if self.mode == self.FLYING:
-                cell = self.page.get_cell_at_position(self.x, self.y)
+                cell = self.collage.page.get_cell_at_position(self.x, self.y)
                 if cell:
                     self.paint_image_border(context, cell)
             elif self.mode == self.SWAPING:
                 self.paint_image_border(context, self.swap_origin.cell, (3, 3))
-                cell = self.page.get_cell_at_position(self.x, self.y)
+                cell = self.collage.page.get_cell_at_position(self.x, self.y)
                 if cell and cell != self.swap_origin.cell:
                     self.paint_image_border(context, cell, (3, 3))
 
@@ -535,7 +555,7 @@ class ImagePreviewArea(Gtk.DrawingArea):
         if self.mode == self.FLYING:
             self.swap_origin.x, self.swap_origin.y = \
                 self.get_pos_in_image(event.x, event.y)
-            self.swap_origin.cell = self.page.get_cell_at_position(
+            self.swap_origin.cell = self.collage.page.get_cell_at_position(
                 self.swap_origin.x, self.swap_origin.y)
             if self.swap_origin.cell:
                 self.mode = self.SWAPING
@@ -545,13 +565,13 @@ class ImagePreviewArea(Gtk.DrawingArea):
         if self.mode == self.SWAPING:
             self.swap_dest.x, self.swap_dest.y = \
                 self.get_pos_in_image(event.x, event.y)
-            self.swap_dest.cell = self.page.get_cell_at_position(
+            self.swap_dest.cell = self.collage.page.get_cell_at_position(
                 self.swap_dest.x, self.swap_dest.y)
             if self.swap_dest.cell \
                     and self.swap_origin.cell != self.swap_dest.cell:
-                self.page.swap_photos(self.swap_origin.cell,
-                                      self.swap_dest.cell)
-                self.parent.generate_from_page(self.page)
+                self.collage.page.swap_photos(self.swap_origin.cell,
+                                              self.swap_dest.cell)
+                self.parent.render_from_new_collage(self.collage)
             self.mode = self.FLYING
         widget.queue_draw()
 
@@ -654,7 +674,7 @@ class SaveImageDialog(Gtk.Dialog):
 
 
 class ComputingDialog(Gtk.Dialog):
-    """Simple "please wait" dialog, with a "cancel" button."""
+    """Simple "please wait" dialog, with a "cancel" button"""
     def __init__(self, parent):
         super(ComputingDialog, self).__init__(
             _("Please wait"), parent, 0, (Gtk.STOCK_CANCEL,
