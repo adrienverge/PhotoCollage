@@ -403,6 +403,10 @@ class Page(object):
         return "\n".join(lines)
 
     @property
+    def no_cols(self):
+        return len(self.cols)
+
+    @property
     def w(self):
         return sum(c.w for c in self.cols)
 

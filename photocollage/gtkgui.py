@@ -120,15 +120,20 @@ class UserCollage(object):
     collage.Page object describing their layout in a final poster.
 
     """
-    def __init__(self, photolist, page=None):
+    def __init__(self, photolist, no_cols=None):
         self.photolist = photolist
-        self.page = page
+        if not no_cols:
+            no_cols = int(round(1.5 * math.sqrt(len(self.photolist))))
+        self.no_cols = no_cols
 
-    def make_page(self, no_cols):
-        self.page = collage.Page(1.0, no_cols)
+    def make_page(self):
+        self.page = collage.Page(1.0, self.no_cols)
         for photo in self.photolist:
             self.page.add_cell(photo)
         self.page.adjust()
+
+    def duplicate(self):
+        return UserCollage(copy.copy(self.photolist), self.no_cols)
 
 
 class PhotoCollageWindow(Gtk.Window):
@@ -142,7 +147,6 @@ class PhotoCollageWindow(Gtk.Window):
 
         class Options(object):
             def __init__(self):
-                self.no_cols = 1
                 self.border_w = 0.02
                 self.border_c = "black"
                 self.out_w = 2000
@@ -260,11 +264,9 @@ class PhotoCollageWindow(Gtk.Window):
                     self.history[self.history_index].photolist)
             photolist.extend(render.build_photolist(new_images))
 
-            n = len(photolist)
-            if n > 0:
-                self.opts.no_cols = int(round(1.5 * math.sqrt(n)))
+            if len(photolist) > 0:
                 new_collage = UserCollage(photolist)
-                new_collage.make_page(self.opts.no_cols)
+                new_collage.make_page()
                 self.render_from_new_collage(new_collage)
             else:
                 self.update_tool_buttons()
@@ -353,10 +355,8 @@ class PhotoCollageWindow(Gtk.Window):
         self.render_preview()
 
     def regenerate_layout(self, button=None):
-        current_collage = self.history[self.history_index]
-        new_collage = UserCollage(current_collage.photolist)
-        new_collage.make_page(self.opts.no_cols)
-
+        new_collage = self.history[self.history_index].duplicate()
+        new_collage.make_page()
         self.render_from_new_collage(new_collage)
 
     def select_prev_layout(self, button):
@@ -370,12 +370,16 @@ class PhotoCollageWindow(Gtk.Window):
         self.render_preview()
 
     def less_cols(self, button):
-        self.opts.no_cols = max(1, self.opts.no_cols - 1)
-        self.regenerate_layout()
+        new_collage = self.history[self.history_index].duplicate()
+        new_collage.no_cols = max(1, new_collage.no_cols - 1)
+        new_collage.make_page()
+        self.render_from_new_collage(new_collage)
 
     def more_cols(self, button):
-        self.opts.no_cols += 1
-        self.regenerate_layout()
+        new_collage = self.history[self.history_index].duplicate()
+        new_collage.no_cols += 1
+        new_collage.make_page()
+        self.render_from_new_collage(new_collage)
 
     def set_border_options(self, button):
         dialog = BorderOptionsDialog(self)
@@ -450,8 +454,9 @@ class PhotoCollageWindow(Gtk.Window):
         if self.history_index >= 0:
             self.lbl_history_index.set_label(str(self.history_index + 1))
         self.btn_new_layout.set_sensitive(self.history_index >= 0)
-        self.btn_less_cols.set_sensitive(self.history_index >= 0
-                                         and self.opts.no_cols > 1)
+        self.btn_less_cols.set_sensitive(
+            self.history_index >= 0 and
+            self.history[self.history_index].no_cols > 1)
         self.btn_more_cols.set_sensitive(self.history_index >= 0)
 
 
@@ -526,6 +531,24 @@ class ImagePreviewArea(Gtk.DrawingArea):
                           cell.w - 2, cell.h - 2)
         context.stroke()
 
+    def paint_image_delete_button(self, context, cell):
+        x0, y0 = self.get_image_offset()
+
+        x = x0 + cell.x + cell.w - 12
+        y = y0 + cell.y + 12
+
+        context.arc(x, y, 8, 0, 6.2832)
+        context.set_source_rgb(0.8, 0.0, 0.0)
+        context.fill()
+        context.arc(x, y, 8, 0, 6.2832)
+        context.set_source_rgb(0.0, 0.0, 0.0)
+        context.set_line_width(1)
+        context.move_to(x - 4, y - 4)
+        context.line_to(x + 4, y + 4)
+        context.move_to(x - 4, y + 4)
+        context.line_to(x + 4, y - 4)
+        context.stroke()
+
     def draw(self, widget, context):
         if self.image is not None:
             x0, y0 = self.get_image_offset()
@@ -536,6 +559,7 @@ class ImagePreviewArea(Gtk.DrawingArea):
                 cell = self.collage.page.get_cell_at_position(self.x, self.y)
                 if cell:
                     self.paint_image_border(context, cell)
+                    self.paint_image_delete_button(context, cell)
             elif self.mode == self.SWAPING:
                 self.paint_image_border(context, self.swap_origin.cell, (3, 3))
                 cell = self.collage.page.get_cell_at_position(self.x, self.y)
@@ -560,11 +584,24 @@ class ImagePreviewArea(Gtk.DrawingArea):
 
     def button_press_event(self, widget, event):
         if self.mode == self.FLYING:
-            self.swap_origin.x, self.swap_origin.y = \
-                self.get_pos_in_image(event.x, event.y)
-            self.swap_origin.cell = self.collage.page.get_cell_at_position(
-                self.swap_origin.x, self.swap_origin.y)
-            if self.swap_origin.cell:
+            x, y = self.get_pos_in_image(event.x, event.y)
+            cell = self.collage.page.get_cell_at_position(x, y)
+            if not cell:
+                return
+            # Has the user clicked the delete button?
+            dist = (cell.x + cell.w - 12 - x) ** 2 + (cell.y + 12 - y) ** 2
+            if dist <= 8 * 8:
+                self.collage.photolist.remove(cell.photo)
+                if self.collage.photolist:
+                    self.collage.make_page()
+                    self.parent.render_from_new_collage(self.collage)
+                else:
+                    self.image = None
+                    self.mode = self.INSENSITIVE
+            # Otherwise, the user wants to swap this image with another
+            else:
+                self.swap_origin.x, self.swap_origin.y = x, y
+                self.swap_origin.cell = cell
                 self.mode = self.SWAPING
         widget.queue_draw()
 
