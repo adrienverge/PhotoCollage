@@ -541,6 +541,16 @@ class ImagePreviewArea(Gtk.DrawingArea):
                 cell = self.collage.page.get_cell_at_position(self.x, self.y)
                 if cell and cell != self.swap_origin.cell:
                     self.paint_image_border(context, cell, (3, 3))
+        else:
+            # Display the drag & drop image
+            dnd_image = artwork.load_cairo_surface(artwork.ICON_DRAG_AND_DROP)
+            context.set_source_surface(
+                dnd_image,
+                round((self.get_allocation().width
+                       - dnd_image.get_width()) / 2.0),
+                round((self.get_allocation().height
+                       - dnd_image.get_height()) / 2.0))
+            context.paint()
 
         return False
 
