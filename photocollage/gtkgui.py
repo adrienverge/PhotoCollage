@@ -143,7 +143,7 @@ class PhotoCollageWindow(Gtk.Window):
     def __init__(self):
         super(PhotoCollageWindow, self).__init__(title=_("PhotoCollage"))
         self.history = []
-        self.history_index = -1
+        self.history_index = 0
 
         class Options(object):
             def __init__(self):
@@ -259,7 +259,7 @@ class PhotoCollageWindow(Gtk.Window):
     def update_photolist(self, new_images):
         try:
             photolist = []
-            if self.history_index >= 0:
+            if self.history_index < len(self.history):
                 photolist = copy.copy(
                     self.history[self.history_index].photolist)
             photolist.extend(render.build_photolist(new_images))
@@ -449,15 +449,18 @@ class PhotoCollageWindow(Gtk.Window):
 
     def update_tool_buttons(self):
         self.btn_undo.set_sensitive(self.history_index > 0)
-        self.btn_redo.set_sensitive(
-            self.history_index < len(self.history) - 1)
-        if self.history_index >= 0:
+        self.btn_redo.set_sensitive(self.history_index < len(self.history) - 1)
+        if self.history_index < len(self.history):
             self.lbl_history_index.set_label(str(self.history_index + 1))
-        self.btn_new_layout.set_sensitive(self.history_index >= 0)
+        else:
+            self.lbl_history_index.set_label(" ")
+        self.btn_new_layout.set_sensitive(
+            self.history_index < len(self.history))
         self.btn_less_cols.set_sensitive(
-            self.history_index >= 0 and
+            self.history_index < len(self.history) and
             self.history[self.history_index].no_cols > 1)
-        self.btn_more_cols.set_sensitive(self.history_index >= 0)
+        self.btn_more_cols.set_sensitive(
+            self.history_index < len(self.history))
 
 
 class ImagePreviewArea(Gtk.DrawingArea):
@@ -598,6 +601,8 @@ class ImagePreviewArea(Gtk.DrawingArea):
                 else:
                     self.image = None
                     self.mode = self.INSENSITIVE
+                    self.parent.history_index = len(self.parent.history)
+                    self.parent.update_tool_buttons()
             # Otherwise, the user wants to swap this image with another
             else:
                 self.swap_origin.x, self.swap_origin.y = x, y
