@@ -24,8 +24,8 @@ from gi.repository import Gtk, Gdk, GObject
 from io import BytesIO
 import math
 import os.path
+from six.moves import urllib  # Python 2 backward compatibility
 import sys
-import urllib.parse
 
 from photocollage import APP_NAME, artwork, collage, render
 from photocollage.render import PIL_SUPPORTED_EXTS as EXTS
