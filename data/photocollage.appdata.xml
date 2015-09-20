@@ -25,21 +25,21 @@
    for free and with open-source code.
   </p>
   <p xml:lang="de">
-   PhotoCollage erlaubt Ihnen das erstellen von Foto-Collage Postern. Es
-   generiert eine Zusammenstellung der Quell-Fotos zum erstellen eines großen
-   Posters. Die Fotos werden automatisch arrangiert um das ganze Poster zu
-   füllen, dannach kannst du die endgültige Anordnung noch ändern, Abmessungen,
-   Rahmen oder tausche die Fotos in dem generierten Raster. Anschließlich kann
-   das fertige Poster-Bild in beliebiger Größe gespeichert werden.
+   PhotoCollage erlaubt Ihnen das Erstellen von Foto-Collage Postern. 
+   Ausgewählte Fotos werden automatisch auf einer rechteckigen
+   Posterfläche arrangiert. Es ist möglich, Anordnung sowie Abmessungen der 
+   Fotos und des Rahmens zu bearbeiten und Fotos auszutauschen.
+   Das fertige Poster kann in beliebiger Größe gespeichert werden.
   </p>
   <p xml:lang="de">
-   Das Rechenverfahren generiert verschiedene Entwürfe welches Fotos palziert
-   mit dem Vorteil den ganzen freien Platz zu nutzen. Es versucht den ganzen
-   Platz auzufüllen und dabei jedes Foto so groß wie möglich darzustellen.
+   Das zugrundeligende Rechenverfahren erzeugt die Anordnung bei größtmöglicher 
+   Ausnutzung der Posterfläche in der Weise, dass jedes Foto so groß wie möglich
+   dargestellt wird.
   </p>
   <p xml:lang="de">
-   PhotoCollage tut mehr oder weniger das selbe was viele kommerzielle
-   Webseiten tun, ist aber frei und kommt mit Open-Source Quellcode.
+   Der Funktionsumfang von PhotoCollage entspricht etwa dem vieler kommerzieller
+   Webseiten. Jedoch ist es kostenlos und der Quellcode unter einer freien 
+   Lizenz erhältlich.
   </p>
   <p xml:lang="fr">
    PhotoCollage permet de créer des posters de photo-collages. Il assemble les
