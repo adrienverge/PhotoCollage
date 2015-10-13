@@ -285,7 +285,7 @@ class RenderingTask(Thread):
         # by pickle, so not passable through a multiprocessing pipe.
         # So we use this trick:
         if raw_output:
-            return img.size[0], img.size[1], img.tostring()
+            return img.size[0], img.size[1], img.tobytes()
         return img
 
     def paste_photo(self, canvas, cell, img):
@@ -344,7 +344,7 @@ class InteractiveRenderingTask(RenderingTask):
                             continue
                         w, h, raw = self.do_in_subprocess(
                             self.resize_photo, c, raw_output=True)
-                        img = PIL.Image.fromstring("RGB", (w, h), raw)
+                        img = PIL.Image.frombytes("RGB", (w, h), raw)
                         self.paste_photo(canvas, c, img)
                         self.draw_borders(canvas)
 
