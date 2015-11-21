@@ -1,0 +1,113 @@
+# PhotoCollage translation file
+# Copyright (C) 2015 Michal Kovařík <mkovarik@fedoraproject.org>
+# This file is distributed under the same license as the PhotoCollage package.
+# Michal Kovařík <mkovarik@fedoraproject.org>, 2015.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2015-11-21 18:04+0100\n"
+"PO-Revision-Date: 2015-11-21 18:16+0100\n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 1.8.5\n"
+"Last-Translator: Michal Kovařík <mkovarik@fedoraproject.org >\n"
+"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
+"Language: cs_CZ\n"
+
+#: ../photocollage/gtkgui.py:69 ../photocollage/gtkgui.py:91
+msgid "All supported image formats"
+msgstr "Všechny podporované formáty"
+
+#: ../photocollage/gtkgui.py:101
+#, python-format
+msgid "%s image"
+msgstr "%s obrázek"
+
+#: ../photocollage/gtkgui.py:145
+msgid "PhotoCollage"
+msgstr "PhotoCollage"
+
+#: ../photocollage/gtkgui.py:172
+msgid "Add images..."
+msgstr "Přidat obrázky..."
+
+#: ../photocollage/gtkgui.py:179
+msgid "Save poster..."
+msgstr "Uložit pohlednici..."
+
+#: ../photocollage/gtkgui.py:205
+msgid "Regenerate"
+msgstr "Přegenerovat"
+
+#: ../photocollage/gtkgui.py:227
+msgid "Border..."
+msgstr "Rámeček..."
+
+#: ../photocollage/gtkgui.py:276
+#, python-format
+msgid ""
+"This image could not be opened:\n"
+"\"%(imgname)s\"."
+msgstr ""
+"Nelze otevřít tento obrázek:\n"
+"\"%(imgname)s\"."
+
+#: ../photocollage/gtkgui.py:282
+msgid "Choose images"
+msgstr "Vyberte obrázky"
+
+#: ../photocollage/gtkgui.py:331 ../photocollage/gtkgui.py:437
+msgid "An error occurred while rendering image."
+msgstr "Nastala chyba při renderování obrázku."
+
+#: ../photocollage/gtkgui.py:409 ../photocollage/gtkgui.py:687
+msgid "Save image"
+msgstr "Uložit obrázek"
+
+#: ../photocollage/gtkgui.py:637
+msgid "Border options"
+msgstr "Možnosti rámečku"
+
+#: ../photocollage/gtkgui.py:648
+msgid "Border width (%):"
+msgstr "Šířka rámečku (%):"
+
+#: ../photocollage/gtkgui.py:657
+msgid "Border color:"
+msgstr "Barva rámečku"
+
+#: ../photocollage/gtkgui.py:659
+msgid "black"
+msgstr "černá"
+
+#: ../photocollage/gtkgui.py:660
+msgid "white"
+msgstr "bíla"
+
+#: ../photocollage/gtkgui.py:700
+msgid "Poster width:"
+msgstr "Šířka pohlednice:"
+
+#: ../photocollage/gtkgui.py:708 ../photocollage/gtkgui.py:717
+msgid "pixels"
+msgstr "pixelů"
+
+#: ../photocollage/gtkgui.py:712
+msgid "Poster height:"
+msgstr "Výška pohlednice:"
+
+#: ../photocollage/gtkgui.py:735
+msgid "Please wait"
+msgstr "Prosím čekejte"
+
+#: ../photocollage/gtkgui.py:744
+msgid "Performing image computation..."
+msgstr "Provádím výpočet obrázku..."
+
+#: ../photocollage/gtkgui.py:772
+msgid "Error"
+msgstr "Chyba"
