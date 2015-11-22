@@ -38,6 +38,7 @@ _n = gettext.ngettext
 # cp po/photocollage.pot po/fr.po
 # msgfmt -o po/fr.mo po/fr.po
 
+
 def pil_image_to_cairo_surface(src):
     # TODO: cairo.ImageSurface.create_for_data() is not yet available in
     # Python 3, so we use PNG as an intermediate.

@@ -1,6 +1,9 @@
 Testing
 =======
 
+Unit tests
+----------
+
 Dependencies:
 
 - python3-nose
@@ -12,7 +15,10 @@ From the project's root directory, run:
 nosetests-3.4
 ```
 
-And also:
+Linting
+-------
+
+Run:
 
 ```
 flake8 .
