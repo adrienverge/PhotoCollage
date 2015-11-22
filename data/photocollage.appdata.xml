@@ -5,6 +5,7 @@
  <project_license>GPL-2.0+</project_license>
  <name>PhotoCollage</name>
  <summary>Graphical tool to make photo collage posters</summary>
+ <summary xml:lang="cs">Grafický nástroj pro vytváření koláží z fotografií</summary>
  <summary xml:lang="de">Grafisches Werkzeug zum erstellen von Foto-Collagen Poster</summary>
  <summary xml:lang="fr">Outil graphique pour fabriquer des posters en collant plusieurs photos</summary>
  <description>
@@ -23,6 +24,22 @@
   <p>
    PhotoCollage does more or less the same as many commercial websites do, but
    for free and with open-source code.
+  </p>
+  <p xml:lang="cs">
+   PhotoCollage umožnuje vytvářet koláž z obrázků. Z vybraných fotografií je
+   vygenerována velká pohlednice. Fotografie jsou automaticky velikostně
+   upraveny, tak aby zaplnily celou pohlednici. Výsledné uspořádání, velikost,
+   rámeček nebo umístění fotografií lze změnit. Výslednou pohlednici lze uložit
+   libovolné velikosti.
+  </p>
+  <p xml:lang="cs">
+   Algoritmus generuje náhodné rozložení, fotografie jsou rozprostřeny přes
+   veškeré volné místo. Program se snaží umístit fotografie v co největším
+   formátu při zaplnění veškerého volného místa.
+  </p>
+  <p xml:lang="cs">
+   PhotoCollage dělá více méně to samé co mnoho komerčních webových portálů,
+   ale PhotoCollage je zdarma a open-source.
   </p>
   <p xml:lang="de">
    PhotoCollage erlaubt Ihnen das Erstellen von Foto-Collage Postern. 
