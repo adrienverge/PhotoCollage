@@ -457,6 +457,8 @@ class PhotoCollageWindow(Gtk.Window):
             self.lbl_history_index.set_label(str(self.history_index + 1))
         else:
             self.lbl_history_index.set_label(" ")
+        self.btn_save.set_sensitive(
+            self.history_index < len(self.history))
         self.btn_new_layout.set_sensitive(
             self.history_index < len(self.history))
         self.btn_less_cols.set_sensitive(
