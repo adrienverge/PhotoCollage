@@ -486,11 +486,11 @@ class ImagePreviewArea(Gtk.DrawingArea):
         self.connect("leave-notify-event", self.motion_notify_event)
         self.connect("button-press-event", self.button_press_event)
         self.connect("button-release-event", self.button_release_event)
-        self.set_events(Gdk.EventMask.EXPOSURE_MASK
-                        | Gdk.EventMask.LEAVE_NOTIFY_MASK
-                        | Gdk.EventMask.BUTTON_PRESS_MASK
-                        | Gdk.EventMask.BUTTON_RELEASE_MASK
-                        | Gdk.EventMask.POINTER_MOTION_MASK)
+        self.set_events(Gdk.EventMask.EXPOSURE_MASK |
+                        Gdk.EventMask.LEAVE_NOTIFY_MASK |
+                        Gdk.EventMask.BUTTON_PRESS_MASK |
+                        Gdk.EventMask.BUTTON_RELEASE_MASK |
+                        Gdk.EventMask.POINTER_MOTION_MASK)
 
         self.image = None
         self.mode = self.INSENSITIVE
@@ -517,10 +517,10 @@ class ImagePreviewArea(Gtk.DrawingArea):
         self.queue_draw()
 
     def get_image_offset(self):
-        return (round((self.get_allocation().width
-                       - self.image.get_width()) / 2.0),
-                round((self.get_allocation().height
-                       - self.image.get_height()) / 2.0))
+        return (round((self.get_allocation().width -
+                       self.image.get_width()) / 2.0),
+                round((self.get_allocation().height -
+                       self.image.get_height()) / 2.0))
 
     def get_pos_in_image(self, x, y):
         if self.image is not None:
@@ -578,10 +578,10 @@ class ImagePreviewArea(Gtk.DrawingArea):
             dnd_image = artwork.load_cairo_surface(artwork.ICON_DRAG_AND_DROP)
             context.set_source_surface(
                 dnd_image,
-                round((self.get_allocation().width
-                       - dnd_image.get_width()) / 2.0),
-                round((self.get_allocation().height
-                       - dnd_image.get_height()) / 2.0))
+                round((self.get_allocation().width -
+                       dnd_image.get_width()) / 2.0),
+                round((self.get_allocation().height -
+                       dnd_image.get_height()) / 2.0))
             context.paint()
 
         return False
