@@ -20,6 +20,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 import cairo
 import copy
 import gettext
+import gi
+gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GObject
 from io import BytesIO
 import math
@@ -455,6 +457,8 @@ class PhotoCollageWindow(Gtk.Window):
             self.lbl_history_index.set_label(str(self.history_index + 1))
         else:
             self.lbl_history_index.set_label(" ")
+        self.btn_save.set_sensitive(
+            self.history_index < len(self.history))
         self.btn_new_layout.set_sensitive(
             self.history_index < len(self.history))
         self.btn_less_cols.set_sensitive(
