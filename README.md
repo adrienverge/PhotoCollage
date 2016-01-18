@@ -1,6 +1,8 @@
 PhotoCollage
 ============
 
+[![Build Status](https://travis-ci.org/adrienverge/PhotoCollage.svg?branch=master)](https://travis-ci.org/adrienverge/PhotoCollage)
+
 *Graphical tool to make photo collage posters*
 
 PhotoCollage allows you to create photo collage posters. It assembles the input
