@@ -21,7 +21,7 @@ import cairo
 import copy
 import gettext
 import gi
-gi.require_version('Gtk', '3.0')
+gi.require_version('Gtk', '3.0')  # noqa
 from gi.repository import Gtk, Gdk, GObject
 from io import BytesIO
 import math
