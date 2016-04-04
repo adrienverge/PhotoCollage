@@ -221,6 +221,9 @@ class RenderingTask(Thread):
         return canvas
 
     def draw_borders(self, canvas):
+        if self.border_width == 0:
+            return
+
         W = self.page.w - 1
         H = self.page.h - 1
         border = self.border_width - 1
