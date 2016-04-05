@@ -49,13 +49,13 @@ class TestCollage(unittest.TestCase):
         self.force_cell_position(0)
         self.prevent_cell_extension()
 
-        page = Page(100, 4)
+        page = Page(100, 0.6, 4)
         page.add_cell(Photo("img", 10, 10))
         page.add_cell(Photo("img", 10, 10))
         wanted = "[25 25] [25 25]  "
         self.assertEqual(repr(page), wanted)
 
-        page = Page(40, 4)
+        page = Page(40, 0.6, 4)
         page.add_cell(Photo("img", 10, 20))
         page.add_cell(Photo("img", 10, 15))
         page.add_cell(Photo("img", 10, 10))
@@ -67,7 +67,7 @@ class TestCollage(unittest.TestCase):
                   "        [10 22] [10 10] [10 10]")
         self.assertEqual(repr(page), wanted)
 
-        page = Page(50, 5)
+        page = Page(50, 0.6, 5)
         self.force_cell_extension()
         page.add_cell(Photo("img", 10, 15))
         page.add_cell(Photo("img", 10, 10))
@@ -79,7 +79,7 @@ class TestCollage(unittest.TestCase):
         self.assertEqual(repr(page), wanted)
 
     def test_remove_empty_cols(self):
-        page = Page(1, 100)
+        page = Page(1, 0.6, 100)
         self.prevent_cell_extension()
         page.add_cell(Photo("img", 10, 10))
         page.add_cell(Photo("img", 10, 10))
@@ -99,7 +99,7 @@ class TestCollage(unittest.TestCase):
         |      |      |
         ---------------
         """
-        page = Page(30, 3)
+        page = Page(30, 0.6, 3)
         self.force_cell_position(0)
         self.prevent_cell_extension()
         page.add_cell(Photo("img", 10, 15))
@@ -132,7 +132,7 @@ class TestCollage(unittest.TestCase):
         |      |      |      |
         --------      --------
         """
-        page = Page(30, 3)
+        page = Page(30, 0.6, 3)
         self.force_cell_position(0)
         self.prevent_cell_extension()
         page.add_cell(Photo("img", 10, 15))
@@ -166,7 +166,7 @@ class TestCollage(unittest.TestCase):
                |             |
                ---------------
         """
-        page = Page(30, 3)
+        page = Page(30, 0.6, 3)
         self.force_cell_position(0)
         self.prevent_cell_extension()
         page.add_cell(Photo("img", 10, 10))
@@ -201,7 +201,7 @@ class TestCollage(unittest.TestCase):
         |             |
         ---------------
         """
-        page = Page(30, 3)
+        page = Page(30, 0.6, 3)
         self.force_cell_position(0)
         self.prevent_cell_extension()
         page.add_cell(Photo("img", 10, 10))
