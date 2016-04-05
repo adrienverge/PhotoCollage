@@ -329,25 +329,6 @@ class Column(object):
             for c in group.cells:
                 c.h = c.h * alpha
 
-    def adjust_width(self):
-        """Change the column's width to reduce image cropping
-
-        Each cell has a wanted_ratio value, which corresponds to the image it
-        contains. If the cell's width does not correpond to this ratio, try to
-        change the whole column's width to get closer to this ratio, i.e.
-        reduce cropping.
-        """
-        # First, get the thinest cell wanted width
-        wanted_widths = []
-        for c in self.cells:
-            x, y, w, h = c.content_coords()
-            if c.is_extended() or c.is_extension():  # extended cell
-                wanted_widths.append(w / 2.0)
-            else:  # regular cell
-                wanted_widths.append(w)
-
-        self.w = min(wanted_widths)
-
 
 class Page(object):
     """Represents a whole page
@@ -363,7 +344,8 @@ class Page(object):
     ---------------------- v
 
     """
-    def __init__(self, w, no_cols):
+    def __init__(self, w, target_ratio, no_cols):
+        self.target_ratio = target_ratio
         col_w = float(w)/no_cols
         self.cols = []
         for i in range(no_cols):
@@ -551,20 +533,14 @@ class Page(object):
 
     def adjust_cols_heights(self):
         """Set all columns' heights to same value by shrinking them"""
-        target_h = sum([c.h for c in self.cols]) / len(self.cols)
+        target_h = self.w * self.target_ratio
         for c in self.cols:
             c.adjust_height(target_h)
-
-    def adjust_cols_widths(self):
-        """Change each column's width to reduce image cropping in cells"""
-        for c in self.cols:
-            c.adjust_width()
 
     def adjust(self):
         self.remove_empty_cols()
         self.remove_bottom_holes()
         self.adjust_cols_heights()
-        self.adjust_cols_widths()
 
     def get_cell_at_position(self, x, y):
         for col in self.cols:

@@ -123,20 +123,21 @@ class UserCollage(object):
     collage.Page object describing their layout in a final poster.
 
     """
-    def __init__(self, photolist, no_cols=None):
+    def __init__(self, photolist):
         self.photolist = photolist
-        if not no_cols:
-            no_cols = int(round(1.5 * math.sqrt(len(self.photolist))))
-        self.no_cols = no_cols
 
-    def make_page(self):
-        self.page = collage.Page(1.0, self.no_cols)
+    def make_page(self, opts):
+        ratio = 1.0 * opts.out_h / opts.out_w
+        no_cols = int(round(1.0 * opts.out_w / opts.out_h *
+                            math.sqrt(len(self.photolist))))
+
+        self.page = collage.Page(1.0, ratio, no_cols)
         for photo in self.photolist:
             self.page.add_cell(photo)
         self.page.adjust()
 
     def duplicate(self):
-        return UserCollage(copy.copy(self.photolist), self.no_cols)
+        return UserCollage(copy.copy(self.photolist))
 
 
 class PhotoCollageWindow(Gtk.Window):
@@ -152,7 +153,8 @@ class PhotoCollageWindow(Gtk.Window):
             def __init__(self):
                 self.border_w = 0.02
                 self.border_c = "black"
-                self.out_w = 2000
+                self.out_w = 800
+                self.out_h = 600
 
         self.opts = Options()
 
@@ -183,14 +185,13 @@ class PhotoCollageWindow(Gtk.Window):
             Gtk.STOCK_SAVE_AS, Gtk.IconSize.LARGE_TOOLBAR))
         self.btn_save.set_always_show_image(True)
         self.btn_save.connect("clicked", self.save_poster)
-        box.pack_end(self.btn_save, False, False, 0)
+        box.pack_start(self.btn_save, False, False, 0)
 
         # -----------------------
         #  Tools pan
         # -----------------------
 
-        box = Gtk.Box(spacing=6)
-        box_window.pack_start(box, False, False, 0)
+        box.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
 
         self.btn_undo = Gtk.Button()
         self.btn_undo.set_image(Gtk.Image.new_from_stock(
@@ -213,25 +214,12 @@ class PhotoCollageWindow(Gtk.Window):
 
         box.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
 
-        self.btn_less_cols = Gtk.Button()
-        self.btn_less_cols.set_image(Gtk.Image.new_from_pixbuf(
-            artwork.load_pixbuf(artwork.ICON_EXPAND_VERTICALLY)))
-        self.btn_less_cols.connect("clicked", self.less_cols)
-        box.pack_start(self.btn_less_cols, False, False, 0)
-        self.btn_more_cols = Gtk.Button()
-        self.btn_more_cols.set_image(Gtk.Image.new_from_pixbuf(
-            artwork.load_pixbuf(artwork.ICON_EXPAND_HORIZONTALLY)))
-        self.btn_more_cols.connect("clicked", self.more_cols)
-        box.pack_start(self.btn_more_cols, False, False, 0)
-
-        box.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
-
-        self.btn_border = Gtk.Button(label=_("Border..."))
-        self.btn_border.set_image(Gtk.Image.new_from_stock(
-            Gtk.STOCK_SELECT_COLOR, Gtk.IconSize.LARGE_TOOLBAR))
-        self.btn_border.set_always_show_image(True)
-        self.btn_border.connect("clicked", self.set_border_options)
-        box.pack_end(self.btn_border, False, False, 0)
+        self.btn_settings = Gtk.Button()
+        self.btn_settings.set_image(Gtk.Image.new_from_stock(
+            Gtk.STOCK_PREFERENCES, Gtk.IconSize.LARGE_TOOLBAR))
+        self.btn_settings.set_always_show_image(True)
+        self.btn_settings.connect("clicked", self.set_settings)
+        box.pack_end(self.btn_settings, False, False, 0)
 
         # -------------------
         #  Image preview pan
@@ -269,7 +257,7 @@ class PhotoCollageWindow(Gtk.Window):
 
             if len(photolist) > 0:
                 new_collage = UserCollage(photolist)
-                new_collage.make_page()
+                new_collage.make_page(self.opts)
                 self.render_from_new_collage(new_collage)
             else:
                 self.update_tool_buttons()
@@ -311,6 +299,11 @@ class PhotoCollageWindow(Gtk.Window):
 
     def render_preview(self):
         collage = self.history[self.history_index]
+
+        # If the desired ratio changed in the meantime (e.g. from landscape to
+        # portrait), it needs to be re-updated
+        collage.page.target_ratio = 1.0 * self.opts.out_h / self.opts.out_w
+        collage.page.adjust_cols_heights()
 
         w = self.img_preview.get_allocation().width
         h = self.img_preview.get_allocation().height
@@ -359,7 +352,7 @@ class PhotoCollageWindow(Gtk.Window):
 
     def regenerate_layout(self, button=None):
         new_collage = self.history[self.history_index].duplicate()
-        new_collage.make_page()
+        new_collage.make_page(self.opts)
         self.render_from_new_collage(new_collage)
 
     def select_prev_layout(self, button):
@@ -372,20 +365,8 @@ class PhotoCollageWindow(Gtk.Window):
         self.update_tool_buttons()
         self.render_preview()
 
-    def less_cols(self, button):
-        new_collage = self.history[self.history_index].duplicate()
-        new_collage.no_cols = max(1, new_collage.no_cols - 1)
-        new_collage.make_page()
-        self.render_from_new_collage(new_collage)
-
-    def more_cols(self, button):
-        new_collage = self.history[self.history_index].duplicate()
-        new_collage.no_cols += 1
-        new_collage.make_page()
-        self.render_from_new_collage(new_collage)
-
-    def set_border_options(self, button):
-        dialog = BorderOptionsDialog(self)
+    def set_settings(self, button):
+        dialog = SettingsDialog(self)
         response = dialog.run()
         if response == Gtk.ResponseType.OK:
             dialog.apply_opts(self.opts)
@@ -397,13 +378,6 @@ class PhotoCollageWindow(Gtk.Window):
 
     def save_poster(self, button):
         collage = self.history[self.history_index]
-
-        dialog = SaveImageDialog(self, self.opts, collage.page.ratio)
-        if dialog.run() != Gtk.ResponseType.OK:
-            dialog.destroy()
-            return
-        self.opts.out_w = dialog.get_poster_width()
-        dialog.destroy()
 
         enlargement = float(self.opts.out_w) / collage.page.w
         collage.page.scale(enlargement)
@@ -460,11 +434,6 @@ class PhotoCollageWindow(Gtk.Window):
         self.btn_save.set_sensitive(
             self.history_index < len(self.history))
         self.btn_new_layout.set_sensitive(
-            self.history_index < len(self.history))
-        self.btn_less_cols.set_sensitive(
-            self.history_index < len(self.history) and
-            self.history[self.history_index].no_cols > 1)
-        self.btn_more_cols.set_sensitive(
             self.history_index < len(self.history))
 
 
@@ -601,7 +570,7 @@ class ImagePreviewArea(Gtk.DrawingArea):
             if dist <= 8 * 8:
                 self.collage.photolist.remove(cell.photo)
                 if self.collage.photolist:
-                    self.collage.make_page()
+                    self.collage.make_page(self.parent.opts)
                     self.parent.render_from_new_collage(self.collage)
                 else:
                     self.image = None
@@ -630,41 +599,107 @@ class ImagePreviewArea(Gtk.DrawingArea):
         widget.queue_draw()
 
 
-class BorderOptionsDialog(Gtk.Dialog):
+class SettingsDialog(Gtk.Dialog):
     def __init__(self, parent):
-        super(BorderOptionsDialog, self).__init__(
-            _("Border options"), parent, 0,
+        super(SettingsDialog, self).__init__(
+            _("Settings"), parent, 0,
             (Gtk.STOCK_OK, Gtk.ResponseType.OK,
              Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
         self.set_border_width(10)
+
+        self.selected_border_color = parent.opts.border_c
 
         box = self.get_content_area()
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         box.add(vbox)
 
+        label = Gtk.Label(xalign=0)
+        label.set_markup("<big><b>%s</b></big>" % _("Output image size"))
+        vbox.pack_start(label, False, False, 0)
+
         box = Gtk.Box(spacing=6)
         vbox.pack_start(box, False, False, 0)
-        label = Gtk.Label(_("Border width (%):"), xalign=0)
-        box.pack_start(label, True, True, 0)
+        self.etr_outw = Gtk.Entry(text=str(parent.opts.out_w))
+        self.etr_outw.connect("changed", self.validate_int)
+        self.etr_outw.last_valid_text = self.etr_outw.get_text()
+        box.pack_start(self.etr_outw, False, False, 0)
+        box.pack_start(Gtk.Label("×", xalign=0), False, False, 0)
+        self.etr_outh = Gtk.Entry(text=str(parent.opts.out_h))
+        self.etr_outh.connect("changed", self.validate_int)
+        self.etr_outh.last_valid_text = self.etr_outh.get_text()
+        box.pack_start(self.etr_outh, False, False, 0)
+
+        box.pack_end(Gtk.Label(_("pixels"), xalign=0), False, False, 0)
+
+        templates = (
+            ("", None),
+            ("800 × 600", (800, 600)),
+            ("1600 × 1200", (1600, 1200)),
+            ("A4 landscape (300ppi)", (3508, 2480)),
+            ("A4 portrait (300ppi)", (2480, 3508)),
+            ("A3 landscape (300ppi)", (4960, 3508)),
+            ("A3 portrait (300ppi)", (3508, 4960)),
+            ("US-Letter landscape (300ppi)", (3300, 2550)),
+            ("US-Letter portrait (300ppi)", (2550, 3300)),
+        )
+
+        def apply_template(combo):
+            t = combo.get_model()[combo.get_active_iter()][1]
+            if t:
+                dims = dict(templates)[t]
+                self.etr_outw.set_text(str(dims[0]))
+                self.etr_outh.set_text(str(dims[1]))
+                self.cmb_template.set_active(0)
+
+        box = Gtk.Box(spacing=6)
+        vbox.pack_start(box, False, False, 0)
+        box.pack_start(Gtk.Label(_("Apply a template:"), xalign=0),
+                       True, True, 0)
+
+        self.cmb_template = Gtk.ComboBoxText()
+        for t, d in templates:
+            self.cmb_template.append(t, t)
+        self.cmb_template.set_active(0)
+        self.cmb_template.connect("changed", apply_template)
+        box.pack_start(self.cmb_template, False, False, 0)
+
+        vbox.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
+
+        label = Gtk.Label(xalign=0)
+        label.set_markup("<big><b>%s</b></big>" % _("Border"))
+        vbox.pack_start(label, False, False, 0)
+
+        box = Gtk.Box(spacing=6)
+        vbox.pack_start(box, False, False, 0)
+        label = Gtk.Label(_("Thickness:"), xalign=0)
+        box.pack_start(label, False, False, 0)
         self.etr_border = Gtk.Entry(text=str(100.0 * parent.opts.border_w))
         self.etr_border.connect("changed", self.validate_float)
         self.etr_border.last_valid_text = self.etr_border.get_text()
+        self.etr_border.set_width_chars(2)
         box.pack_start(self.etr_border, False, False, 0)
+        label = Gtk.Label("%", xalign=0)
+        box.pack_start(label, False, False, 0)
 
-        box = Gtk.Box(spacing=6)
-        vbox.pack_start(box, False, False, 0)
-        label = Gtk.Label(_("Border color:"), xalign=0)
+        label = Gtk.Label(_("Color:"), xalign=1)
         box.pack_start(label, True, True, 0)
-        colors = ((0, "black", _("black")),
-                  (1, "white", _("white")))
-        self.cmb_bordercolor = Gtk.ComboBoxText()
-        for i, cid, clabel in colors:
-            self.cmb_bordercolor.insert(i, cid, clabel)
-            if cid == parent.opts.border_c:
-                self.cmb_bordercolor.set_active(i)
-        box.pack_start(self.cmb_bordercolor, False, False, 0)
+        self.colorbutton = Gtk.ColorButton()
+        color = Gdk.RGBA()
+        color.parse(parent.opts.border_c)
+        self.colorbutton.set_rgba(color)
+        box.pack_end(self.colorbutton, False, False, 0)
+
+        vbox.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
 
         self.show_all()
+
+    def validate_int(self, entry):
+        entry_text = entry.get_text() or '0'
+        try:
+            int(entry_text)
+            entry.last_valid_text = entry_text
+        except ValueError:
+            entry.set_text(entry.last_valid_text)
 
     def validate_float(self, entry):
         entry_text = entry.get_text() or '0'
@@ -675,56 +710,10 @@ class BorderOptionsDialog(Gtk.Dialog):
             entry.set_text(entry.last_valid_text)
 
     def apply_opts(self, opts):
+        opts.out_w = int(self.etr_outw.get_text() or '1')
+        opts.out_h = int(self.etr_outh.get_text() or '1')
         opts.border_w = float(self.etr_border.get_text() or '0') / 100.0
-        iter = self.cmb_bordercolor.get_active_iter()
-        opts.border_c = self.cmb_bordercolor.get_model()[iter][1]
-
-
-class SaveImageDialog(Gtk.Dialog):
-    def __init__(self, parent, opts, ratio):
-        super(SaveImageDialog, self).__init__(
-            _("Save image"), parent, 0,
-            (Gtk.STOCK_OK, Gtk.ResponseType.OK,
-             Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
-        self.set_border_width(10)
-
-        self.ratio = ratio
-
-        box = self.get_content_area()
-        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        box.add(vbox)
-
-        box = Gtk.Box(spacing=6)
-        vbox.pack_start(box, False, False, 0)
-        box.pack_start(Gtk.Label(_("Poster width:"), xalign=0), True, True, 0)
-        self.spn_outw = Gtk.SpinButton()
-        self.spn_outw.set_adjustment(Gtk.Adjustment(0, 1, 100000, 1, 100, 0))
-        self.spn_outw.set_value(opts.out_w)
-        self.spn_outw.set_numeric(True)
-        self.spn_outw.set_update_policy(Gtk.SpinButtonUpdatePolicy.IF_VALID)
-        self.spn_outw.connect("changed", self.update_height)
-        box.pack_start(self.spn_outw, False, False, 0)
-        box.pack_end(Gtk.Label(_("pixels"), xalign=0), False, False, 0)
-
-        box = Gtk.Box(spacing=6)
-        vbox.pack_start(box, False, False, 0)
-        box.pack_start(Gtk.Label(_("Poster height:"), xalign=0), True, True, 0)
-        self.spn_outh = Gtk.SpinButton()
-        self.spn_outh.set_adjustment(Gtk.Adjustment(0, 1, 100000, 1, 100, 0))
-        self.spn_outh.set_sensitive(False)
-        box.pack_start(self.spn_outh, False, False, 0)
-        box.pack_end(Gtk.Label(_("pixels"), xalign=0), False, False, 0)
-
-        self.update_height()
-
-        self.show_all()
-
-    def update_height(self, entry=None):
-        self.spn_outh.set_value(
-            int(round(self.ratio * self.spn_outw.get_value_as_int())))
-
-    def get_poster_width(self):
-        return self.spn_outw.get_value_as_int()
+        opts.border_c = self.colorbutton.get_rgba().to_string()
 
 
 class ComputingDialog(Gtk.Dialog):
