@@ -255,11 +255,11 @@ class RenderingTask(Thread):
 
         # Rotate image is EXIF says so
         if cell.photo.orientation == 3:
-            img = img.rotate(180)
+            img = img.rotate(180, expand=True)
         elif cell.photo.orientation == 6:
-            img = img.rotate(270)
+            img = img.rotate(270, expand=True)
         elif cell.photo.orientation == 8:
-            img = img.rotate(90)
+            img = img.rotate(90, expand=True)
 
         if self.quality == QUALITY_FAST:
             method = PIL.Image.NEAREST
