@@ -26,6 +26,7 @@ from gi.repository import Gtk, Gdk, GObject
 from io import BytesIO
 import math
 import os.path
+import random
 from six.moves import urllib  # Python 2 backward compatibility
 import sys
 
@@ -132,6 +133,7 @@ class UserCollage(object):
                             math.sqrt(len(self.photolist))))
 
         self.page = collage.Page(1.0, ratio, no_cols)
+        random.shuffle(self.photolist)
         for photo in self.photolist:
             self.page.add_cell(photo)
         self.page.adjust()
