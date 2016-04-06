@@ -20,6 +20,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 from multiprocessing import Process, Pipe
 import random
 from threading import Thread
+import time
 
 import PIL.Image
 import PIL.ImageDraw
@@ -341,6 +342,8 @@ class InteractiveRenderingTask(RenderingTask):
                 n = sum([len([cell for cell in col.cells if not
                               cell.is_extension()]) for col in self.page.cols])
                 i = 0.0
+                last_update = -1
+
                 for col in self.page.cols:
                     for c in col.cells:
                         if c.is_extension():
@@ -351,9 +354,11 @@ class InteractiveRenderingTask(RenderingTask):
                         self.paste_photo(canvas, c, img)
                         self.draw_borders(canvas)
 
-                        if self.on_update:
-                            i += 1
+                        i += 1
+                        now = time.time()
+                        if self.on_update and now > last_update + 0.1:
                             self.on_update(canvas, i / n)
+                            last_update = now
 
             if self.on_complete:
                 self.on_complete(canvas)
