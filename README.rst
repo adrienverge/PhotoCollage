@@ -55,24 +55,11 @@ Installation
    sudo add-apt-repository ppa:dhor/myway && sudo apt-get update
    sudo apt-get install photocollage
 
-* Using pip (for other OS):
+* Using pip, the Python package manager:
 
   .. code:: bash
 
    sudo pip3 install photocollage  # you may need to use python3-pip instead of pip3
-
-* Manual installation (for other OS):
-
-  .. code:: bash
-
-   # Install dependencies
-   sudo yum install python3-pillow python3-gobject
-   sudo apt-get install python3-pil python3-gi
-   sudo pacman -S python-pillow python-gobject
-   # Install PhotoCollage
-   git clone https://github.com/adrienverge/PhotoCollage.git
-   cd PhotoCollage
-   sudo python3 setup.py install
 
 Usage
 -----
@@ -84,3 +71,26 @@ If it doesn't, just run the command:
 .. code:: bash
 
  photocollage
+
+Hacking
+-------
+
+* If you need to install from source:
+
+  .. code:: bash
+
+   # Install dependencies
+   sudo yum install python3-pillow python3-gobject
+   sudo apt-get install python3-pil python3-gi
+   sudo pacman -S python-pillow python-gobject
+
+   # Install PhotoCollage
+   python3 setup.py sdist
+   pip3 install --user --upgrade dist/photocollage-*.tar.gz
+
+* If you wish to contribute, please lint your code and pass tests:
+
+  .. code:: bash
+
+   flake8 .
+   nosetests-3.4
