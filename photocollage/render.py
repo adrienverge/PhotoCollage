@@ -123,7 +123,7 @@ class RenderingTask(Thread):
     is a separated thread.
 
     """
-    def __init__(self, page, border_width=0.02, border_color=(0, 0, 0),
+    def __init__(self, page, border_width=0.01, border_color=(0, 0, 0),
                  quality=QUALITY_FAST, output_file=None,
                  on_update=None, on_complete=None, on_fail=None):
         super(RenderingTask, self).__init__()
