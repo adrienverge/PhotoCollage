@@ -242,7 +242,7 @@ class PhotoCollageWindow(Gtk.Window):
         box_window.pack_start(box, True, True, 0)
 
         self.img_preview = ImagePreviewArea(self)
-        self.img_preview.set_size_request(600, 400)
+        self.img_preview.set_size_request(600, 200)
         self.img_preview.connect("drag-data-received", self.on_drag)
         self.img_preview.drag_dest_set(Gtk.DestDefaults.ALL, [],
                                        Gdk.DragAction.COPY)

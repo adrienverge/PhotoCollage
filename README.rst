@@ -22,7 +22,7 @@ PhotoCollage does more or less the same as many commercial websites do, but
 for free and with open-source code.
 
 .. image::
-   https://github.com/adrienverge/PhotoCollage/raw/v1.2.0/screenshots/photocollage-1.2-preview.png
+   screenshots/photocollage-1.4-preview.png
    :alt: screenshot
 
 It provides a library to create photo layouts and posters, and a GTK graphical
