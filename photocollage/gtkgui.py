@@ -127,9 +127,21 @@ class UserCollage(object):
         self.photolist = photolist
 
     def make_page(self, opts):
+        # Define the output image height / width ratio
         ratio = 1.0 * opts.out_h / opts.out_w
-        no_cols = int(round(1.0 * opts.out_w / opts.out_h *
-                            math.sqrt(len(self.photolist))))
+
+        # Compute a good number of columns. It depends on the ratio, the number
+        # of images and the average ratio of these images. According to my
+        # calculations, the number of column should be inversely proportional
+        # to the square root of the output image ratio, and proportional to the
+        # square root of the average input images ratio.
+        avg_ratio = (sum(1.0 * photo.h / photo.w for photo in self.photolist) /
+                     len(self.photolist))
+        # Virtual number of images: since ~ 1 image over 3 is in a multi-cell
+        # (i.e. takes two columns), it takes the space of 4 images.
+        # So it's equivalent to 1/3 * 4 + 2/3 = 2 times the number of images.
+        virtual_no_imgs = 2 * len(self.photolist)
+        no_cols = int(round(math.sqrt(avg_ratio / ratio * virtual_no_imgs)))
 
         self.page = collage.Page(1.0, ratio, no_cols)
         random.shuffle(self.photolist)
