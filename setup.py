@@ -28,7 +28,7 @@ long_description = (
     "the input photographs it is given to generate a big poster. Photos are "
     "automatically arranged to fill the whole poster, then you can change the "
     "final layout, dimensions, border or swap photos in the generated grid. "
-    "Eventually the final poster image can we saved in any size.")
+    "Eventually the final poster image can be saved in any size.")
 
 setup(
     name=APP_NAME,
