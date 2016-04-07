@@ -1,7 +1,10 @@
 PhotoCollage
 ============
 
-[![Build Status](https://travis-ci.org/adrienverge/PhotoCollage.svg?branch=master)](https://travis-ci.org/adrienverge/PhotoCollage)
+.. image::
+   https://travis-ci.org/adrienverge/PhotoCollage.svg?branch=master
+   :target: https://travis-ci.org/adrienverge/PhotoCollage
+   :alt: CI tests status
 
 *Graphical tool to make photo collage posters*
 
@@ -18,13 +21,16 @@ large as possible.
 PhotoCollage does more or less the same as many commercial websites do, but
 for free and with open-source code.
 
-![screenshot](https://github.com/adrienverge/PhotoCollage/raw/v1.2.0/screenshots/photocollage-1.2-preview.png)
+.. image::
+   https://github.com/adrienverge/PhotoCollage/raw/v1.2.0/screenshots/photocollage-1.2-preview.png
+   :alt: screenshot
 
 It provides a library to create photo layouts and posters, and a GTK graphical
 user interface. PhotoCollage is written in Python (compatible with versions 2
 and 3) and requires the Python Imaging Library (PIL).
 
 Features:
+
 * generate random new layouts until one suits the user
 * choose border color and width
 * possible to swap photos in the generated grid
@@ -37,32 +43,36 @@ Installation
 ------------
 
 * Fedora:
-  ```
-  sudo yum install photocollage
-  ```
+
+  .. code:: bash
+
+   sudo yum install photocollage
 
 * Ubuntu:
-  ```
-  sudo add-apt-repository ppa:dhor/myway && sudo apt-get update
-  sudo apt-get install photocollage
-  ```
+
+  .. code:: bash
+
+   sudo add-apt-repository ppa:dhor/myway && sudo apt-get update
+   sudo apt-get install photocollage
 
 * Using pip (for other OS):
-  ```
-  sudo pip3 install photocollage  # you may need to use python3-pip instead of pip3
-  ```
+
+  .. code:: bash
+
+   sudo pip3 install photocollage  # you may need to use python3-pip instead of pip3
 
 * Manual installation (for other OS):
-  ```
-  # Install dependencies
-  sudo yum install python3-pillow python3-gobject
-  sudo apt-get install python3-pil python3-gi
-  sudo pacman -S python-pillow python-gobject
-  # Install PhotoCollage
-  git clone https://github.com/adrienverge/PhotoCollage.git
-  cd PhotoCollage
-  sudo python3 setup.py install
-  ```
+
+  .. code:: bash
+
+   # Install dependencies
+   sudo yum install python3-pillow python3-gobject
+   sudo apt-get install python3-pil python3-gi
+   sudo pacman -S python-pillow python-gobject
+   # Install PhotoCollage
+   git clone https://github.com/adrienverge/PhotoCollage.git
+   cd PhotoCollage
+   sudo python3 setup.py install
 
 Usage
 -----
@@ -70,6 +80,7 @@ Usage
 After install a launcher for PhotoCollage will appear in your desktop menu.
 
 If it doesn't, just run the command:
-```
-photocollage
-```
+
+.. code:: bash
+
+ photocollage

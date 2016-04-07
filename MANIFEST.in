@@ -1,4 +1,4 @@
-include LICENSE README.md
+include LICENSE README.rst
 include bin/photocollage
 recursive-include photocollage *.py
 include data/photocollage.desktop
