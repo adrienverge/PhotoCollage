@@ -55,9 +55,9 @@ Installation
 * Manual installation (for other OS):
   ```
   # Install dependencies
-  sudo yum install python3-pillow python3-gobject python3-distutils-extra
-  sudo apt-get install python3-pil python3-gi python3-distutils-extra
-  sudo pacman -S python-pillow python-gobject python-distutils-extra
+  sudo yum install python3-pillow python3-gobject
+  sudo apt-get install python3-pil python3-gi
+  sudo pacman -S python-pillow python-gobject
   # Install PhotoCollage
   git clone https://github.com/adrienverge/PhotoCollage.git
   cd PhotoCollage

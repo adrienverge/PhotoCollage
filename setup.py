@@ -16,11 +16,45 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from distutils.core import setup
-
-from DistUtilsExtra.command import build_extra, build_i18n
+import distutils
+import distutils.command.build
+import distutils.core
+import os
 
 from photocollage import APP_NAME, APP_VERSION
+
+
+class build_i18n(distutils.core.Command):
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        if not distutils.spawn.find_executable("msgfmt"):
+            raise Exception("GNU gettext msgfmt utility not found! "
+                            "It is needed to compile po files.")
+
+        for file in os.listdir("po"):
+            if not file.endswith(".po"):
+                continue
+
+            lang = file[:-3]
+
+            po = os.path.join("po", file)
+            dir = os.path.join("build", "mo", lang, "LC_MESSAGES")
+            self.mkpath(dir)
+            mo = os.path.join(dir, "%s.mo" % self.distribution.metadata.name)
+
+            if distutils.dep_util.newer(po, mo):
+                distutils.log.info("Compile: %s -> %s" % (po, mo))
+                self.spawn(["msgfmt", "-o", mo, po])
+
+            targetpath = os.path.join("share", "locale", lang, "LC_MESSAGES")
+            self.distribution.data_files.append((targetpath, (mo,)))
+
+distutils.command.build.build.sub_commands.append(("build_i18n", None))
 
 
 long_description = (
@@ -30,7 +64,7 @@ long_description = (
     "final layout, dimensions, border or swap photos in the generated grid. "
     "Eventually the final poster image can be saved in any size.")
 
-setup(
+distutils.core.setup(
     name=APP_NAME,
     version=APP_VERSION,
     author="Adrien Vergé",
@@ -83,8 +117,7 @@ setup(
     ],
 
     cmdclass={
-        "build": build_extra.build_extra,
-        "build_i18n": build_i18n.build_i18n
+        "build_i18n": build_i18n,
     },
 
     requires=[
