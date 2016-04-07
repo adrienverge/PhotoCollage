@@ -3,6 +3,7 @@
 "Copyright (C) 2013 Adrien Vergé"
 
 from distutils.core import setup
+
 from DistUtilsExtra.command import build_extra, build_i18n
 
 from photocollage import APP_NAME, APP_VERSION
