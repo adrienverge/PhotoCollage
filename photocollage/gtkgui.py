@@ -323,15 +323,15 @@ class PhotoCollageWindow(Gtk.Window):
             compdialog.destroy()
             self.btn_save.set_sensitive(True)
 
-        def on_fail():
-            dialog = ErrorDialog(
-                self, _("An error occurred while rendering image."))
+        def on_fail(exception):
+            dialog = ErrorDialog(self, "%s:\n\n%s" % (
+                _("An error occurred while rendering image:"), exception))
             compdialog.destroy()
             dialog.run()
             dialog.destroy()
             self.btn_save.set_sensitive(False)
 
-        t = render.InteractiveRenderingTask(
+        t = render.RenderingTask(
             collage.page,
             border_width=self.opts.border_w * max(collage.page.w,
                                                   collage.page.h),
@@ -400,23 +400,27 @@ class PhotoCollageWindow(Gtk.Window):
         dialog.destroy()
 
         # Display a "please wait" dialog and do the job.
-        compdialog = PulsingComputingDialog(self)
+        compdialog = ComputingDialog(self)
 
-        def on_complete():
+        def on_update(img, fraction_complete):
+            compdialog.update(fraction_complete)
+
+        def on_complete(img):
             compdialog.destroy()
 
-        def on_fail():
-            dialog = ErrorDialog(
-                self, _("An error occurred while rendering image."))
+        def on_fail(exception):
+            dialog = ErrorDialog(self, "%s:\n\n%s" % (
+                _("An error occurred while rendering image:"), exception))
             compdialog.destroy()
             dialog.run()
             dialog.destroy()
 
-        t = render.BatchRenderingTask(
-            savefile, collage.page,
+        t = render.RenderingTask(
+            collage.page, output_file=savefile,
             border_width=self.opts.border_w * max(collage.page.w,
                                                   collage.page.h),
             border_color=self.opts.border_c,
+            on_update=gtk_run_in_main_thread(on_update),
             on_complete=gtk_run_in_main_thread(on_complete),
             on_fail=gtk_run_in_main_thread(on_fail))
         t.start()
@@ -742,19 +746,6 @@ class ComputingDialog(Gtk.Dialog):
 
     def update(self, fraction):
         self.progressbar.set_fraction(fraction)
-
-
-class PulsingComputingDialog(ComputingDialog):
-    def __init__(self, parent):
-        super(PulsingComputingDialog, self).__init__(parent)
-
-        self.progressbar.pulse()
-
-        self.timeout_id = GObject.timeout_add(50, self.on_timeout, None)
-
-    def on_timeout(self, user_data):
-        self.progressbar.pulse()
-        return True  # return True so that it continues to get called
 
 
 class ErrorDialog(Gtk.Dialog):
