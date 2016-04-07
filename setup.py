@@ -75,17 +75,9 @@ setup(
     },
 
     requires=[
-        "cairo",
-        "copy",
-        "gettext",
-        "gi.repository",
-        "io",
-        "math",
-        "multiprocessing",
-        "os.path",
-        "PIL.Image",
-        "PIL.ImageDraw",
-        "random",
-        "threading",
+        "Pillow",
+        "pycairo",
+        # Also requires PyGI (the Python GObject Introspection bindings), which
+        # is not packaged on pypi.
     ],
 )
