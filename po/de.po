@@ -9,8 +9,9 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: de_DE\n"
-"POT-Creation-Date: 2015-09-20 20:15+0200\n"
-"PO-Revision-Date: 2016-04-07 14:27+0200\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2016-04-11 22:51+0200\n"
+"PO-Revision-Date: 2016-04-11 23:13+0200\n"
 "Last-Translator: Vincent Bermel <willovince@openmailbox.org>\n"
 "Language: de_DE\n"
 "MIME-Version: 1.0\n"
@@ -67,7 +68,7 @@ msgstr "Poster speichern"
 
 #: photocollage/gtkgui.py:622
 msgid "Settings"
-msgstr "Einstellung"
+msgstr "Einstellungen"
 
 #: photocollage/gtkgui.py:634
 msgid "Output image size"
@@ -79,7 +80,7 @@ msgstr "Pixel"
 
 #: photocollage/gtkgui.py:673
 msgid "Apply a template:"
-msgstr "Gelten eine Vorlage:"
+msgstr "Formatvorlage:"
 
 #: photocollage/gtkgui.py:686
 msgid "Border"
@@ -87,7 +88,7 @@ msgstr "Rahmen"
 
 #: photocollage/gtkgui.py:691
 msgid "Thickness:"
-msgstr "Breite:"
+msgstr "Breite (relativ):"
 
 #: photocollage/gtkgui.py:701
 msgid "Color:"
