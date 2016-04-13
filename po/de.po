@@ -88,7 +88,7 @@ msgstr "Rahmen"
 
 #: photocollage/gtkgui.py:691
 msgid "Thickness:"
-msgstr "Breite (relativ):"
+msgstr "Breite:"
 
 #: photocollage/gtkgui.py:701
 msgid "Color:"
