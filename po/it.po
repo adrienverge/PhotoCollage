@@ -1,0 +1,104 @@
+# PhotoCollage translation file
+# Copyright (C) 2016 Lorenzo Bicci
+# Copyright (C) 2016 Adrien Vergé
+# This file is distributed under the same license as the PhotoCollage package.
+# Adrien Vergé, 2016.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: it\n"
+"POT-Creation-Date: 2014-01-18 02:46-0500\n"
+"PO-Revision-Date: 2016-04-09 16:20+0200\n"
+"Last-Translator: Lorenzo Bicci\n"
+"Language: it\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n>1;\n"
+
+#: photocollage/gtkgui.py:72 photocollage/gtkgui.py:94
+msgid "All supported image formats"
+msgstr "Tutti i formati d’immagine supportati"
+
+#: photocollage/gtkgui.py:104
+#, python-format
+msgid "%s image"
+msgstr "Immagine %s"
+
+#: photocollage/gtkgui.py:161
+msgid "PhotoCollage"
+msgstr "PhotoCollage"
+
+#: photocollage/gtkgui.py:189
+msgid "Add images..."
+msgstr "Aggiungi immagini..."
+
+#: photocollage/gtkgui.py:196
+msgid "Save poster..."
+msgstr "Salva poster..."
+
+#: photocollage/gtkgui.py:221
+msgid "Regenerate"
+msgstr "Rigenera"
+
+#: photocollage/gtkgui.py:279
+#, python-format
+msgid ""
+"This image could not be opened:\n"
+"\"%(imgname)s\"."
+msgstr ""
+"Questa immagine non può essere aperta :\n"
+"\"%(imgname)s\"."
+
+#: photocollage/gtkgui.py:285
+msgid "Choose images"
+msgstr "Seleziona immagini"
+
+#: photocollage/gtkgui.py:339 photocollage/gtkgui.py:424
+msgid "An error occurred while rendering image:"
+msgstr "Si è verificato un errore durante il rendering dell'immagine:"
+
+#: photocollage/gtkgui.py:398
+msgid "Save image"
+msgstr "Salva immagine"
+
+#: photocollage/gtkgui.py:622
+msgid "Settings"
+msgstr "Impostazioni"
+
+#: photocollage/gtkgui.py:634
+msgid "Output image size"
+msgstr "Dimensione finale dell'immagine"
+
+#: photocollage/gtkgui.py:649
+msgid "pixels"
+msgstr "pixel"
+
+#: photocollage/gtkgui.py:673
+msgid "Apply a template:"
+msgstr "Applica un modello:"
+
+#: photocollage/gtkgui.py:686
+msgid "Border"
+msgstr "Bordo"
+
+#: photocollage/gtkgui.py:691
+msgid "Thickness:"
+msgstr "Spessore:"
+
+#: photocollage/gtkgui.py:701
+msgid "Color:"
+msgstr "Colore:"
+
+#: photocollage/gtkgui.py:740
+msgid "Please wait"
+msgstr "Attendere, prego"
+
+#: photocollage/gtkgui.py:749
+msgid "Performing image computation..."
+msgstr "Calcolo dell'immagine in corso..."
+
+#: photocollage/gtkgui.py:764
+msgid "Error"
+msgstr "Errore"
