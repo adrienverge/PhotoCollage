@@ -456,7 +456,7 @@ class PhotoCollageWindow(Gtk.Window):
 
 class ImagePreviewArea(Gtk.DrawingArea):
     """Area to display the poster preview and react to user actions"""
-    INSENSITIVE, FLYING, SWAPING = range(3)
+    INSENSITIVE, FLYING, SWAPPING = range(3)
 
     def __init__(self, parent):
         super(ImagePreviewArea, self).__init__()
@@ -493,7 +493,7 @@ class ImagePreviewArea(Gtk.DrawingArea):
 
     def set_collage(self, image, collage):
         self.image = pil_image_to_cairo_surface(image)
-        # The Collage object must be deeply copied. Otherwise, swaping photos
+        # The Collage object must be deeply copied. Otherwise, swapping photos
         # in a new page would also affect the original page (in history).
         # The deep copy is done here (not in button_release_event) because
         # references to cells are gathered in other functions, so that making
@@ -554,7 +554,7 @@ class ImagePreviewArea(Gtk.DrawingArea):
                 if cell:
                     self.paint_image_border(context, cell)
                     self.paint_image_delete_button(context, cell)
-            elif self.mode == self.SWAPING:
+            elif self.mode == self.SWAPPING:
                 self.paint_image_border(context, self.swap_origin.cell, (3, 3))
                 cell = self.collage.page.get_cell_at_position(self.x, self.y)
                 if cell and cell != self.swap_origin.cell:
@@ -598,11 +598,11 @@ class ImagePreviewArea(Gtk.DrawingArea):
             else:
                 self.swap_origin.x, self.swap_origin.y = x, y
                 self.swap_origin.cell = cell
-                self.mode = self.SWAPING
+                self.mode = self.SWAPPING
         widget.queue_draw()
 
     def button_release_event(self, widget, event):
-        if self.mode == self.SWAPING:
+        if self.mode == self.SWAPPING:
             self.swap_dest.x, self.swap_dest.y = \
                 self.get_pos_in_image(event.x, event.y)
             self.swap_dest.cell = self.collage.page.get_cell_at_position(

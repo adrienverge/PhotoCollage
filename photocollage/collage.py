@@ -429,7 +429,7 @@ class Page(object):
     def add_cell(self, photo):
         """Add a new cell in the best computed place
 
-        If possible, and if it's worth, make a "mupliple-column" cell.
+        If possible, and if it's worth, make a "multiple-column" cell.
 
         """
         col = self.next_free_col()
@@ -503,7 +503,7 @@ class Page(object):
                     col.cells.append(extent)
                     cell.parents = (col.left_neighbor(), col)
             # Case B
-            # If cell is extented and one of the cells above is extended too,
+            # If cell is extended and one of the cells above is extended too,
             # the bottom cell should be placed right below the top one.
             elif cell.is_extended() and cell.extent.bottom_neighbor() is None:
                 # Case B1
