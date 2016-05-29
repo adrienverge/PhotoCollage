@@ -42,11 +42,17 @@ Features:
 Installation
 ------------
 
-* Fedora:
+* Fedora 19+:
 
   .. code:: bash
 
-   sudo yum install photocollage
+   sudo dnf install photocollage
+
+* Debian 9+:
+
+  .. code:: bash
+
+   sudo apt-get install photocollage
 
 * Ubuntu:
 
@@ -59,7 +65,7 @@ Installation
 
   .. code:: bash
 
-   sudo pip3 install photocollage  # you may need to use python3-pip instead of pip3
+   sudo pip3 install photocollage
 
 Usage
 -----
@@ -80,7 +86,7 @@ Hacking
   .. code:: bash
 
    # Install dependencies
-   sudo yum install python3-pillow python3-gobject
+   sudo dnf install python3-pillow python3-gobject
    sudo apt-get install python3-pil python3-gi
    sudo pacman -S python-pillow python-gobject
 
