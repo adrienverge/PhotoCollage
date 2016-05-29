@@ -48,13 +48,13 @@ Installation
 
    sudo dnf install photocollage
 
-* Debian 9+:
+* Debian 9+ / Ubuntu 16.10+:
 
   .. code:: bash
 
    sudo apt-get install photocollage
 
-* Ubuntu:
+* Older Ubuntu:
 
   .. code:: bash
 
