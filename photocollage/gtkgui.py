@@ -131,18 +131,22 @@ class UserCollage(object):
         ratio = 1.0 * opts.out_h / opts.out_w
 
         if opts.cols == 0:
-            # Compute a good number of columns. It depends on the ratio, the number
-            # of images and the average ratio of these images. According to my
-            # calculations, the number of column should be inversely proportional
-            # to the square root of the output image ratio, and proportional to the
-            # square root of the average input images ratio.
-            avg_ratio = (sum(1.0 * photo.h / photo.w for photo in self.photolist) /
-                         len(self.photolist))
-            # Virtual number of images: since ~ 1 image over 3 is in a multi-cell
-            # (i.e. takes two columns), it takes the space of 4 images.
-            # So it's equivalent to 1/3 * 4 + 2/3 = 2 times the number of images.
+            # Compute a good number of columns. It depends on the ratio, the
+            # number of images and the average ratio of these images. According
+            # to my calculations, the number of column should be inversely
+            # proportional to the square root of the output image ratio, and
+            # proportional to the square root of the average input images
+            # ratio.
+            avg_ratio = (sum(1.0 * photo.h / photo.w for photo in
+                         self.photolist) / len(self.photolist))
+            # Virtual number of images: since ~ 1 image over 3 is in a
+            # multi-cell (i.e. takes two columns), it takes the space of 4
+            # images.
+            # So it's equivalent to 1/3 * 4 + 2/3 = 2 times the number of
+            # images.
             virtual_no_imgs = 2 * len(self.photolist)
-            no_cols = int(round(math.sqrt(avg_ratio / ratio * virtual_no_imgs)))
+            no_cols = int(round(math.sqrt(avg_ratio / ratio *
+                          virtual_no_imgs)))
         else:
             no_cols = opts.cols
 
@@ -752,7 +756,6 @@ class SettingsDialog(Gtk.Dialog):
         opts.border_w = float(self.etr_border.get_text() or '0') / 100.0
         opts.border_c = self.colorbutton.get_rgba().to_string()
         opts.cols = int(self.etr_cols.get_text() or '0')
-
 
 
 class ComputingDialog(Gtk.Dialog):
