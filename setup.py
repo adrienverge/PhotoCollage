@@ -54,6 +54,7 @@ class build_i18n(distutils.core.Command):
             targetpath = os.path.join("share", "locale", lang, "LC_MESSAGES")
             self.distribution.data_files.append((targetpath, (mo,)))
 
+
 distutils.command.build.build.sub_commands.append(("build_i18n", None))
 
 

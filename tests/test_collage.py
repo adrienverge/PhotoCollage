@@ -221,5 +221,6 @@ class TestCollage(unittest.TestCase):
                   "        [20 10-- ------]")
         self.assertEqual(repr(page), wanted)
 
+
 if __name__ == '__main__':
     unittest.main()
