@@ -123,6 +123,7 @@ distutils.core.setup(
     requires=[
         "Pillow",
         "pycairo",
+        "six",
         # Also requires PyGI (the Python GObject Introspection bindings), which
         # is not packaged on pypi.
     ],
