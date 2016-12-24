@@ -236,18 +236,21 @@ class RenderingTask(Thread):
 
         if shape > 0:  # image is too thick
             default_offset_x = (img.size[0] - cell.w) / 2
-            offset_x = max(0, min(cell.offset_x + default_offset_x, img.size[0] - cell.w))
+            offset_x = max(0, min(cell.offset_x +
+                                  default_offset_x, img.size[0] - cell.w))
             cell.offset_x = offset_x - default_offset_x
 
             img = img.crop((int(round(offset_x)), 0,
                             int(round(offset_x + cell.w)), int(round(cell.h))))
         elif shape < 0:  # image is too tall
             default_offset_y = (img.size[1] - cell.h) / 2
-            offset_y = max(0, min(cell.offset_y + default_offset_y, img.size[1] - cell.h))
+            offset_y = max(0, min(cell.offset_y +
+                                  default_offset_y, img.size[1] - cell.h))
             cell.offset_y = offset_y - default_offset_y
 
             img = img.crop(
-                (0, int(round(offset_y)), int(round(cell.w)), int(round(offset_y + cell.h))))
+                (0, int(round(offset_y)),
+                 int(round(cell.w)), int(round(offset_y + cell.h))))
 
         return img
 

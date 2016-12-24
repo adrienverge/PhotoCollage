@@ -488,7 +488,7 @@ class ImagePreviewArea(Gtk.DrawingArea):
                 self.y = y
 
         self.x, self.y = 0, 0
-        self.offset_origin = SwapEnd();
+        self.offset_origin = SwapEnd()
         self.swap_origin = SwapEnd()
         self.swap_dest = SwapEnd()
 
@@ -561,7 +561,8 @@ class ImagePreviewArea(Gtk.DrawingArea):
                 if cell and cell != self.swap_origin.cell:
                     self.paint_image_border(context, cell, (3, 3))
             elif self.mode == self.MODIFY_PICTURE_OFFSET:
-                self.paint_image_border(context, self.offset_origin.cell, (1, 1))
+                self.paint_image_border(context,
+                                        self.offset_origin.cell, (1, 1))
         else:
             # Display the drag & drop image
             dnd_image = artwork.load_cairo_surface(artwork.ICON_DRAG_AND_DROP)
@@ -597,7 +598,8 @@ class ImagePreviewArea(Gtk.DrawingArea):
                     self.mode = self.INSENSITIVE
                     self.parent.history_index = len(self.parent.history)
                     self.parent.update_tool_buttons()
-            # If the user is holding down ctrl; they want to adjust the offset in the image
+            # If the user is holding down ctrl; they want to adjust
+            # the offset in the image
             elif event.state & Gdk.ModifierType.CONTROL_MASK:
                 self.offset_origin.x, self.offset_origin.y = x, y
                 self.offset_origin.cell = cell
@@ -624,7 +626,8 @@ class ImagePreviewArea(Gtk.DrawingArea):
         elif self.mode == self.MODIFY_PICTURE_OFFSET:
             if self.offset_origin.cell is not None:
                 x, y = self.get_pos_in_image(event.x, event.y)
-                self.offset_origin.cell.adjust_offset(self.offset_origin.x - x, self.offset_origin.y - y)
+                self.offset_origin.cell.adjust_offset(
+                    self.offset_origin.x - x, self.offset_origin.y - y)
                 self.parent.render_from_new_collage(self.collage)
             self.mode = self.FLYING
         widget.queue_draw()
