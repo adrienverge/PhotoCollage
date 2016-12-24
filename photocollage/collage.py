@@ -108,6 +108,8 @@ class Cell(object):
         self.photo = photo
         self.extent = None
         self.h = self.w * self.wanted_ratio
+        self.offset_x = 0
+        self.offset_y = 0
 
     def __repr__(self):
         """Representation of the cell in ASCII art"""
@@ -200,6 +202,9 @@ class Cell(object):
                 return prev
             prev = c
 
+    def adjust_offset(self, x, y):
+        self.offset_x += x
+        self.offset_y += y
 
 class CellExtent(Cell):
     def __init__(self, cell):
