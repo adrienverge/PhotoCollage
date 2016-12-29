@@ -74,7 +74,20 @@ If it doesn't, just run the command:
 Hacking
 -------
 
-* If you need to install from source:
+* If you changed the source and want to test your modifications, run:
+
+  .. code:: bash
+
+   PYTHONPATH=. bin/photocollage
+
+  or:
+
+  .. code:: bash
+
+   python3 -c 'from photocollage import gtkgui; gtkgui.main()'
+
+
+* If you need to build a package from source and install it:
 
   .. code:: bash
 
