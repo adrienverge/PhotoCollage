@@ -92,4 +92,4 @@ Hacking
   .. code:: bash
 
    flake8 .
-   nosetests-3.4
+   python3 -m unittest tests/test_*.py
