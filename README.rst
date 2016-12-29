@@ -54,13 +54,6 @@ Installation
 
    sudo apt-get install photocollage
 
-* Older Ubuntu:
-
-  .. code:: bash
-
-   sudo add-apt-repository ppa:dhor/myway && sudo apt-get update
-   sudo apt-get install photocollage
-
 * Using pip, the Python package manager:
 
   .. code:: bash
