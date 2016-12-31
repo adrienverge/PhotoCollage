@@ -26,7 +26,7 @@ import sys
 import cairo
 import gi
 gi.require_version('Gtk', '3.0')  # noqa
-from gi.repository import Gtk, Gdk, GObject
+from gi.repository import Gtk, Gdk, GObject, GdkPixbuf
 from six.moves import urllib  # Python 2 backward compatibility
 
 from photocollage import APP_NAME, artwork, collage, render
@@ -282,10 +282,13 @@ class PhotoCollageWindow(Gtk.Window):
             dialog.destroy()
 
     def choose_images(self, button):
-        dialog = Gtk.FileChooserDialog(_("Choose images"),
-                                       button.get_toplevel(),
-                                       Gtk.FileChooserAction.OPEN,
-                                       select_multiple=True)
+        dialog = PreviewFileChooserDialog(
+                                title=_("Choose images"),
+                                parent=button.get_toplevel(),
+                                action=Gtk.FileChooserAction.OPEN,
+                                select_multiple=True,
+                                modal=True)
+
         dialog.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
         dialog.add_button(Gtk.STOCK_OK, Gtk.ResponseType.OK)
 
@@ -768,6 +771,34 @@ class ErrorDialog(Gtk.Dialog):
         box.add(Gtk.Label(message))
         self.show_all()
 
+class PreviewFileChooserDialog(Gtk.FileChooserDialog):
+    PREVIEW_MAX_SIZE = 512
+    def __init__(self, **kw):
+        super(PreviewFileChooserDialog, self).__init__(**kw)
+
+        self._preview = Gtk.Image()
+        # Don't let preview size down horizontally for skinny images, cause
+        # that looks distracting
+        self._preview.set_size_request(PreviewFileChooserDialog.PREVIEW_MAX_SIZE, -1)
+        self.set_preview_widget(self._preview)
+        self.set_use_preview_label(False)
+        self.connect("update-preview", self.update_preview_cb)
+
+    def update_preview_cb(self, file_chooser):
+        filename = self.get_preview_filename()
+        if filename is None or os.path.isdir(filename):
+            self.set_preview_widget_active(False)
+            return
+        try:
+            pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(filename,
+                PreviewFileChooserDialog.PREVIEW_MAX_SIZE,
+                PreviewFileChooserDialog.PREVIEW_MAX_SIZE)
+            self._preview.set_from_pixbuf(pixbuf)
+        except Exception as e:
+            print(e)
+            self.set_preview_widget_active(False)
+            return
+        self.set_preview_widget_active(True)
 
 def main():
     # Enable threading. Without that, threads hang!
