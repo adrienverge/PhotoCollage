@@ -103,11 +103,14 @@ class Cell(object):
     ---------------------- v
 
     """
+
     def __init__(self, parents, photo):
         self.parents = parents
         self.photo = photo
         self.extent = None
         self.h = self.w * self.wanted_ratio
+        self.offset_x = 0
+        self.offset_y = 0
 
     def __repr__(self):
         """Representation of the cell in ASCII art"""
@@ -200,6 +203,10 @@ class Cell(object):
                 return prev
             prev = c
 
+    def adjust_offset(self, x, y):
+        self.offset_x += x
+        self.offset_y += y
+
 
 class CellExtent(Cell):
     def __init__(self, cell):
@@ -245,6 +252,7 @@ class Column(object):
            --------
 
     """
+
     def __init__(self, parent, w):
         self.parent = parent
         self.cells = []
@@ -298,6 +306,7 @@ class Column(object):
 
     def adjust_height(self, target_h):
         """Set the column's height to a given value by resizing cells"""
+
         # First, make groups of "movable" cells. Since cell extents are not
         # movable, these groups only contain pure cell objects. We only resize
         # those groups.
@@ -342,9 +351,10 @@ class Page(object):
     ---------------------- v
 
     """
+
     def __init__(self, w, target_ratio, no_cols):
         self.target_ratio = target_ratio
-        col_w = float(w)/no_cols
+        col_w = float(w) / no_cols
         self.cols = []
         for i in range(no_cols):
             self.cols.append(Column(self, col_w))
@@ -487,7 +497,7 @@ class Page(object):
                 # Case A1
                 if cell.top_neighbor().is_extended() \
                         and cell.top_neighbor().extent \
-                        .bottom_neighbor() is None:
+                                .bottom_neighbor() is None:
                     # Extend cell to right
                     extent = CellExtent(cell)
                     col.right_neighbor().cells.append(extent)
@@ -495,7 +505,7 @@ class Page(object):
                 # Case A2
                 elif cell.top_neighbor().is_extension() \
                         and cell.top_neighbor().origin \
-                        .bottom_neighbor() is None:
+                                .bottom_neighbor() is None:
                     # Extend cell to left
                     col.cells.remove(cell)
                     col.left_neighbor().cells.append(cell)
@@ -509,7 +519,7 @@ class Page(object):
                 # Case B1
                 if cell.extent.top_neighbor().is_extended() \
                         and cell.extent.top_neighbor().extent \
-                        .bottom_neighbor() is None:
+                                .bottom_neighbor() is None:
                     # Move cell to right
                     col.cells.remove(cell)
                     col.right_neighbor().cells.remove(cell.extent)
@@ -521,7 +531,7 @@ class Page(object):
                 # Case B2
                 elif cell.top_neighbor().is_extension() \
                         and cell.top_neighbor().origin \
-                        .bottom_neighbor() is None:
+                                .bottom_neighbor() is None:
                     # Move cell to left
                     col.cells.remove(cell)
                     col.right_neighbor().cells.remove(cell.extent)
