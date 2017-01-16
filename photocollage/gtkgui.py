@@ -22,6 +22,7 @@ import math
 import os.path
 import random
 import sys
+import urllib.parse
 
 import cairo
 import gi
@@ -39,7 +40,6 @@ _n = gettext.ngettext
 # xgettext --keyword=_n:1,2 -o po/photocollage.pot $(find . -name '*.py')
 # cp po/photocollage.pot po/fr.po
 # msgfmt -o po/fr.mo po/fr.po
-
 
 def pil_image_to_cairo_surface(src):
     # TODO: cairo.ImageSurface.create_for_data() is not yet available in
