@@ -453,7 +453,7 @@ class PhotoCollageWindow(Gtk.Window):
 
 class ImagePreviewArea(Gtk.DrawingArea):
     """Area to display the poster preview and react to user actions"""
-    INSENSITIVE, FLYING, SWAPPING = range(3)
+    INSENSITIVE, FLYING, SWAPPING_OR_MOVING = range(3)
 
     def __init__(self, parent):
         super(ImagePreviewArea, self).__init__()
@@ -490,8 +490,9 @@ class ImagePreviewArea(Gtk.DrawingArea):
 
     def set_collage(self, image, collage):
         self.image = pil_image_to_cairo_surface(image)
-        # The Collage object must be deeply copied. Otherwise, swapping photos
-        # in a new page would also affect the original page (in history).
+        # The Collage object must be deeply copied.
+        # Otherwise, SWAPPING_OR_MOVING photos in a new page would also affect
+        # the original page (in history).
         # The deep copy is done here (not in button_release_event) because
         # references to cells are gathered in other functions, so that making
         # the copy at the end would invalidate these references.
@@ -551,7 +552,7 @@ class ImagePreviewArea(Gtk.DrawingArea):
                 if cell:
                     self.paint_image_border(context, cell)
                     self.paint_image_delete_button(context, cell)
-            elif self.mode == self.SWAPPING:
+            elif self.mode == self.SWAPPING_OR_MOVING:
                 self.paint_image_border(context, self.swap_origin.cell, (3, 3))
                 cell = self.collage.page.get_cell_at_position(self.x, self.y)
                 if cell and cell != self.swap_origin.cell:
@@ -595,19 +596,26 @@ class ImagePreviewArea(Gtk.DrawingArea):
             else:
                 self.swap_origin.x, self.swap_origin.y = x, y
                 self.swap_origin.cell = cell
-                self.mode = self.SWAPPING
+                self.mode = self.SWAPPING_OR_MOVING
         widget.queue_draw()
 
     def button_release_event(self, widget, event):
-        if self.mode == self.SWAPPING:
+        if self.mode == self.SWAPPING_OR_MOVING:
             self.swap_dest.x, self.swap_dest.y = \
                 self.get_pos_in_image(event.x, event.y)
             self.swap_dest.cell = self.collage.page.get_cell_at_position(
                 self.swap_dest.x, self.swap_dest.y)
             if self.swap_dest.cell \
                     and self.swap_origin.cell != self.swap_dest.cell:
+                # different cell: SWAPPING
                 self.collage.page.swap_photos(self.swap_origin.cell,
                                               self.swap_dest.cell)
+                self.parent.render_from_new_collage(self.collage)
+            elif self.swap_dest.cell:
+                # same cell: MOVING
+                move_x = (self.swap_origin.x - self.x) / self.swap_dest.cell.w
+                move_y = (self.swap_origin.y - self.y) / self.swap_dest.cell.h
+                self.swap_dest.cell.photo.move(move_x, move_y)
                 self.parent.render_from_new_collage(self.collage)
             self.mode = self.FLYING
         widget.queue_draw()

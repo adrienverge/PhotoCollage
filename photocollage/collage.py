@@ -83,10 +83,25 @@ class Photo(object):
         self.w = w
         self.h = h
         self.orientation = orientation
+        self.offset_w = 0.5
+        self.offset_h = 0.5
 
     @property
     def ratio(self):
         return float(self.h) / float(self.w)
+
+    def move(self, x, y):
+        self.offset_w = self.calculate_new_offset(self.offset_w, x)
+        self.offset_h = self.calculate_new_offset(self.offset_h, y)
+
+    @staticmethod
+    def calculate_new_offset(offset, value):
+        new_offset = offset + value
+        if new_offset < 0:
+            new_offset = 0
+        elif new_offset > 1:
+            new_offset = 1
+        return new_offset
 
 
 class Cell(object):
