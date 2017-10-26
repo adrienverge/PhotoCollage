@@ -31,7 +31,7 @@ from six.moves import urllib  # Python 2 backward compatibility
 
 from photocollage import APP_NAME, artwork, collage, render
 from photocollage.render import PIL_SUPPORTED_EXTS as EXTS
-
+from photocollage.config import YamlConfig
 
 gettext.textdomain(APP_NAME)
 _ = gettext.gettext
@@ -157,10 +157,19 @@ class PhotoCollageWindow(Gtk.Window):
     TARGET_TYPE_TEXT = 1
     TARGET_TYPE_URI = 2
 
-    def __init__(self):
+    def __init__(self, config):
+        """
+
+        :param config: dict-like storage for configuration data. Shall also
+            accept function `store`, that takes care of data persistence at
+            exit.
+
+        """
         super(PhotoCollageWindow, self).__init__(title=_("PhotoCollage"))
         self.history = []
         self.history_index = 0
+
+        self.cfg = config
 
         class Options(object):
             def __init__(self):
@@ -449,6 +458,10 @@ class PhotoCollageWindow(Gtk.Window):
             self.history_index < len(self.history))
         self.btn_new_layout.set_sensitive(
             self.history_index < len(self.history))
+
+    def on_destroy(self, widget=None, *args):
+        """Handles window closure properly"""
+        self.cfg.store()
 
 
 class ImagePreviewArea(Gtk.DrawingArea):
@@ -817,7 +830,15 @@ def main():
     # Enable threading. Without that, threads hang!
     GObject.threads_init()
 
-    win = PhotoCollageWindow()
+    # #38: adding config file
+    if 'XDG_CONFIG_HOME' in os.environ:
+        config_dir = os.environ['XDG_CONFIG_HOME']
+    else:
+        config_dir = os.path.join(os.path.expanduser('~'), '.config')
+    config_fn = os.path.join(config_dir, 'photocollage', 'config.yml')
+    cfg = YamlConfig(cfg_fn=config_fn)
+
+    win = PhotoCollageWindow(config=cfg)
     win.connect("delete-event", Gtk.main_quit)
     win.show_all()
 
