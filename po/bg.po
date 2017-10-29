@@ -1,0 +1,107 @@
+# PhotoCollage translation file
+# Copyright (C) 2014 Adrien Vergé
+# Copyright (C) 2015 Frank Quotschalla <gutschy@Computer-Retro.de>
+# Copyright (C) 2015 Vincent Bermel <willovince@openmailbox.org>
+# This file is distributed under the same license as the PhotoCollage package.
+# Adrien Vergé, 2014.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PhotoCollage 1.4.2\n"
+"Report-Msgid-Bugs-To: https://github.com/adrienverge/PhotoCollage/issues\n"
+"POT-Creation-Date: 2016-04-11 22:51+0200\n"
+"PO-Revision-Date: 2017-10-29 20:28+0200\n"
+"Last-Translator: Peyu Yovev <spacy00001@gmail.com>\n"
+"Language-Team: spacy00001@gmail.com\n"
+"Language: bg\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 1.8.7.1\n"
+
+#: photocollage/gtkgui.py:72 photocollage/gtkgui.py:94
+msgid "All supported image formats"
+msgstr "Всички поддържани формати"
+
+#: photocollage/gtkgui.py:104
+#, python-format
+msgid "%s image"
+msgstr "%s изображение"
+
+#: photocollage/gtkgui.py:161
+msgid "PhotoCollage"
+msgstr "PhotoCollage"
+
+#: photocollage/gtkgui.py:189
+msgid "Add images..."
+msgstr "Добавяне на изображения"
+
+#: photocollage/gtkgui.py:196
+msgid "Save poster..."
+msgstr "Запази колажа..."
+
+#: photocollage/gtkgui.py:221
+msgid "Regenerate"
+msgstr "Регенерирай"
+
+#: photocollage/gtkgui.py:279
+#, python-format
+msgid ""
+"This image could not be opened:\n"
+"\"%(imgname)s\"."
+msgstr ""
+"Изображението не може да се отвори:\n"
+"\"%(imgname)s\"."
+
+#: photocollage/gtkgui.py:285
+msgid "Choose images"
+msgstr "Изберете изображения"
+
+#: photocollage/gtkgui.py:339 photocollage/gtkgui.py:424
+msgid "An error occurred while rendering image:"
+msgstr "Получи се грешка по време на рендирането:"
+
+#: photocollage/gtkgui.py:398
+msgid "Save image"
+msgstr "Запази изображението"
+
+#: photocollage/gtkgui.py:622
+msgid "Settings"
+msgstr "Настройки"
+
+#: photocollage/gtkgui.py:634
+msgid "Output image size"
+msgstr "Размер на изходното изобранжение"
+
+#: photocollage/gtkgui.py:649
+msgid "pixels"
+msgstr "пиксела"
+
+#: photocollage/gtkgui.py:673
+msgid "Apply a template:"
+msgstr "Приложи шаблон"
+
+#: photocollage/gtkgui.py:686
+msgid "Border"
+msgstr "Рамка"
+
+#: photocollage/gtkgui.py:691
+msgid "Thickness:"
+msgstr "Ширина:"
+
+#: photocollage/gtkgui.py:701
+msgid "Color:"
+msgstr "Цвят:"
+
+#: photocollage/gtkgui.py:740
+msgid "Please wait"
+msgstr "Моля изчакайте"
+
+#: photocollage/gtkgui.py:749
+msgid "Performing image computation..."
+msgstr "Изпълнява се преизчисляване на изображението"
+
+#: photocollage/gtkgui.py:764
+msgid "Error"
+msgstr "Грешка"
