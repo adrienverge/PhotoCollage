@@ -105,7 +105,7 @@ def build_photolist(filelist):
                 orientation = exif[274]
                 if orientation == 6 or orientation == 8:
                     w, h = h, w
-        except:
+        except Exception:
             pass
 
         ret.append(Photo(name, w, h, orientation))
