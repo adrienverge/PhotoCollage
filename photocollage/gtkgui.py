@@ -31,7 +31,7 @@ from six.moves import urllib  # Python 2 backward compatibility
 
 from photocollage import APP_NAME, artwork, collage, render
 from photocollage.render import PIL_SUPPORTED_EXTS as EXTS
-from photocollage.config import YamlConfig
+from photocollage.config import YamlConfig, ConfigStoreError, ConfigLoadError
 
 gettext.textdomain(APP_NAME)
 _ = gettext.gettext
@@ -170,6 +170,11 @@ class PhotoCollageWindow(Gtk.Window):
         self.history_index = 0
 
         self.cfg = config
+        # load if config file exists
+        try:
+            self.cfg.load()
+        except ConfigLoadError:
+            pass
 
         class Options(object):
             def __init__(self):

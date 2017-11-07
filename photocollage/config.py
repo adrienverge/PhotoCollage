@@ -129,6 +129,31 @@ class YamlConfig(object):
         return "<{0} object: {1}>".format(self.__class__.__name__,
                                           self._data)
 
+    def setdefault(self, **kwargs):
+        """Set values if not already existing
+
+        >>> cfg = YamlConfig(None)
+        >>> cfg['a'] = 1
+        >>> cfg.setdefault(a=0, b=2, c=3)
+        >>> cfg
+        <YamlConfig object: {'a': 1, 'b': 2, 'c': 3}>
+
+        """
+        for k, v in kwargs.items():
+            self._data.setdefault(k, v)
+
+    def update(self, **kwargs):
+        """Update or set values
+
+        >>> cfg = YamlConfig(None)
+        >>> cfg['a'] = 1
+        >>> cfg.update(a=0, b=2, c=3)
+        >>> cfg
+        <YamlConfig object: {'a': 0, 'b': 2, 'c': 3}>
+
+        """
+        self._data.update(kwargs)
+
 
 def open_(fn, *args, **kwargs):
     """Wraps around built-in :py:func:open function, that waits for the
