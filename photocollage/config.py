@@ -84,7 +84,7 @@ class YamlOptionsManager(object):
                                        .format(e))
         else:
             raise OptionsLoadError("Could not load options: no opts_fn "
-                                  "provided")
+                                   "provided")
 
     def store(self):
         """Write instance content to *self.opts_fn*, as YAML file.
@@ -184,9 +184,11 @@ def open_(fn, *args, **kwargs):
                            " freed: {}"
                            .format(os.path.basename(fn), e))
         time.sleep(FILE_OPEN_TIME_STEP)  # then wait a little
-        kwargs["timeout_"] = timeout_ - FILE_OPEN_TIME_STEP if timeout_ > 0 else 0
-        kwargs["_top"] = False  # force _top at False for new try
-        return open_(fn, *args, **kwargs)   # and make a new try
+        # update parameters for next trial
+        kwargs["timeout_"] = (timeout_ - FILE_OPEN_TIME_STEP
+                              if timeout_ > 0 else 0)
+        kwargs["_top"] = False
+        return open_(fn, *args, **kwargs) 
     else:
         logger.debug("File '{}' opened".format(os.path.basename(fn)))
         return fh
