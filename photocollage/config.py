@@ -33,91 +33,91 @@ top_logger = logging.getLogger(__name__)
 
 
 # classes definition
-class ConfigLoadError(IOError):
+class OptionsLoadError(IOError):
     pass
 
 
-class ConfigStoreError(IOError):
+class OptionsStoreError(IOError):
     pass
 
 
-class YamlConfig(object):
-    """Handles configuration, based on a YAML file.
+class YamlOptionsManager(object):
+    """Handles options, based on a YAML file.
 
     Takes care of writing configuration to filesystem at exit.
 
-    >>> cfg_fn = "../tests/cfg.yml"
-    >>> if os.path.exists(cfg_fn):
-    ...     os.remove(cfg_fn)
+    >>> opts_fn = "../tests/opts.yml"
+    >>> if os.path.exists(opts_fn):
+    ...     os.remove(opts_fn)
     ...
-    >>> cfg = YamlConfig(cfg_fn)
-    >>> print(cfg)
-    <YamlConfig object: {}>
-    >>> cfg['configuration'] = dict(last_visited_directory="/home/adrien/photos")
-    >>> cfg.store()
-    >>> print(open(cfg_fn).read())
+    >>> opts = YamlOptionsManager(opts_fn)
+    >>> print(opts)
+    <YamlOptionsManager object: {}>
+    >>> opts['configuration'] = dict(last_visited_directory="/home/adrien/photos")
+    >>> opts.store()
+    >>> print(open(opts_fn).read())
     configuration: {last_visited_directory: /home/adrien/photos}
     <BLANKLINE>
 
-    >>> cfg2 = YamlConfig(cfg_fn)
+    >>> cfg2 = YamlOptionsManager(opts_fn)
     >>> cfg2.load()
     >>> print(cfg2)
-    <YamlConfig object: {'configuration': {'last_visited_directory': '/home/adrien/photos'}}>
+    <YamlOptionsManager object: {'configuration': {'last_visited_directory': '/home/adrien/photos'}}>
 
     """
-    def __init__(self, cfg_fn, *args, **kwargs):
+    def __init__(self, opts_fn, *args, **kwargs):
         self.logger = top_logger.getChild(__name__)
         self._data = dict(*args, **kwargs)
-        self.cfg_fn = cfg_fn
+        self.opts_fn = opts_fn
 
     def load(self):
-        """Load content of *self.cfg_fn*, as a YAML file, in instance.
+        """Load content of *self.opts_fn*, as a YAML file, in instance.
 
         """
         self._data.clear()
-        if self.cfg_fn is not None and os.path.exists(self.cfg_fn):
+        if self.opts_fn is not None and os.path.exists(self.opts_fn):
             try:
-                with open_(self.cfg_fn, 'r') as fin:
+                with open_(self.opts_fn, 'r') as fin:
                     self._data.update(yaml.load(fin))
             except (IOError, OSError) as e:
-                raise ConfigLoadError("Could not load config file: {}"
-                                      .format(e))
+                raise OptionsLoadError("Could not load options file: {}"
+                                       .format(e))
         else:
-            raise ConfigLoadError("Could not load config: no cfg_fn "
+            raise OptionsLoadError("Could not load options: no opts_fn "
                                   "provided")
 
     def store(self):
-        """Write instance content to *self.cfg_fn*, as YAML file.
+        """Write instance content to *self.opts_fn*, as YAML file.
 
         """
-        if self.cfg_fn is not None:
-            dir_ = os.path.dirname(self.cfg_fn)
-            if os.path.exists(self.cfg_fn):
-                if os.path.isdir(self.cfg_fn):
-                    raise ConfigStoreError("Cannot store, as cfg_fn is a "
-                                           "directory : '{}'"
-                                           .format(self.cfg_fn))
+        if self.opts_fn is not None:
+            dir_ = os.path.dirname(self.opts_fn)
+            if os.path.exists(self.opts_fn):
+                if os.path.isdir(self.opts_fn):
+                    raise OptionsStoreError(
+                        "Cannot store, as opts_fn is a directory : '{}'"
+                        .format(self.opts_fn))
                 else:
                     # file exists and will be overwritten: no action
                     pass
             elif os.path.exists(dir_):
                 if os.path.isfile(dir_):
-                    raise ConfigStoreError("Cannot store, as cfg_fn "
-                                           "directory exists as a file: "
-                                           "'{}'"
-                                           .format(self.cfg_fn))
+                    raise OptionsStoreError(
+                        "Cannot store, as opts_fn directory exists as a "
+                        "file: '{}'"
+                        .format(self.opts_fn))
                 else:
-                    # cfg_fn directory exists: no action
+                    # opts_fn directory exists: no action
                     pass
             else:
                 # create directory for storing the file
                 os.makedirs(dir_)
 
-            with open_(self.cfg_fn, 'w') as fout:
+            with open_(self.opts_fn, 'w') as fout:
                 fout.write(yaml.dump(self._data))
         else:
-            raise ConfigStoreError("Could not store config: no cfg_fn "
-                                   "provided")
+            raise OptionsStoreError("Could not store config: no opts_fn "
+                                    "provided")
 
     def __getitem__(self, item):
         return self._data[item]
@@ -132,11 +132,11 @@ class YamlConfig(object):
     def setdefault(self, **kwargs):
         """Set values if not already existing
 
-        >>> cfg = YamlConfig(None)
-        >>> cfg['a'] = 1
-        >>> cfg.setdefault(a=0, b=2, c=3)
-        >>> cfg
-        <YamlConfig object: {'a': 1, 'b': 2, 'c': 3}>
+        >>> opts = YamlOptionsManager(None)
+        >>> opts['a'] = 1
+        >>> opts.setdefault(a=0, b=2, c=3)
+        >>> opts
+        <YamlOptionsManager object: {'a': 1, 'b': 2, 'c': 3}>
 
         """
         for k, v in kwargs.items():
@@ -145,11 +145,11 @@ class YamlConfig(object):
     def update(self, **kwargs):
         """Update or set values
 
-        >>> cfg = YamlConfig(None)
-        >>> cfg['a'] = 1
-        >>> cfg.update(a=0, b=2, c=3)
-        >>> cfg
-        <YamlConfig object: {'a': 0, 'b': 2, 'c': 3}>
+        >>> opts = YamlOptionsManager(None)
+        >>> opts['a'] = 1
+        >>> opts.update(a=0, b=2, c=3)
+        >>> opts
+        <YamlOptionsManager object: {'a': 0, 'b': 2, 'c': 3}>
 
         """
         self._data.update(kwargs)

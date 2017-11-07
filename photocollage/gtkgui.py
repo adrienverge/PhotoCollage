@@ -31,7 +31,7 @@ from six.moves import urllib  # Python 2 backward compatibility
 
 from photocollage import APP_NAME, artwork, collage, render
 from photocollage.render import PIL_SUPPORTED_EXTS as EXTS
-from photocollage.config import YamlConfig, ConfigStoreError, ConfigLoadError
+from photocollage.config import YamlOptionsManager, OptionsLoadError
 
 gettext.textdomain(APP_NAME)
 _ = gettext.gettext
@@ -157,10 +157,10 @@ class PhotoCollageWindow(Gtk.Window):
     TARGET_TYPE_TEXT = 1
     TARGET_TYPE_URI = 2
 
-    def __init__(self, config):
+    def __init__(self, options_manager):
         """
 
-        :param config: dict-like storage for configuration data. Shall also
+        :param options_manager: dict-like storage for configuration data. Shall also
             accept function `store`, that takes care of data persistence at
             exit.
 
@@ -169,11 +169,11 @@ class PhotoCollageWindow(Gtk.Window):
         self.history = []
         self.history_index = 0
 
-        self.opts = config
-        # load if config file exists
+        self.opts = options_manager
+        # load if options_manager file exists
         try:
             self.opts.load()
-        except ConfigLoadError:
+        except OptionsLoadError:
             pass
         # set default values
         self.opts.setdefault(border_w=0.01, border_c='black',
@@ -835,13 +835,13 @@ def main():
 
     # #38: adding config file
     if 'XDG_CONFIG_HOME' in os.environ:
-        config_dir = os.environ['XDG_CONFIG_HOME']
+        options_dir = os.environ['XDG_CONFIG_HOME']
     else:
-        config_dir = os.path.join(os.path.expanduser('~'), '.config')
-    config_fn = os.path.join(config_dir, 'photocollage', 'config.yml')
-    cfg = YamlConfig(cfg_fn=config_fn)
+        options_dir = os.path.join(os.path.expanduser('~'), '.config')
+    options_fn = os.path.join(options_dir, 'photocollage', 'options.yml')
+    options_manager = YamlOptionsManager(opts_fn=options_fn)
 
-    win = PhotoCollageWindow(config=cfg)
+    win = PhotoCollageWindow(options_manager=options_manager)
     win.connect("delete-event", Gtk.main_quit)
     win.show_all()
 
