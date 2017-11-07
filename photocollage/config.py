@@ -41,7 +41,73 @@ class OptionsStoreError(IOError):
     pass
 
 
-class YamlOptionsManager(object):
+class OptionsManager(object):
+    """Handles options, as Python attributes, and load/store to filesystem.
+
+    ..Note::
+        This class does not write to filesystem. This shall be provided by
+        sub-classes. In this case, take care to extend the list of
+        protected names (those that will not be stored on filesystem),
+        :py:attribute:_PROTECTED_NAMES.
+
+    >>> opts = OptionsManager()
+    >>> opts.a = 5
+    >>> opts
+    <OptionsManager object: {'a': 5}>
+    >>> opts.b = 8
+    >>> opts
+    <OptionsManager object: {'a': 5, 'b': 8}>
+
+    """
+    _PROTECTED_NAMES = ('setdefault', 'update')
+
+    def __init__(self, *args, **kwargs):
+        self._logger = top_logger.getChild(__name__)
+        self._data = dict(*args, **kwargs)
+
+    def __getattribute__(self, item):
+        if not item.startswith('_') and item not in self._PROTECTED_NAMES:
+            return self._data[item]
+        else:
+            return super().__getattribute__(item)
+
+    def __setattr__(self, key, value):
+        if not key.startswith('_') and key not in self._PROTECTED_NAMES:
+            self._data[key] = value
+        else:
+            super().__setattr__(key, value)
+
+    def setdefault(self, **kwargs):
+        """Set values if not already existing
+
+        >>> opts = OptionsManager()
+        >>> opts.a = 1
+        >>> opts.setdefault(a=0, b=2, c=3)
+        >>> opts
+        <OptionsManager object: {'a': 1, 'b': 2, 'c': 3}>
+
+        """
+        for k, v in kwargs.items():
+            self._data.setdefault(k, v)
+
+    def update(self, **kwargs):
+        """Update or set values
+
+        >>> opts = OptionsManager()
+        >>> opts.a = 1
+        >>> opts.update(a=0, b=2, c=3)
+        >>> opts
+        <OptionsManager object: {'a': 0, 'b': 2, 'c': 3}>
+
+        """
+        self._data.update(kwargs)
+
+    def __repr__(self):
+        return "<{0} object: {1}>".format(self.__class__.__name__,
+                                          self._data)
+
+
+class YamlOptionsManager(OptionsManager):
     """Handles options, based on a YAML file.
 
     Takes care of writing configuration to filesystem at exit.
@@ -66,8 +132,8 @@ class YamlOptionsManager(object):
 
     """
     def __init__(self, opts_fn, *args, **kwargs):
-        self.logger = top_logger.getChild(__name__)
-        self._data = dict(*args, **kwargs)
+        super().__init__(*args, **kwargs)
+        self._PROTECTED_NAMES += ('load', 'store', 'opts_fn')
         self.opts_fn = opts_fn
 
     def load(self):
@@ -125,35 +191,6 @@ class YamlOptionsManager(object):
     def __setitem__(self, key, value):
         self._data[key] = value
 
-    def __repr__(self):
-        return "<{0} object: {1}>".format(self.__class__.__name__,
-                                          self._data)
-
-    def setdefault(self, **kwargs):
-        """Set values if not already existing
-
-        >>> opts = YamlOptionsManager(None)
-        >>> opts['a'] = 1
-        >>> opts.setdefault(a=0, b=2, c=3)
-        >>> opts
-        <YamlOptionsManager object: {'a': 1, 'b': 2, 'c': 3}>
-
-        """
-        for k, v in kwargs.items():
-            self._data.setdefault(k, v)
-
-    def update(self, **kwargs):
-        """Update or set values
-
-        >>> opts = YamlOptionsManager(None)
-        >>> opts['a'] = 1
-        >>> opts.update(a=0, b=2, c=3)
-        >>> opts
-        <YamlOptionsManager object: {'a': 0, 'b': 2, 'c': 3}>
-
-        """
-        self._data.update(kwargs)
-
 
 def open_(fn, *args, **kwargs):
     """Wraps around built-in :py:func:open function, that waits for the
@@ -188,7 +225,7 @@ def open_(fn, *args, **kwargs):
         kwargs["timeout_"] = (timeout_ - FILE_OPEN_TIME_STEP
                               if timeout_ > 0 else 0)
         kwargs["_top"] = False
-        return open_(fn, *args, **kwargs) 
+        return open_(fn, *args, **kwargs)
     else:
         logger.debug("File '{}' opened".format(os.path.basename(fn)))
         return fh

@@ -176,8 +176,9 @@ class PhotoCollageWindow(Gtk.Window):
         except OptionsLoadError:
             pass
         # set default values
+        # TODO: put this in a default location, or in a default option file
         self.opts.setdefault(border_w=0.01, border_c='black',
-                            out_w=800, out_h=600)
+                             out_w=800, out_h=600)
 
         self.make_window()
 
@@ -278,8 +279,8 @@ class PhotoCollageWindow(Gtk.Window):
 
             if len(photolist) > 0:
                 new_collage = UserCollage(photolist)
-                new_collage.make_page(out_h=self.opts['out_h'],
-                                      out_w=self.opts['out_w'])
+                new_collage.make_page(out_h=self.opts.out_h,
+                                      out_w=self.opts.out_w)
                 self.render_from_new_collage(new_collage)
             else:
                 self.update_tool_buttons()
@@ -321,7 +322,7 @@ class PhotoCollageWindow(Gtk.Window):
 
         # If the desired ratio changed in the meantime (e.g. from landscape to
         # portrait), it needs to be re-updated
-        collage.page.target_ratio = 1.0 * self.opts['out_h'] / self.opts['out_w']
+        collage.page.target_ratio = 1.0 * self.opts.out_h / self.opts.out_w
         collage.page.adjust_cols_heights()
 
         w = self.img_preview.get_allocation().width
@@ -350,9 +351,9 @@ class PhotoCollageWindow(Gtk.Window):
 
         t = render.RenderingTask(
             collage.page,
-            border_width=self.opts['border_w'] * max(collage.page.w,
-                                                    collage.page.h),
-            border_color=self.opts['border_c'],
+            border_width=self.opts.border_w * max(collage.page.w,
+                                                  collage.page.h),
+            border_color=self.opts.border_c,
             on_update=gtk_run_in_main_thread(on_update),
             on_complete=gtk_run_in_main_thread(on_complete),
             on_fail=gtk_run_in_main_thread(on_fail))
@@ -371,8 +372,8 @@ class PhotoCollageWindow(Gtk.Window):
 
     def regenerate_layout(self, button=None):
         new_collage = self.history[self.history_index].duplicate()
-        new_collage.make_page(out_h=self.opts['out_h'],
-                              out_w=self.opts['out_w'])
+        new_collage.make_page(out_h=self.opts.out_h,
+                              out_w=self.opts.out_w)
         self.render_from_new_collage(new_collage)
 
     def select_prev_layout(self, button):
@@ -399,7 +400,7 @@ class PhotoCollageWindow(Gtk.Window):
     def save_poster(self, button):
         collage = self.history[self.history_index]
 
-        enlargement = float(self.opts['out_w']) / collage.page.w
+        enlargement = float(self.opts.out_w) / collage.page.w
         collage.page.scale(enlargement)
 
         dialog = Gtk.FileChooserDialog(_("Save image"), button.get_toplevel(),
@@ -435,9 +436,9 @@ class PhotoCollageWindow(Gtk.Window):
 
         t = render.RenderingTask(
             collage.page, output_file=savefile,
-            border_width=self.opts['border_w'] * max(collage.page.w,
-                                                    collage.page.h),
-            border_color=self.opts['border_c'],
+            border_width=self.opts.border_w * max(collage.page.w,
+                                                  collage.page.h),
+            border_color=self.opts.border_c,
             on_update=gtk_run_in_main_thread(on_update),
             on_complete=gtk_run_in_main_thread(on_complete),
             on_fail=gtk_run_in_main_thread(on_fail))
@@ -599,8 +600,8 @@ class ImagePreviewArea(Gtk.DrawingArea):
             if dist <= 8 * 8:
                 self.collage.photolist.remove(cell.photo)
                 if self.collage.photolist:
-                    self.collage.make_page(out_h=self.parent.opts['out_h'],
-                                           out_w=self.parent.opts['out_w'])
+                    self.collage.make_page(out_h=self.parent.opts.out_h,
+                                           out_w=self.parent.opts.out_w)
                     self.parent.render_from_new_collage(self.collage)
                 else:
                     self.image = None
@@ -644,7 +645,7 @@ class SettingsDialog(Gtk.Dialog):
              Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
         self.set_border_width(10)
 
-        self.selected_border_color = parent.opts['border_c']
+        self.selected_border_color = parent.opts.border_c
 
         box = self.get_content_area()
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
@@ -656,12 +657,12 @@ class SettingsDialog(Gtk.Dialog):
 
         box = Gtk.Box(spacing=6)
         vbox.pack_start(box, False, False, 0)
-        self.etr_outw = Gtk.Entry(text=str(parent.opts['out_w']))
+        self.etr_outw = Gtk.Entry(text=str(parent.opts.out_w))
         self.etr_outw.connect("changed", self.validate_int)
         self.etr_outw.last_valid_text = self.etr_outw.get_text()
         box.pack_start(self.etr_outw, False, False, 0)
         box.pack_start(Gtk.Label("×", xalign=0), False, False, 0)
-        self.etr_outh = Gtk.Entry(text=str(parent.opts['out_h']))
+        self.etr_outh = Gtk.Entry(text=str(parent.opts.out_h))
         self.etr_outh.connect("changed", self.validate_int)
         self.etr_outh.last_valid_text = self.etr_outh.get_text()
         box.pack_start(self.etr_outh, False, False, 0)
@@ -710,7 +711,7 @@ class SettingsDialog(Gtk.Dialog):
         vbox.pack_start(box, False, False, 0)
         label = Gtk.Label(_("Thickness:"), xalign=0)
         box.pack_start(label, False, False, 0)
-        self.etr_border = Gtk.Entry(text=str(100.0 * parent.opts['border_w']))
+        self.etr_border = Gtk.Entry(text=str(100.0 * parent.opts.border_w))
         self.etr_border.connect("changed", self.validate_float)
         self.etr_border.last_valid_text = self.etr_border.get_text()
         self.etr_border.set_width_chars(4)
@@ -723,7 +724,7 @@ class SettingsDialog(Gtk.Dialog):
         box.pack_start(label, True, True, 0)
         self.colorbutton = Gtk.ColorButton()
         color = Gdk.RGBA()
-        color.parse(parent.opts['border_c'])
+        color.parse(parent.opts.border_c)
         self.colorbutton.set_rgba(color)
         box.pack_end(self.colorbutton, False, False, 0)
 
