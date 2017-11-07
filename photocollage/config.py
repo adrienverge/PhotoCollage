@@ -119,7 +119,7 @@ class YamlOptionsManager(OptionsManager):
     >>> opts = YamlOptionsManager(opts_fn)
     >>> print(opts)
     <YamlOptionsManager object: {}>
-    >>> opts['configuration'] = dict(last_visited_directory="/home/adrien/photos")
+    >>> opts.configuration = dict(last_visited_directory="/home/adrien/photos")
     >>> opts.store()
     >>> print(open(opts_fn).read())
     configuration: {last_visited_directory: /home/adrien/photos}
@@ -127,8 +127,8 @@ class YamlOptionsManager(OptionsManager):
 
     >>> cfg2 = YamlOptionsManager(opts_fn)
     >>> cfg2.load()
-    >>> print(cfg2)
-    <YamlOptionsManager object: {'configuration': {'last_visited_directory': '/home/adrien/photos'}}>
+    >>> cfg2.configuration
+    {'last_visited_directory': '/home/adrien/photos'}
 
     """
     def __init__(self, opts_fn, *args, **kwargs):
