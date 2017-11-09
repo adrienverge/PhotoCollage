@@ -30,7 +30,6 @@ FILE_OPEN_TIME_STEP = 0.32414  #: some random value between opening trials
 FILE_OPEN_TIMEOUT = 2  #: in seconds
 
 # logging configuration
-logging.basicConfig(level=logging.DEBUG)
 top_logger = logging.getLogger(__name__)
 
 gettext.textdomain(APP_NAME)
@@ -109,8 +108,8 @@ class OptionsManager(object):
         self._data.update(kwargs)
 
     def __repr__(self):
-        return "<{0} object: {1}>".format(self.__class__.__name__,
-                                          self._data)
+        return "<%s object: %s>" % (self.__class__.__name__,
+                                    self._data)
 
 
 class YamlOptionsManager(OptionsManager):
@@ -166,26 +165,28 @@ class YamlOptionsManager(OptionsManager):
             self._logger.debug(_("Storing config to filesystem: '%s'")
                                % self.opts_fn)
             dir_ = os.path.dirname(self.opts_fn)
-            if os.path.exists(self.opts_fn):
-                if os.path.isdir(self.opts_fn):
-                    raise OptionsStoreError(
-                        _("Cannot store, as opts_fn is a directory : '%s'")
-                        % self.opts_fn)
+            if dir_:  # no need to investigate if dir_ is ''
+                if os.path.exists(self.opts_fn):
+                    if os.path.isdir(self.opts_fn):
+                        raise OptionsStoreError(
+                            _("Cannot store, as opts_fn is a directory : "
+                              "'%s'")
+                            % self.opts_fn)
+                    else:
+                        # file exists and will be overwritten: no action
+                        pass
+                elif os.path.exists(dir_):
+                    if os.path.isfile(dir_):
+                        raise OptionsStoreError(
+                            _("Cannot store, as opts_fn directory exists "
+                              "as a file: '%s'")
+                            % self.opts_fn)
+                    else:
+                        # opts_fn directory exists: no action
+                        pass
                 else:
-                    # file exists and will be overwritten: no action
-                    pass
-            elif os.path.exists(dir_):
-                if os.path.isfile(dir_):
-                    raise OptionsStoreError(
-                        _("Cannot store, as opts_fn directory exists as a "
-                          "file: '%s'")
-                        % self.opts_fn)
-                else:
-                    # opts_fn directory exists: no action
-                    pass
-            else:
-                # create directory for storing the file
-                os.makedirs(dir_)
+                    # create directory for storing the file
+                    os.makedirs(dir_)
 
             with open_(self.opts_fn, 'w') as fout:
                 fout.write(yaml.dump(self._data))

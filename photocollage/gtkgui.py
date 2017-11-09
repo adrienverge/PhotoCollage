@@ -30,8 +30,6 @@ gi.require_version('Gtk', '3.0')  # noqa
 from gi.repository import Gtk, Gdk, GObject, GdkPixbuf
 from six.moves import urllib  # Python 2 backward compatibility
 
-logging.basicConfig(level=logging.DEBUG)
-
 from photocollage import APP_NAME, artwork, collage, render
 from photocollage.render import PIL_SUPPORTED_EXTS as EXTS
 from photocollage.config import YamlOptionsManager, OptionsLoadError
@@ -42,6 +40,8 @@ _n = gettext.ngettext
 # xgettext --keyword=_n:1,2 -o po/photocollage.pot $(find . -name '*.py')
 # cp po/photocollage.pot po/fr.po
 # msgfmt -o po/fr.mo po/fr.po
+
+DEFAULT_OPTS = dict(border_w=0.01, border_c='black', out_w=800, out_h=600)
 
 
 def pil_image_to_cairo_surface(src):
@@ -179,9 +179,7 @@ class PhotoCollageWindow(Gtk.Window):
         except OptionsLoadError:
             pass
         # set default values
-        # TODO: put this in a default location, or in a default option file
-        self.opts.setdefault(border_w=0.01, border_c='black',
-                             out_w=800, out_h=600)
+        self.opts.setdefault(**DEFAULT_OPTS)
 
         self.make_window()
 
@@ -836,6 +834,9 @@ class PreviewFileChooserDialog(Gtk.FileChooserDialog):
 
 
 def main():
+    # set level for logging
+    logging.basicConfig(level=logging.INFO)
+
     # Enable threading. Without that, threads hang!
     GObject.threads_init()
 
