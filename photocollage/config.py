@@ -75,13 +75,13 @@ class OptionsManager(object):
         if not item.startswith('_') and item not in self._PROTECTED_NAMES:
             return self._data[item]
         else:
-            return super().__getattribute__(item)
+            return super(OptionsManager, self).__getattribute__(item)
 
     def __setattr__(self, key, value):
         if not key.startswith('_') and key not in self._PROTECTED_NAMES:
             self._data[key] = value
         else:
-            super().__setattr__(key, value)
+            super(OptionsManager, self).__setattr__(key, value)
 
     def setdefault(self, **kwargs):
         """Set values if not already existing
@@ -138,7 +138,7 @@ class YamlOptionsManager(OptionsManager):
 
     """
     def __init__(self, opts_fn, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super(YamlOptionsManager, self).__init__(*args, **kwargs)
         self._PROTECTED_NAMES += ('load', 'store', 'opts_fn')
         self.opts_fn = opts_fn
 
