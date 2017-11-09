@@ -468,6 +468,7 @@ class PhotoCollageWindow(Gtk.Window):
     def on_destroy(self, widget=None, *args):
         """Handles window closure properly"""
         self.opts.store()
+        Gtk.main_quit()
 
 
 class ImagePreviewArea(Gtk.DrawingArea):
@@ -846,9 +847,8 @@ def main():
     options_fn = os.path.join(options_dir, 'photocollage', 'options.yml')
     options_manager = YamlOptionsManager(opts_fn=options_fn)
     logging.debug(_("Config filename: '%s'") % options_fn)
-
     win = PhotoCollageWindow(options_manager=options_manager)
-    win.connect("delete-event", Gtk.main_quit)
+    win.connect("delete-event", win.on_destroy)
     win.show_all()
 
     # If arguments are given, treat them as input images
