@@ -18,6 +18,7 @@
 import copy
 import gettext
 from io import BytesIO
+import logging
 import math
 import os.path
 import random
@@ -28,6 +29,8 @@ import gi
 gi.require_version('Gtk', '3.0')  # noqa
 from gi.repository import Gtk, Gdk, GObject, GdkPixbuf
 from six.moves import urllib  # Python 2 backward compatibility
+
+logging.basicConfig(level=logging.DEBUG)
 
 from photocollage import APP_NAME, artwork, collage, render
 from photocollage.render import PIL_SUPPORTED_EXTS as EXTS
@@ -160,9 +163,9 @@ class PhotoCollageWindow(Gtk.Window):
     def __init__(self, options_manager):
         """
 
-        :param options_manager: dict-like storage for configuration data. Shall also
-            accept function `store`, that takes care of data persistence at
-            exit.
+        :param options_manager: dict-like storage for configuration data.
+            Shall also accept function `store`, that takes care of data
+            persistence at exit.
 
         """
         super(PhotoCollageWindow, self).__init__(title=_("PhotoCollage"))
@@ -185,7 +188,8 @@ class PhotoCollageWindow(Gtk.Window):
     def make_window(self):
         self.set_border_width(10)
 
-        box_window = Gtk.Box(spacing=10, orientation=Gtk.Orientation.VERTICAL)
+        box_window = Gtk.Box(spacing=10,
+                             orientation=Gtk.Orientation.VERTICAL)
         self.add(box_window)
 
         # -----------------------
@@ -320,8 +324,8 @@ class PhotoCollageWindow(Gtk.Window):
     def render_preview(self):
         collage = self.history[self.history_index]
 
-        # If the desired ratio changed in the meantime (e.g. from landscape to
-        # portrait), it needs to be re-updated
+        # If the desired ratio changed in the meantime (e.g. from landscape
+        # to portrait), it needs to be re-updated
         collage.page.target_ratio = 1.0 * self.opts.out_h / self.opts.out_w
         collage.page.adjust_cols_heights()
 
@@ -841,6 +845,7 @@ def main():
         options_dir = os.path.join(os.path.expanduser('~'), '.config')
     options_fn = os.path.join(options_dir, 'photocollage', 'options.yml')
     options_manager = YamlOptionsManager(opts_fn=options_fn)
+    logging.debug(_("Config filename: '%s'") % options_fn)
 
     win = PhotoCollageWindow(options_manager=options_manager)
     win.connect("delete-event", Gtk.main_quit)

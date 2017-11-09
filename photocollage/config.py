@@ -17,11 +17,13 @@
 
 
 # import
+import gettext
 import logging
 import os
 import time
 import yaml
 
+from photocollage import APP_NAME
 
 # constant definition
 FILE_OPEN_TIME_STEP = 0.32414  #: some random value between opening trials
@@ -30,6 +32,10 @@ FILE_OPEN_TIMEOUT = 2  #: in seconds
 # logging configuration
 logging.basicConfig(level=logging.DEBUG)
 top_logger = logging.getLogger(__name__)
+
+gettext.textdomain(APP_NAME)
+_ = gettext.gettext
+_n = gettext.ngettext
 
 
 # classes definition
@@ -146,32 +152,34 @@ class YamlOptionsManager(OptionsManager):
                 with open_(self.opts_fn, 'r') as fin:
                     self._data.update(yaml.load(fin))
             except (IOError, OSError) as e:
-                raise OptionsLoadError("Could not load options file: {}"
-                                       .format(e))
+                raise OptionsLoadError(
+                    _("Could not load options file: %s") % e)
         else:
-            raise OptionsLoadError("Could not load options: no opts_fn "
-                                   "provided")
+            raise OptionsLoadError(
+                _("Could not load options: no opts_fn provided"))
 
     def store(self):
         """Write instance content to *self.opts_fn*, as YAML file.
 
         """
         if self.opts_fn is not None:
+            self._logger.debug(_("Storing config to filesystem: '%s'")
+                               % self.opts_fn)
             dir_ = os.path.dirname(self.opts_fn)
             if os.path.exists(self.opts_fn):
                 if os.path.isdir(self.opts_fn):
                     raise OptionsStoreError(
-                        "Cannot store, as opts_fn is a directory : '{}'"
-                        .format(self.opts_fn))
+                        _("Cannot store, as opts_fn is a directory : '%s'")
+                        % self.opts_fn)
                 else:
                     # file exists and will be overwritten: no action
                     pass
             elif os.path.exists(dir_):
                 if os.path.isfile(dir_):
                     raise OptionsStoreError(
-                        "Cannot store, as opts_fn directory exists as a "
-                        "file: '{}'"
-                        .format(self.opts_fn))
+                        _("Cannot store, as opts_fn directory exists as a "
+                          "file: '%s'")
+                        % self.opts_fn)
                 else:
                     # opts_fn directory exists: no action
                     pass
@@ -181,9 +189,11 @@ class YamlOptionsManager(OptionsManager):
 
             with open_(self.opts_fn, 'w') as fout:
                 fout.write(yaml.dump(self._data))
+            self._logger.debug(_("Options file written to disk: '%s'")
+                               % self.opts_fn)
         else:
-            raise OptionsStoreError("Could not store config: no opts_fn "
-                                    "provided")
+            raise OptionsStoreError(
+                _("Could not store config: no opts_fn provided"))
 
     def __getitem__(self, item):
         return self._data[item]
@@ -193,8 +203,10 @@ class YamlOptionsManager(OptionsManager):
 
 
 def open_(fn, *args, **kwargs):
-    """Wraps around built-in :py:func:open function, that waits for the
-    resource to become free.
+    """Wraps around built-in :py:func:open function on *fn*, that waits for
+    the resource to become free.
+
+    :param fn: filename to open
 
     *ars* and *kwargs* are passed to built-in :py:func:open function.
 
@@ -211,15 +223,16 @@ def open_(fn, *args, **kwargs):
     timeout_ = kwargs.pop("timeout_", FILE_OPEN_TIMEOUT)
     _top = kwargs.pop("_top", True)  # True by default
     if timeout_ < 0:
-        raise IOError("Could not open file within timeout: {}"
-                      .format(fn))
+        raise IOError(
+            _("Could not open file within timeout: %s") % fn)
     try:
         fh = open(fn, *args, **kwargs)
     except IOError as e:
         if _top:  # if call from user, show a warning
-            logger.warning("File not available: '{}', waiting for it to be"
-                           " freed: {}"
-                           .format(os.path.basename(fn), e))
+            logger.warning(
+                _("File not available: '%s', waiting for it to be freed: "
+                  "%s")
+                % (os.path.basename(fn), e))
         time.sleep(FILE_OPEN_TIME_STEP)  # then wait a little
         # update parameters for next trial
         kwargs["timeout_"] = (timeout_ - FILE_OPEN_TIME_STEP
@@ -227,7 +240,7 @@ def open_(fn, *args, **kwargs):
         kwargs["_top"] = False
         return open_(fn, *args, **kwargs)
     else:
-        logger.debug("File '{}' opened".format(os.path.basename(fn)))
+        logger.debug("File '%s' opened" % os.path.basename(fn))
         return fh
 
 
