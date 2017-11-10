@@ -21,7 +21,10 @@ import gettext
 import logging
 import os
 import time
+
+# third-party imports
 import yaml
+
 # photocollage imports
 from photocollage import APP_NAME
 
