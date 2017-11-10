@@ -16,13 +16,13 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-# import
+# built-in imports
 import gettext
 import logging
 import os
 import time
 import yaml
-
+# photocollage imports
 from photocollage import APP_NAME
 
 # constant definition
