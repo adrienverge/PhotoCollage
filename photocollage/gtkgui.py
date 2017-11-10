@@ -288,12 +288,12 @@ class PhotoCollageWindow(Gtk.Window):
 
     def choose_images(self, button):
         dialog = PreviewFileChooserDialog(
-            title = _("Choose images"),
-            folder = self.opts.last_visited_dir,
-            parent = button.get_toplevel(),
-            action = Gtk.FileChooserAction.OPEN,
-            select_multiple = True,
-            modal = True)
+            title=_("Choose images"),
+            folder=self.opts.last_visited_dir,
+            parent=button.get_toplevel(),
+            action=Gtk.FileChooserAction.OPEN,
+            select_multiple=True,
+            modal=True)
 
         if dialog.run() == Gtk.ResponseType.OK:
             files = dialog.get_filenames()
@@ -789,7 +789,7 @@ class PreviewFileChooserDialog(Gtk.FileChooserDialog):
         folder = kw.pop('folder', '.')
         super(PreviewFileChooserDialog, self).__init__(**kw)
         self.set_current_folder(folder)
-        
+
         self.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
         self.add_button(Gtk.STOCK_OK, Gtk.ResponseType.OK)
 
