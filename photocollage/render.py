@@ -15,6 +15,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import gettext
 import random
 from threading import Thread
 import time
@@ -22,12 +23,20 @@ import time
 import PIL.Image
 import PIL.ImageDraw
 
+from photocollage import APP_NAME
 from photocollage.collage import Photo
 
+gettext.textdomain(APP_NAME)
+_ = gettext.gettext
+_n = gettext.ngettext
 
-QUALITY_SKEL = 0
-QUALITY_FAST = 1
-QUALITY_BEST = 2
+QUALITY_SKEL = 1
+QUALITY_FAST = 2
+QUALITY_BEST = 3
+QUALITIES = {QUALITY_SKEL: _("Fast (low quality)"),
+             QUALITY_FAST: _("Standard (nearest neighbor)"),
+             QUALITY_BEST: _("Best (antialiasing; takes more time)"),
+             }
 
 
 class PIL_SUPPORTED_EXTS(object):

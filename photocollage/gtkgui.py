@@ -31,6 +31,7 @@ from six.moves import urllib  # Python 2 backward compatibility
 
 from photocollage import APP_NAME, artwork, collage, render
 from photocollage.render import PIL_SUPPORTED_EXTS as EXTS
+from photocollage.render import QUALITIES, QUALITY_FAST, QUALITY_BEST
 
 
 gettext.textdomain(APP_NAME)
@@ -168,6 +169,7 @@ class PhotoCollageWindow(Gtk.Window):
                 self.border_c = "black"
                 self.out_w = 800
                 self.out_h = 600
+                self.quality = QUALITY_FAST
 
         self.opts = Options()
 
@@ -344,6 +346,7 @@ class PhotoCollageWindow(Gtk.Window):
             border_width=self.opts.border_w * max(collage.page.w,
                                                   collage.page.h),
             border_color=self.opts.border_c,
+            quality=self.opts.quality,
             on_update=gtk_run_in_main_thread(on_update),
             on_complete=gtk_run_in_main_thread(on_complete),
             on_fail=gtk_run_in_main_thread(on_fail))
@@ -714,6 +717,24 @@ class SettingsDialog(Gtk.Dialog):
 
         vbox.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
 
+        box = Gtk.Box(spacing=6)
+        vbox.pack_start(box, False, False, 0)
+        label = Gtk.Label(_("Output quality:"), xalign=1)
+        box.pack_start(label, False, False, 0)
+
+        qualities = (
+            (QUALITIES[QUALITY_FAST], QUALITY_FAST),
+            (QUALITIES[QUALITY_BEST], QUALITY_BEST),
+        )
+
+        self.cmb_quality = Gtk.ComboBoxText()
+        for q, r in qualities:
+            self.cmb_quality.append(q, q)
+        self.cmb_quality.set_active(parent.opts.quality)
+        box.pack_start(self.cmb_quality, False, False, 0)
+
+        vbox.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
+
         self.show_all()
 
     def validate_int(self, entry):
@@ -737,6 +758,8 @@ class SettingsDialog(Gtk.Dialog):
         opts.out_h = int(self.etr_outh.get_text() or '1')
         opts.border_w = float(self.etr_border.get_text() or '0') / 100.0
         opts.border_c = self.colorbutton.get_rgba().to_string()
+        # TODO: test following line; not sure it works that easily.
+        opts.quality = self.cmb_quality.get_active_iter()
 
 
 class ComputingDialog(Gtk.Dialog):
