@@ -33,10 +33,14 @@ _n = gettext.ngettext
 QUALITY_SKEL = 1
 QUALITY_FAST = 2
 QUALITY_BEST = 3
-QUALITIES = {QUALITY_SKEL: _("Fast (low quality)"),
-             QUALITY_FAST: _("Standard (nearest neighbor)"),
-             QUALITY_BEST: _("Best (antialiasing; takes more time)"),
-             }
+QUALITIES = {
+    QUALITY_SKEL: {'str': _("Skeleton (no rendering)"),
+                   'filter': None},
+    QUALITY_FAST: {'str': _("Standard (nearest neighbor; quicker)"),
+                   'filter': PIL.Image.NEAREST},
+    QUALITY_BEST: {'str': _("Best (antialiasing; slower)"),
+                   'filter': PIL.Image.ANTIALIAS},
+}
 
 
 class PIL_SUPPORTED_EXTS(object):
@@ -222,21 +226,24 @@ class RenderingTask(Thread):
             elif cell.photo.orientation == 8:
                 img = img.rotate(90, expand=True)
 
-        if self.quality == QUALITY_FAST:
-            method = PIL.Image.NEAREST
-        else:
-            method = PIL.Image.ANTIALIAS
+        method = QUALITIES[self.quality]['filter']
 
         shape = img.size[0] * cell.h - img.size[1] * cell.w
         if shape > 0:  # image is too thick
-            img = img.resize((int(round(cell.h * img.size[0] / img.size[1])),
-                              int(round(cell.h))), method)
+            img = img.resize(
+                (int(round(cell.h * img.size[0] / img.size[1])),
+                 int(round(cell.h))),
+                method)
         elif shape < 0:  # image is too tall
-            img = img.resize((int(round(cell.w)),
-                              int(round(cell.w * img.size[1] / img.size[0]))),
-                             method)
+            img = img.resize(
+                (int(round(cell.w)),
+                 int(round(cell.w * img.size[1] / img.size[0]))),
+                method)
         else:
-            img = img.resize((int(round(cell.w)), int(round(cell.h))), method)
+            img = img.resize(
+                (int(round(cell.w)),
+                 int(round(cell.h))),
+                method)
 
         # Save this new image to cache (if it is larger than the previous one)
         if (use_cache and (cell.photo.filename not in cache or
@@ -278,7 +285,8 @@ class RenderingTask(Thread):
 
             if self.quality != QUALITY_SKEL:
                 n = sum([len([cell for cell in col.cells if not
-                              cell.is_extension()]) for col in self.page.cols])
+                              cell.is_extension()])
+                         for col in self.page.cols])
                 i = 0.0
                 if self.on_update:
                     self.on_update(canvas, 0.0)
