@@ -25,8 +25,8 @@ import sys
 
 import cairo
 import gi
-gi.require_version('Gtk', '3.0')  # noqa
-from gi.repository import Gtk, Gdk, GObject, GdkPixbuf
+gi.require_version('Gtk', '3.0')  # noqa: E402
+from gi.repository import Gtk, Gdk, GObject, GdkPixbuf  # noqa: I202
 from six.moves import urllib  # Python 2 backward compatibility
 
 from photocollage import APP_NAME, artwork, collage, render
