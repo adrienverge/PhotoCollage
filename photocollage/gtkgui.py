@@ -168,7 +168,7 @@ class PhotoCollageWindow(Gtk.Window):
                 self.border_c = "black"
                 self.out_w = 800
                 self.out_h = 600
-                self.last_visited_dir = os.path.expanduser('~')
+                self.last_visited_dir = None
 
         self.opts = Options()
 
@@ -785,10 +785,10 @@ class ErrorDialog(Gtk.Dialog):
 class PreviewFileChooserDialog(Gtk.FileChooserDialog):
     PREVIEW_MAX_SIZE = 256
 
-    def __init__(self, **kw):
-        folder = kw.pop('folder', '.')
+    def __init__(self, folder=None, **kw):
         super(PreviewFileChooserDialog, self).__init__(**kw)
-        self.set_current_folder(folder)
+        if folder is not None:
+            self.set_current_folder(folder)
 
         self.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
         self.add_button(Gtk.STOCK_OK, Gtk.ResponseType.OK)
