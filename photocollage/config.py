@@ -19,6 +19,7 @@ import gettext
 import logging
 import os
 import time
+
 import yaml
 
 from photocollage import APP_NAME
