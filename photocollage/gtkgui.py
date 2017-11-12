@@ -169,6 +169,7 @@ class PhotoCollageWindow(Gtk.Window):
                 self.out_w = 800
                 self.out_h = 600
                 self.last_visited_dir = None
+                self.last_output_dir = None
 
         self.opts = Options()
 
@@ -403,6 +404,8 @@ class PhotoCollageWindow(Gtk.Window):
                                        Gtk.FileChooserAction.SAVE)
         dialog.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
         dialog.add_button(Gtk.STOCK_OK, Gtk.ResponseType.OK)
+        if self.opts.last_output_dir is not None:
+            dialog.set_current_folder(self.opts.last_output_dir)
         dialog.set_do_overwrite_confirmation(True)
         set_save_image_filters(dialog)
         if dialog.run() != Gtk.ResponseType.OK:
@@ -410,6 +413,7 @@ class PhotoCollageWindow(Gtk.Window):
             return
         savefile = dialog.get_filename()
         base, ext = os.path.splitext(savefile)
+        self.opts.last_output_dir = os.path.abspath(base)
         if ext == "" or not ext[1:].lower() in get_all_save_image_exts():
             savefile += ".jpg"
         dialog.destroy()
