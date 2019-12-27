@@ -21,6 +21,7 @@ import time
 
 import PIL.Image
 import PIL.ImageDraw
+import PIL.ImageFile
 
 from photocollage.collage import Photo
 
@@ -28,6 +29,11 @@ from photocollage.collage import Photo
 QUALITY_SKEL = 0
 QUALITY_FAST = 1
 QUALITY_BEST = 2
+
+
+# Try to continue even if the input file is corrupted.
+# See issue at https://github.com/adrienverge/PhotoCollage/issues/65
+PIL.ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
 class PIL_SUPPORTED_EXTS(object):
