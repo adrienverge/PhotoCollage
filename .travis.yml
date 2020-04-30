@@ -4,7 +4,7 @@ python:
   - 3.5
   - nightly
 install:
-  - pip install flake8 flake8-import-order
+  - pip install flake8 flake8-import-order pyyaml
 script:
   - flake8 .
   - nosetests
