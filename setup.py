@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # Copyright (C) 2013 Adrien Vergé
 #
 # This program is free software; you can redistribute it and/or modify
@@ -48,7 +47,7 @@ class build_i18n(distutils.core.Command):
             mo = os.path.join(dir, "%s.mo" % self.distribution.metadata.name)
 
             if distutils.dep_util.newer(po, mo):
-                distutils.log.info("Compile: %s -> %s" % (po, mo))
+                distutils.log.info("Compile: {} -> {}".format(po, mo))
                 self.spawn(["msgfmt", "-o", mo, po])
 
             targetpath = os.path.join("share", "locale", lang, "LC_MESSAGES")
