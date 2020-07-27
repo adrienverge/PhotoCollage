@@ -22,10 +22,10 @@ import math
 import os.path
 import random
 import sys
+import urllib
 
 import cairo
 import gi
-from six.moves import urllib  # Python 2 backward compatibility
 
 from photocollage import APP_NAME, artwork, collage, render
 from photocollage.render import PIL_SUPPORTED_EXTS as EXTS
