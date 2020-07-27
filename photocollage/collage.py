@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2014 Adrien Vergé
 #
 # This program is free software; you can redistribute it and/or modify
@@ -77,7 +76,7 @@ Phase C: Adapt columns' width.
 """
 
 
-class Photo(object):
+class Photo:
     def __init__(self, filename, w, h, orientation=0):
         self.filename = filename
         self.w = w
@@ -104,7 +103,7 @@ class Photo(object):
         return new_offset
 
 
-class Cell(object):
+class Cell:
     """Represents a cell in a column
 
     Properties:
@@ -245,7 +244,7 @@ class CellExtent(Cell):
         pass
 
 
-class Column(object):
+class Column:
     """Represents a column in a page
 
     Properties:
@@ -316,7 +315,7 @@ class Column(object):
         # First, make groups of "movable" cells. Since cell extents are not
         # movable, these groups only contain pure cell objects. We only resize
         # those groups.
-        class Group(object):
+        class Group:
             def __init__(self, y):
                 self.y = y
                 self.h = 0
@@ -343,7 +342,7 @@ class Column(object):
                 c.h = c.h * alpha
 
 
-class Page(object):
+class Page:
     """Represents a whole page
 
     Properties:

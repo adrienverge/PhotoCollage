@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2014 Adrien Vergé
 #
 # This program is free software; you can redistribute it and/or modify
@@ -36,7 +35,7 @@ QUALITY_BEST = 2
 PIL.ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
-class PIL_SUPPORTED_EXTS(object):
+class PIL_SUPPORTED_EXTS:
     """File extensions supported by PIL
 
     Compiled from:
@@ -100,7 +99,7 @@ def build_photolist(filelist):
     for name in filelist:
         try:
             img = PIL.Image.open(name)
-        except IOError:
+        except OSError:
             raise BadPhoto(name)
         w, h = img.size
 
@@ -132,7 +131,7 @@ class RenderingTask(Thread):
     def __init__(self, page, border_width=0.01, border_color=(0, 0, 0),
                  quality=QUALITY_FAST, output_file=None,
                  on_update=None, on_complete=None, on_fail=None):
-        super(RenderingTask, self).__init__()
+        super().__init__()
 
         self.page = page
         self.border_width = border_width

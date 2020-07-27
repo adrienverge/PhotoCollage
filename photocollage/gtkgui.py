@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2013 Adrien Vergé
 #
 # This program is free software; you can redistribute it and/or modify
@@ -117,7 +116,7 @@ def gtk_run_in_main_thread(fn):
     return my_fn
 
 
-class UserCollage(object):
+class UserCollage:
     """Represents a user-defined collage
 
     A UserCollage contains a list of photos (referenced by filenames) and a
@@ -159,11 +158,11 @@ class PhotoCollageWindow(Gtk.Window):
     TARGET_TYPE_URI = 2
 
     def __init__(self):
-        super(PhotoCollageWindow, self).__init__(title=_("PhotoCollage"))
+        super().__init__(title=_("PhotoCollage"))
         self.history = []
         self.history_index = 0
 
-        class Options(object):
+        class Options:
             def __init__(self):
                 self.border_w = 0.01
                 self.border_c = "black"
@@ -333,7 +332,7 @@ class PhotoCollageWindow(Gtk.Window):
             self.btn_save.set_sensitive(True)
 
         def on_fail(exception):
-            dialog = ErrorDialog(self, "%s:\n\n%s" % (
+            dialog = ErrorDialog(self, "{}:\n\n{}".format(
                 _("An error occurred while rendering image:"), exception))
             compdialog.destroy()
             dialog.run()
@@ -418,7 +417,7 @@ class PhotoCollageWindow(Gtk.Window):
             compdialog.destroy()
 
         def on_fail(exception):
-            dialog = ErrorDialog(self, "%s:\n\n%s" % (
+            dialog = ErrorDialog(self, "{}:\n\n{}".format(
                 _("An error occurred while rendering image:"), exception))
             compdialog.destroy()
             dialog.run()
@@ -457,7 +456,7 @@ class ImagePreviewArea(Gtk.DrawingArea):
     INSENSITIVE, FLYING, SWAPPING_OR_MOVING = range(3)
 
     def __init__(self, parent):
-        super(ImagePreviewArea, self).__init__()
+        super().__init__()
         self.parent = parent
 
         parse, color = Gdk.Color.parse("#888888")
@@ -479,7 +478,7 @@ class ImagePreviewArea(Gtk.DrawingArea):
         self.image = None
         self.mode = self.INSENSITIVE
 
-        class SwapEnd(object):
+        class SwapEnd:
             def __init__(self, cell=None, x=0, y=0):
                 self.cell = cell
                 self.x = x
@@ -624,7 +623,7 @@ class ImagePreviewArea(Gtk.DrawingArea):
 
 class SettingsDialog(Gtk.Dialog):
     def __init__(self, parent):
-        super(SettingsDialog, self).__init__(
+        super().__init__(
             _("Settings"), parent, 0,
             (Gtk.STOCK_OK, Gtk.ResponseType.OK,
              Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
@@ -743,7 +742,7 @@ class SettingsDialog(Gtk.Dialog):
 class ComputingDialog(Gtk.Dialog):
     """Simple "please wait" dialog, with a "cancel" button"""
     def __init__(self, parent):
-        super(ComputingDialog, self).__init__(
+        super().__init__(
             _("Please wait"), parent, 0, (Gtk.STOCK_CANCEL,
                                           Gtk.ResponseType.CANCEL))
         self.set_default_size(300, -1)
@@ -768,8 +767,8 @@ class ComputingDialog(Gtk.Dialog):
 
 class ErrorDialog(Gtk.Dialog):
     def __init__(self, parent, message):
-        super(ErrorDialog, self).__init__(_("Error"), parent, 0,
-                                          (Gtk.STOCK_OK, Gtk.ResponseType.OK))
+        super().__init__(_("Error"), parent, 0,
+                         (Gtk.STOCK_OK, Gtk.ResponseType.OK))
         self.set_border_width(10)
         box = self.get_content_area()
         box.add(Gtk.Label(message))
@@ -780,7 +779,7 @@ class PreviewFileChooserDialog(Gtk.FileChooserDialog):
     PREVIEW_MAX_SIZE = 256
 
     def __init__(self, **kw):
-        super(PreviewFileChooserDialog, self).__init__(**kw)
+        super().__init__(**kw)
 
         self.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
         self.add_button(Gtk.STOCK_OK, Gtk.ResponseType.OK)
