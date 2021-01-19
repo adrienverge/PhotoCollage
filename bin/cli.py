@@ -19,7 +19,9 @@ def make_collage(output_filename, photos):
     to the square root of the output image ratio, and proportional to the
     square root of the average input images ratio.
     """
-    avg_ratio = sum(1.0 * photo.h / photo.w for photo in photos) / len(photos)
+    avg_ratio = sum(
+        1.0 * photo_from_list.h / photo_from_list.w for photo_from_list in
+        photos) / len(photos)
 
     """
     Virtual number of images: since ~ 1 image over 3 is in a multi-cell
@@ -35,8 +37,8 @@ def make_collage(output_filename, photos):
 
     page = Page(1.0, ratio, no_cols)
     random.shuffle(photos)
-    for photo in photos:
-        page.add_cell(photo)
+    for photo_from_list in photos:
+        page.add_cell(photo_from_list)
     page.adjust()
 
     # If the desired ratio changed in the meantime (e.g. from landscape to
@@ -61,20 +63,33 @@ if __name__ == '__main__':
     parser.add_argument('--files', type=str, nargs='+', dest='files',
                         help='a collection of files to use for the collage')
     parser.add_argument('--folder', type=str, dest='folder',
-                        help='the folder to scan for files to use for the collage')
-    parser.add_argument('--outDir', '-D', dest='output_directory', required=True,
+                        help='the folder to scan for files to use for the '
+                             'collage')
+    parser.add_argument('--outDir', '-D', dest='output_directory',
+                        required=True,
                         help='the directory to output the files to')
-    parser.add_argument('--recurse', '-r', dest='recurse', action='store_true', help='recurse through the directory')
-    parser.add_argument('-n', dest='amount', type=int, nargs='?', help='the amount of collages to create', default=10,
+    parser.add_argument('--recurse', '-r', dest='recurse', action='store_true',
+                        help='recurse through the directory')
+    parser.add_argument('-n', dest='amount', type=int, nargs='?',
+                        help='the amount of collages to create', default=10,
                         const=10)
-    parser.add_argument('--height', type=int, nargs='?', help='the height of the collages', default=2160, const=2160)
-    parser.add_argument('--width', type=int, nargs='?', help='the width of the collages', default=3840, const=3840)
-    parser.add_argument('--min', type=int, nargs='?', help='the minimal number of images per collage',
+    parser.add_argument('--height', type=int, nargs='?',
+                        help='the height of the collages', default=2160,
+                        const=2160)
+    parser.add_argument('--width', type=int, nargs='?',
+                        help='the width of the collages', default=3840,
+                        const=3840)
+    parser.add_argument('--min', type=int, nargs='?',
+                        help='the minimal number of images per collage',
                         default=3, const=3)
-    parser.add_argument('--max', type=int, nargs='?', help='the maximal number of images per collage', default=15,
+    parser.add_argument('--max', type=int, nargs='?',
+                        help='the maximal number of images per collage',
+                        default=15,
                         const=15)
-    parser.add_argument('--max-ratio', type=float, nargs='?', dest='max_ratio', default=1.5, const=1.5,
-                        help='the maximal width over height ratio that is allowed for photos in the collage')
+    parser.add_argument('--max-ratio', type=float, nargs='?', dest='max_ratio',
+                        default=1.5, const=1.5,
+                        help='the maximal width over height ratio that is '
+                             'allowed for photos in the collage')
 
     args = parser.parse_args()
 
@@ -82,7 +97,8 @@ if __name__ == '__main__':
     out_w = args.width
 
     if not os.path.isdir(args.output_directory):
-        print("The output directory '" + args.output_directory + "' is not a directory.")
+        print("The output directory '" + args.output_directory +
+              "' is not a directory.")
         exit(-1)
 
     output_directory = str(pathlib.Path(args.output_directory).absolute())
@@ -96,12 +112,14 @@ if __name__ == '__main__':
             for dir_path, dirs, files in os.walk(args.folder):
                 for file in files:
                     filename, file_extension = os.path.splitext(file)
-                    if file_extension in (".png", ".PNG", ".jpg", ".JPG", ".jpeg", ".JPEG"):
+                    if file_extension in (
+                            ".png", ".PNG", ".jpg", ".JPG", ".jpeg", ".JPEG"):
                         filenames.append(os.path.join(dir_path, file))
             for entry in os.scandir(args.folder):
                 if entry.is_file():
                     filename, file_extension = os.path.splitext(entry.name)
-                    if file_extension in ("png", "PNG", "jpg", "JPG", "jpeg", "JPEG"):
+                    if file_extension in (
+                            "png", "PNG", "jpg", "JPG", "jpeg", "JPEG"):
                         filenames.append(entry.name)
 
     photo_list = render.build_photolist(filenames)
@@ -126,7 +144,8 @@ if __name__ == '__main__':
 
         while not found_unused_filename:
             counter += 1
-            filename = os.path.join(output_directory, "collage - " + str(counter) + ".jpg")
+            filename = os.path.join(output_directory,
+                                    "collage - " + str(counter) + ".jpg")
             found_unused_filename = not os.path.exists(filename)
 
         make_collage(filename, photo_list[0:number_of_images])
