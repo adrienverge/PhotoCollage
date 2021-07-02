@@ -10,6 +10,7 @@
  <summary xml:lang="fr">Outil graphique pour fabriquer des posters en collant plusieurs photos</summary>
  <summary xml:lang="it">Strumento grafico per creare collage di fotografie</summary>
  <summary xml:lang="nl">Grafische toepassing om fotocollageposters te maken</summary>
+  <summary xml:lang="ru">Графический инструмент для создания фотоколлажа из плакатов</summary>
  <description>
   <p>
    PhotoCollage allows you to create photo collage posters. It assembles the
@@ -100,6 +101,22 @@
    automatisch ingedeeld om de gehele poster op te vullen. Daarna kun je de
    indeling, afmetingen, randdikte en volgorde aanpassen en de poster opslaan
    in elke denkbare grootte.
+  </p>
+  <p xml:lang="ru">
+   PhotoCollage позволяет создавать фотоколлажа из плакатов. Он собирает
+   входные фотографии, которые ему выдают, для создания большого плаката. Фотографии
+   автоматически располагаются так, чтобы заполнить весь плакат, затем вы можете изменить
+   окончательный макет, размеры, границы или поменять местами фотографии в сгенерированной сетке.
+   В конечном итоге окончательное изображение плаката может быть сохранено в любом размере.
+  </p>
+  <p xml:lang="ru">
+   Алгоритм генерирует случайные макеты, которые размещают фотографии во время съемки
+   преимущество всего свободного пространства. Он пытается заполнить все пространство, сохраняя при этом каждую
+   фотографию как можно большего размера.
+  </p>
+  <p xml:lang="ru">
+   PhotoCollage делает более или менее то же самое, что и многие коммерческие веб-сайты, но
+   бесплатно и с открытым исходным кодом.
   </p>
  </description>
  <screenshots>
