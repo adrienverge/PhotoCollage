@@ -1,12 +1,14 @@
 # PhotoCollage translation file
 # This file is distributed under the same license as the PhotoCollage package.
 # Leonardo J. Caballero G. <leonardocaballero@gmail.com>, 2019.
+# Andrey Novikov <cooking95@yandex.ru>, 2021.
+#
 msgid ""
 msgstr ""
-"Project-Id-Version: PhotoCollage 1.4.2\n"
+"Project-Id-Version: PhotoCollage 1.4.4\n"
 "Report-Msgid-Bugs-To: https://github.com/adrienverge/PhotoCollage/issues\n"
 "POT-Creation-Date: 2014-01-18 02:46-0500\n"
-"PO-Revision-Date: 2019-07-14 09:57-0400\n"
+"PO-Revision-Date: 2021-07-05 13:10+0500\n"
 "Last-Translator: Leonardo J. Caballero G. <leonardocaballero@gmail.com>\n"
 "Language-Team: ES <LL@li.org>\n"
 "Language: es\n"
