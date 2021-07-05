@@ -7,6 +7,7 @@
  <summary>Graphical tool to make photo collage posters</summary>
  <summary xml:lang="cs">Grafický nástroj pro vytváření koláží z fotografií</summary>
  <summary xml:lang="de">Grafisches Werkzeug zum erstellen von Foto-Collagen Poster</summary>
+ <summary xml:lang="es">Herramienta gráfica para hacer póster de collage de fotos.</summary>
  <summary xml:lang="fr">Outil graphique pour fabriquer des posters en collant plusieurs photos</summary>
  <summary xml:lang="it">Strumento grafico per creare collage di fotografie</summary>
  <summary xml:lang="nl">Grafische toepassing om fotocollageposters te maken</summary>
@@ -60,6 +61,23 @@
    Der Funktionsumfang von PhotoCollage entspricht etwa dem vieler kommerzieller
    Webseiten. Jedoch ist es kostenlos und der Quellcode unter einer freien 
    Lizenz erhältlich.
+  </p>
+  <p xml:lang="es">
+   PhotoCollage te permite crear póster de collage de fotos. Reúne las 
+   fotografías de entrada que se le dan para generar un gran póster. Las 
+   fotos se organizan automáticamente para llenar todo el póster, luego 
+   puede cambiar el diseño final, las dimensiones, los bordes o intercambiar 
+   fotos en la cuadrícula generada. Finalmente, la imagen final del póster 
+   se puede guardar en cualquier tamaño.
+  </p>
+  <p xml:lang="es">
+   El algoritmo genera diseños aleatorios que colocan fotos mientras 
+   aprovechan todo el espacio libre. Intenta llenar todo el espacio 
+   manteniendo cada foto lo más grande posible.
+  </p>
+  <p xml:lang="es">
+   PhotoCollage hace más o menos lo mismo que muchos sitios web comerciales, 
+   pero de forma gratuita y con código de open source.
   </p>
   <p xml:lang="fr">
    PhotoCollage permet de créer des posters de photo-collages. Il assemble les
