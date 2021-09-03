@@ -157,7 +157,15 @@ class PhotoCollageWindow(Gtk.Window):
     TARGET_TYPE_URI = 2
 
     def __init__(self):
-        super().__init__(title=_("PhotoCollage"))
+        super().__init__(title=_("Yearbook Creator"))
+        self.img_preview = ImagePreviewArea(self)
+        self.btn_settings = Gtk.Button()
+        self.btn_new_layout = Gtk.Button(label=_("Regenerate"))
+        self.btn_redo = Gtk.Button()
+        self.lbl_history_index = Gtk.Label(" ")
+        self.btn_undo = Gtk.Button()
+        self.btn_save = Gtk.Button(label=_("Save poster..."))
+        self.btn_choose_images = Gtk.Button(label=_("Add images..."))
         self.history = []
         self.history_index = 0
 
@@ -185,14 +193,12 @@ class PhotoCollageWindow(Gtk.Window):
         box = Gtk.Box(spacing=6, orientation=Gtk.Orientation.HORIZONTAL)
         box_window.pack_start(box, False, False, 0)
 
-        self.btn_choose_images = Gtk.Button(label=_("Add images..."))
         self.btn_choose_images.set_image(Gtk.Image.new_from_stock(
             Gtk.STOCK_OPEN, Gtk.IconSize.LARGE_TOOLBAR))
         self.btn_choose_images.set_always_show_image(True)
         self.btn_choose_images.connect("clicked", self.choose_images)
         box.pack_start(self.btn_choose_images, False, False, 0)
 
-        self.btn_save = Gtk.Button(label=_("Save poster..."))
         self.btn_save.set_image(Gtk.Image.new_from_stock(
             Gtk.STOCK_SAVE_AS, Gtk.IconSize.LARGE_TOOLBAR))
         self.btn_save.set_always_show_image(True)
@@ -205,19 +211,15 @@ class PhotoCollageWindow(Gtk.Window):
 
         box.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
 
-        self.btn_undo = Gtk.Button()
         self.btn_undo.set_image(Gtk.Image.new_from_stock(
             Gtk.STOCK_UNDO, Gtk.IconSize.LARGE_TOOLBAR))
         self.btn_undo.connect("clicked", self.select_prev_layout)
         box.pack_start(self.btn_undo, False, False, 0)
-        self.lbl_history_index = Gtk.Label(" ")
         box.pack_start(self.lbl_history_index, False, False, 0)
-        self.btn_redo = Gtk.Button()
         self.btn_redo.set_image(Gtk.Image.new_from_stock(
             Gtk.STOCK_REDO, Gtk.IconSize.LARGE_TOOLBAR))
         self.btn_redo.connect("clicked", self.select_next_layout)
         box.pack_start(self.btn_redo, False, False, 0)
-        self.btn_new_layout = Gtk.Button(label=_("Regenerate"))
         self.btn_new_layout.set_image(Gtk.Image.new_from_stock(
             Gtk.STOCK_REFRESH, Gtk.IconSize.LARGE_TOOLBAR))
         self.btn_new_layout.set_always_show_image(True)
@@ -226,7 +228,6 @@ class PhotoCollageWindow(Gtk.Window):
 
         box.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
 
-        self.btn_settings = Gtk.Button()
         self.btn_settings.set_image(Gtk.Image.new_from_stock(
             Gtk.STOCK_PREFERENCES, Gtk.IconSize.LARGE_TOOLBAR))
         self.btn_settings.set_always_show_image(True)
@@ -240,7 +241,6 @@ class PhotoCollageWindow(Gtk.Window):
         box = Gtk.Box(spacing=10)
         box_window.pack_start(box, True, True, 0)
 
-        self.img_preview = ImagePreviewArea(self)
         self.img_preview.set_size_request(600, 400)
         self.img_preview.connect("drag-data-received", self.on_drag)
         self.img_preview.drag_dest_set(Gtk.DestDefaults.ALL, [],
