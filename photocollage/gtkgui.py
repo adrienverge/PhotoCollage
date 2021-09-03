@@ -54,12 +54,12 @@ def pil_image_to_cairo_surface(src):
 
 def get_all_save_image_exts():
     all_types = dict(list(EXTS.RW.items()) + list(EXTS.WO.items()))
-    all = []
-    for type in all_types:
-        for ext in all_types[type]:
-            all.append(ext)
+    all_images = []
+    for file_type in all_types:
+        for ext in all_types[file_type]:
+            all_images.append(ext)
 
-    return all
+    return all_images
 
 
 def set_open_image_filters(dialog):
@@ -68,17 +68,17 @@ def set_open_image_filters(dialog):
 
     """
     # Do not show the filter to the user, just limit selectable files
-    imgfilter = Gtk.FileFilter()
-    imgfilter.set_name(_("All supported image formats"))
+    img_filter = Gtk.FileFilter()
+    img_filter.set_name(_("All supported image formats"))
 
     all_types = dict(list(EXTS.RW.items()) + list(EXTS.RO.items()))
     for type in all_types:
         for ext in all_types[type]:
-            imgfilter.add_pattern("*." + ext)
-            imgfilter.add_pattern("*." + ext.upper())
+            img_filter.add_pattern("*." + ext)
+            img_filter.add_pattern("*." + ext.upper())
 
-    dialog.add_filter(imgfilter)
-    dialog.set_filter(imgfilter)
+    dialog.add_filter(img_filter)
+    dialog.set_filter(img_filter)
 
 
 def set_save_image_filters(dialog):
@@ -87,9 +87,8 @@ def set_save_image_filters(dialog):
 
     """
     all_types = dict(list(EXTS.RW.items()) + list(EXTS.WO.items()))
-    filters = []
+    filters = [Gtk.FileFilter()]
 
-    filters.append(Gtk.FileFilter())
     flt = filters[-1]
     flt.set_name(_("All supported image formats"))
     for ext in get_all_save_image_exts():
@@ -98,13 +97,13 @@ def set_save_image_filters(dialog):
     dialog.add_filter(flt)
     dialog.set_filter(flt)
 
-    for type in all_types:
+    for file_type in all_types:
         filters.append(Gtk.FileFilter())
         flt = filters[-1]
-        name = _("%s image") % type
-        name += " (." + ", .".join(all_types[type]) + ")"
+        name = _("%s image") % file_type
+        name += " (." + ", .".join(all_types[file_type]) + ")"
         flt.set_name(name)
-        for ext in all_types[type]:
+        for ext in all_types[file_type]:
             flt.add_pattern("*." + ext)
             flt.add_pattern("*." + ext.upper())
         dialog.add_filter(flt)
