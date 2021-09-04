@@ -124,7 +124,7 @@ class RenderingTask(Thread):
     """Execution thread to do the actual poster rendering
 
     Image computation is a heavy task, that can take several seconds. During
-    this, the program might be unresponding. To avoid this, rendering is done
+    this, the program might be unresponsive. To avoid this, rendering is done
     is a separated thread.
 
     """

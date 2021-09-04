@@ -28,6 +28,7 @@ import gi
 
 from photocollage import APP_NAME, artwork, collage, render
 from photocollage.render import PIL_SUPPORTED_EXTS as EXTS
+from photocollage.dialogs.ConfigSelectorDialog import ConfigSelectorDialog
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GObject, GdkPixbuf  # noqa: E402, I100
@@ -36,6 +37,8 @@ from gi.repository import Gtk, Gdk, GObject, GdkPixbuf  # noqa: E402, I100
 gettext.textdomain(APP_NAME)
 _ = gettext.gettext
 _n = gettext.ngettext
+
+
 # xgettext --keyword=_n:1,2 -o po/photocollage.pot $(find . -name '*.py')
 # cp po/photocollage.pot po/fr.po
 # msgfmt -o po/fr.mo po/fr.po
@@ -112,6 +115,7 @@ def set_save_image_filters(dialog):
 def gtk_run_in_main_thread(fn):
     def my_fn(*args, **kwargs):
         GObject.idle_add(fn, *args, **kwargs)
+
     return my_fn
 
 
@@ -122,6 +126,7 @@ class UserCollage:
     collage.Page object describing their layout in a final poster.
 
     """
+
     def __init__(self, photolist):
         self.photolist = photolist
 
@@ -158,6 +163,8 @@ class PhotoCollageWindow(Gtk.Window):
 
     def __init__(self):
         super().__init__(title=_("Yearbook Creator"))
+        self.yearbook_configurator = Gtk.Button(label=_("Yearbook Settings..."))
+        self.btn_choose_images = Gtk.Button(label=_("Add images..."))
         self.img_preview = ImagePreviewArea(self)
         self.btn_settings = Gtk.Button()
         self.btn_new_layout = Gtk.Button(label=_("Regenerate"))
@@ -165,7 +172,6 @@ class PhotoCollageWindow(Gtk.Window):
         self.lbl_history_index = Gtk.Label(" ")
         self.btn_undo = Gtk.Button()
         self.btn_save = Gtk.Button(label=_("Save poster..."))
-        self.btn_choose_images = Gtk.Button(label=_("Add images..."))
         self.history = []
         self.history_index = 0
 
@@ -192,6 +198,9 @@ class PhotoCollageWindow(Gtk.Window):
 
         box = Gtk.Box(spacing=6, orientation=Gtk.Orientation.HORIZONTAL)
         box_window.pack_start(box, False, False, 0)
+
+        self.yearbook_configurator.connect("clicked", self.setup_yearbook_config)
+        box.pack_start(self.yearbook_configurator, False, False, 0)
 
         self.btn_choose_images.set_image(Gtk.Image.new_from_stock(
             Gtk.STOCK_OPEN, Gtk.IconSize.LARGE_TOOLBAR))
@@ -276,8 +285,19 @@ class PhotoCollageWindow(Gtk.Window):
         except render.BadPhoto as e:
             dialog = ErrorDialog(
                 self, _("This image could not be opened:\n\"%(imgname)s\".")
-                % {"imgname": e.photoname})
+                      % {"imgname": e.photoname})
             dialog.run()
+            dialog.destroy()
+
+    def setup_yearbook_config(self, button):
+        dialog = ConfigSelectorDialog(self)
+        response = dialog.run()
+        if response == Gtk.ResponseType.OK:
+            print(dialog.config_parameters)
+            dialog.destroy()
+            if self.history:
+                self.render_preview()
+        else:
             dialog.destroy()
 
     def choose_images(self, button):
@@ -740,6 +760,7 @@ class SettingsDialog(Gtk.Dialog):
 
 class ComputingDialog(Gtk.Dialog):
     """Simple "please wait" dialog, with a "cancel" button"""
+
     def __init__(self, parent):
         super().__init__(
             _("Please wait"), parent, 0, (Gtk.STOCK_CANCEL,
