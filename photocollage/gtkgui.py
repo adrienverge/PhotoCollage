@@ -167,12 +167,9 @@ class MainWindow(Gtk.Window):
 
     def __init__(self):
         super().__init__(title=_("Yearbook Creator"))
-        self.scrollable_treelist = Gtk.ScrolledWindow()
         self.yearbook_configurator = Gtk.Button(label=_("Yearbook Settings..."))
         self.btn_choose_images = Gtk.Button(label=_("Add images..."))
         self.img_preview = ImagePreviewArea(self)
-        self.child_list_view = Gtk.TreeView()
-        self.child_list_model = Gtk.ListStore(str, str, int)
         self.btn_settings = Gtk.Button()
         self.btn_new_layout = Gtk.Button(label=_("Regenerate"))
         self.btn_redo = Gtk.Button()
@@ -331,7 +328,6 @@ class MainWindow(Gtk.Window):
                 print("Images per event: (%s) " % str(len(child_images_per_event)))
 
                 filenames = [os.path.join(corpus_dir, page.event_name, a_tuple[0]) for a_tuple in child_images_per_event]
-                print(filenames)
                 self.update_photolist(filenames)
                 break
 
