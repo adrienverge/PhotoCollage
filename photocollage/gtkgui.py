@@ -31,6 +31,9 @@ from photocollage.render import PIL_SUPPORTED_EXTS as EXTS
 from photocollage.dialogs.ConfigSelectorDialog import ConfigSelectorDialog
 from photocollage.dialogs.SettingsDialog import SettingsDialog
 
+from data.readers.default import corpus_processor
+from yearbook.Yearbook import create_yearbook_metadata
+
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GObject, GdkPixbuf  # noqa: E402, I100
 
@@ -158,15 +161,18 @@ class UserCollage:
         return UserCollage(copy.copy(self.photolist))
 
 
-class PhotoCollageWindow(Gtk.Window):
+class MainWindow(Gtk.Window):
     TARGET_TYPE_TEXT = 1
     TARGET_TYPE_URI = 2
 
     def __init__(self):
         super().__init__(title=_("Yearbook Creator"))
+        self.scrollable_treelist = Gtk.ScrolledWindow()
         self.yearbook_configurator = Gtk.Button(label=_("Yearbook Settings..."))
         self.btn_choose_images = Gtk.Button(label=_("Add images..."))
         self.img_preview = ImagePreviewArea(self)
+        self.child_list_view = Gtk.TreeView()
+        self.child_list_model = Gtk.ListStore(str, str, int)
         self.btn_settings = Gtk.Button()
         self.btn_new_layout = Gtk.Button(label=_("Regenerate"))
         self.btn_redo = Gtk.Button()
@@ -245,6 +251,14 @@ class PhotoCollageWindow(Gtk.Window):
         box.pack_end(self.btn_settings, False, False, 0)
 
         # -------------------
+        #  Children Tree View
+        # -------------------
+        box = Gtk.Box(spacing=10)
+        self.scrollable_treelist.set_vexpand(True)
+        self.scrollable_treelist.add(self.child_list_view)
+        box.pack_start(self.scrollable_treelist, True, True, 0)
+
+        # -------------------
         #  Image preview pan
         # -------------------
 
@@ -256,8 +270,8 @@ class PhotoCollageWindow(Gtk.Window):
         self.img_preview.drag_dest_set(Gtk.DestDefaults.ALL, [],
                                        Gdk.DragAction.COPY)
         targets = Gtk.TargetList.new([])
-        targets.add_text_targets(PhotoCollageWindow.TARGET_TYPE_TEXT)
-        targets.add_uri_targets(PhotoCollageWindow.TARGET_TYPE_URI)
+        targets.add_text_targets(MainWindow.TARGET_TYPE_TEXT)
+        targets.add_uri_targets(MainWindow.TARGET_TYPE_URI)
         self.img_preview.drag_dest_set_target_list(targets)
 
         box.pack_start(self.img_preview, True, True, 0)
@@ -295,6 +309,32 @@ class PhotoCollageWindow(Gtk.Window):
         response = dialog.run()
         if response == Gtk.ResponseType.OK:
             print(dialog.config_parameters)
+            corpus = corpus_processor(dialog.config_parameters["processed_corpus_file"])
+
+            events = corpus.get_events()
+            children = corpus.get_children()
+
+            # Read the config file
+            yearbook = create_yearbook_metadata(dialog.config_parameters["config_file"], "","")
+            corpus_dir = dialog.config_parameters["corpus_dir"]
+            # Fix a child
+            child = "Rilee"
+            for page in yearbook.pages:
+                if not page.personalized:
+                    print("Skipping this page, %s" % page.event_name)
+                    continue
+
+                print("Working on page: (%s, %s, %s)" % (page.image, page.event_name, page.number))
+                _images_per_event = corpus.events_to_images[page.event_name]
+
+                child_images_per_event = corpus.get_child_images_for_event_with_scores(child, page.event_name)
+                print("Images per event: (%s) " % str(len(child_images_per_event)))
+
+                filenames = [os.path.join(corpus_dir, page.event_name, a_tuple[0]) for a_tuple in child_images_per_event]
+                print(filenames)
+                self.update_photolist(filenames)
+                break
+
             dialog.destroy()
             if self.history:
                 self.render_preview()
@@ -316,9 +356,9 @@ class PhotoCollageWindow(Gtk.Window):
             dialog.destroy()
 
     def on_drag(self, widget, drag_context, x, y, data, info, time):
-        if info == PhotoCollageWindow.TARGET_TYPE_TEXT:
+        if info == MainWindow.TARGET_TYPE_TEXT:
             files = data.get_text().splitlines()
-        elif info == PhotoCollageWindow.TARGET_TYPE_URI:
+        elif info == MainWindow.TARGET_TYPE_URI:
             # Can only handle local URIs
             files = [f for f in data.get_uris() if f.startswith("file://")]
 
@@ -720,7 +760,7 @@ def main():
     # Enable threading. Without that, threads hang!
     GObject.threads_init()
 
-    win = PhotoCollageWindow()
+    win = MainWindow()
     win.connect("delete-event", Gtk.main_quit)
     win.show_all()
 

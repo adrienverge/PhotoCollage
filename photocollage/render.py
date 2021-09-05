@@ -120,6 +120,11 @@ def build_photolist(filelist):
 cache = {}
 
 
+def paste_photo(canvas, cell, img):
+    canvas.paste(img, (int(round(cell.x)), int(round(cell.y))))
+    return canvas
+
+
 class RenderingTask(Thread):
     """Execution thread to do the actual poster rendering
 
@@ -260,10 +265,6 @@ class RenderingTask(Thread):
 
         return img
 
-    def paste_photo(self, canvas, cell, img):
-        canvas.paste(img, (int(round(cell.x)), int(round(cell.y))))
-        return canvas
-
     def run(self):
         try:
             canvas = PIL.Image.new(
@@ -289,7 +290,7 @@ class RenderingTask(Thread):
                             continue
 
                         img = self.resize_photo(c, use_cache=True)
-                        self.paste_photo(canvas, c, img)
+                        paste_photo(canvas, c, img)
 
                         # Only needed for interactive rendering
                         if self.on_update:
