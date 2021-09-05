@@ -29,6 +29,10 @@ import gi
 from photocollage import APP_NAME, artwork, collage, render
 from photocollage.render import PIL_SUPPORTED_EXTS as EXTS
 from photocollage.dialogs.ConfigSelectorDialog import ConfigSelectorDialog
+from photocollage.dialogs.SettingsDialog import SettingsDialog
+
+from data.readers.default import corpus_processor
+from yearbook.Yearbook import create_yearbook_metadata
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GObject, GdkPixbuf  # noqa: E402, I100
@@ -157,15 +161,18 @@ class UserCollage:
         return UserCollage(copy.copy(self.photolist))
 
 
-class PhotoCollageWindow(Gtk.Window):
+class MainWindow(Gtk.Window):
     TARGET_TYPE_TEXT = 1
     TARGET_TYPE_URI = 2
 
     def __init__(self):
         super().__init__(title=_("Yearbook Creator"))
+        self.scrollable_treelist = Gtk.ScrolledWindow()
         self.yearbook_configurator = Gtk.Button(label=_("Yearbook Settings..."))
         self.btn_choose_images = Gtk.Button(label=_("Add images..."))
         self.img_preview = ImagePreviewArea(self)
+        self.child_list_view = Gtk.TreeView()
+        self.child_list_model = Gtk.ListStore(str, str, int)
         self.btn_settings = Gtk.Button()
         self.btn_new_layout = Gtk.Button(label=_("Regenerate"))
         self.btn_redo = Gtk.Button()
@@ -244,6 +251,14 @@ class PhotoCollageWindow(Gtk.Window):
         box.pack_end(self.btn_settings, False, False, 0)
 
         # -------------------
+        #  Children Tree View
+        # -------------------
+        box = Gtk.Box(spacing=10)
+        self.scrollable_treelist.set_vexpand(True)
+        self.scrollable_treelist.add(self.child_list_view)
+        box.pack_start(self.scrollable_treelist, True, True, 0)
+
+        # -------------------
         #  Image preview pan
         # -------------------
 
@@ -255,8 +270,8 @@ class PhotoCollageWindow(Gtk.Window):
         self.img_preview.drag_dest_set(Gtk.DestDefaults.ALL, [],
                                        Gdk.DragAction.COPY)
         targets = Gtk.TargetList.new([])
-        targets.add_text_targets(PhotoCollageWindow.TARGET_TYPE_TEXT)
-        targets.add_uri_targets(PhotoCollageWindow.TARGET_TYPE_URI)
+        targets.add_text_targets(MainWindow.TARGET_TYPE_TEXT)
+        targets.add_uri_targets(MainWindow.TARGET_TYPE_URI)
         self.img_preview.drag_dest_set_target_list(targets)
 
         box.pack_start(self.img_preview, True, True, 0)
@@ -294,6 +309,32 @@ class PhotoCollageWindow(Gtk.Window):
         response = dialog.run()
         if response == Gtk.ResponseType.OK:
             print(dialog.config_parameters)
+            corpus = corpus_processor(dialog.config_parameters["processed_corpus_file"])
+
+            events = corpus.get_events()
+            children = corpus.get_children()
+
+            # Read the config file
+            yearbook = create_yearbook_metadata(dialog.config_parameters["config_file"], "","")
+            corpus_dir = dialog.config_parameters["corpus_dir"]
+            # Fix a child
+            child = "Rilee"
+            for page in yearbook.pages:
+                if not page.personalized:
+                    print("Skipping this page, %s" % page.event_name)
+                    continue
+
+                print("Working on page: (%s, %s, %s)" % (page.image, page.event_name, page.number))
+                _images_per_event = corpus.events_to_images[page.event_name]
+
+                child_images_per_event = corpus.get_child_images_for_event_with_scores(child, page.event_name)
+                print("Images per event: (%s) " % str(len(child_images_per_event)))
+
+                filenames = [os.path.join(corpus_dir, page.event_name, a_tuple[0]) for a_tuple in child_images_per_event]
+                print(filenames)
+                self.update_photolist(filenames)
+                break
+
             dialog.destroy()
             if self.history:
                 self.render_preview()
@@ -315,9 +356,9 @@ class PhotoCollageWindow(Gtk.Window):
             dialog.destroy()
 
     def on_drag(self, widget, drag_context, x, y, data, info, time):
-        if info == PhotoCollageWindow.TARGET_TYPE_TEXT:
+        if info == MainWindow.TARGET_TYPE_TEXT:
             files = data.get_text().splitlines()
-        elif info == PhotoCollageWindow.TARGET_TYPE_URI:
+        elif info == MainWindow.TARGET_TYPE_URI:
             # Can only handle local URIs
             files = [f for f in data.get_uris() if f.startswith("file://")]
 
@@ -528,8 +569,8 @@ class ImagePreviewArea(Gtk.DrawingArea):
     def get_pos_in_image(self, x, y):
         if self.image is not None:
             x0, y0 = self.get_image_offset()
-            return (int(round(x - x0)), int(round(y - y0)))
-        return (int(round(x)), int(round(y)))
+            return int(round(x - x0)), int(round(y - y0))
+        return int(round(x)), int(round(y))
 
     def paint_image_border(self, context, cell, dash=None):
         x0, y0 = self.get_image_offset()
@@ -640,124 +681,6 @@ class ImagePreviewArea(Gtk.DrawingArea):
         widget.queue_draw()
 
 
-class SettingsDialog(Gtk.Dialog):
-    def __init__(self, parent):
-        super().__init__(
-            _("Settings"), parent, 0,
-            (Gtk.STOCK_OK, Gtk.ResponseType.OK,
-             Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
-        self.set_border_width(10)
-
-        self.selected_border_color = parent.opts.border_c
-
-        box = self.get_content_area()
-        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        box.add(vbox)
-
-        label = Gtk.Label(xalign=0)
-        label.set_markup("<big><b>%s</b></big>" % _("Output image size"))
-        vbox.pack_start(label, False, False, 0)
-
-        box = Gtk.Box(spacing=6)
-        vbox.pack_start(box, False, False, 0)
-        self.etr_outw = Gtk.Entry(text=str(parent.opts.out_w))
-        self.etr_outw.connect("changed", self.validate_int)
-        self.etr_outw.last_valid_text = self.etr_outw.get_text()
-        box.pack_start(self.etr_outw, False, False, 0)
-        box.pack_start(Gtk.Label("×", xalign=0), False, False, 0)
-        self.etr_outh = Gtk.Entry(text=str(parent.opts.out_h))
-        self.etr_outh.connect("changed", self.validate_int)
-        self.etr_outh.last_valid_text = self.etr_outh.get_text()
-        box.pack_start(self.etr_outh, False, False, 0)
-
-        box.pack_end(Gtk.Label(_("pixels"), xalign=0), False, False, 0)
-
-        templates = (
-            ("", None),
-            ("800 × 600", (800, 600)),
-            ("1600 × 1200", (1600, 1200)),
-            ("A4 landscape (300ppi)", (3508, 2480)),
-            ("A4 portrait (300ppi)", (2480, 3508)),
-            ("A3 landscape (300ppi)", (4960, 3508)),
-            ("A3 portrait (300ppi)", (3508, 4960)),
-            ("US-Letter landscape (300ppi)", (3300, 2550)),
-            ("US-Letter portrait (300ppi)", (2550, 3300)),
-        )
-
-        def apply_template(combo):
-            t = combo.get_model()[combo.get_active_iter()][1]
-            if t:
-                dims = dict(templates)[t]
-                self.etr_outw.set_text(str(dims[0]))
-                self.etr_outh.set_text(str(dims[1]))
-                self.cmb_template.set_active(0)
-
-        box = Gtk.Box(spacing=6)
-        vbox.pack_start(box, False, False, 0)
-        box.pack_start(Gtk.Label(_("Apply a template:"), xalign=0),
-                       True, True, 0)
-
-        self.cmb_template = Gtk.ComboBoxText()
-        for t, d in templates:
-            self.cmb_template.append(t, t)
-        self.cmb_template.set_active(0)
-        self.cmb_template.connect("changed", apply_template)
-        box.pack_start(self.cmb_template, False, False, 0)
-
-        vbox.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
-
-        label = Gtk.Label(xalign=0)
-        label.set_markup("<big><b>%s</b></big>" % _("Border"))
-        vbox.pack_start(label, False, False, 0)
-
-        box = Gtk.Box(spacing=6)
-        vbox.pack_start(box, False, False, 0)
-        label = Gtk.Label(_("Thickness:"), xalign=0)
-        box.pack_start(label, False, False, 0)
-        self.etr_border = Gtk.Entry(text=str(100.0 * parent.opts.border_w))
-        self.etr_border.connect("changed", self.validate_float)
-        self.etr_border.last_valid_text = self.etr_border.get_text()
-        self.etr_border.set_width_chars(4)
-        self.etr_border.set_alignment(1.0)
-        box.pack_start(self.etr_border, False, False, 0)
-        label = Gtk.Label("%", xalign=0)
-        box.pack_start(label, False, False, 0)
-
-        label = Gtk.Label(_("Color:"), xalign=1)
-        box.pack_start(label, True, True, 0)
-        self.colorbutton = Gtk.ColorButton()
-        color = Gdk.RGBA()
-        color.parse(parent.opts.border_c)
-        self.colorbutton.set_rgba(color)
-        box.pack_end(self.colorbutton, False, False, 0)
-
-        vbox.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
-
-        self.show_all()
-
-    def validate_int(self, entry):
-        entry_text = entry.get_text() or '0'
-        try:
-            int(entry_text)
-            entry.last_valid_text = entry_text
-        except ValueError:
-            entry.set_text(entry.last_valid_text)
-
-    def validate_float(self, entry):
-        entry_text = entry.get_text() or '0'
-        try:
-            float(entry_text)
-            entry.last_valid_text = entry_text
-        except ValueError:
-            entry.set_text(entry.last_valid_text)
-
-    def apply_opts(self, opts):
-        opts.out_w = int(self.etr_outw.get_text() or '1')
-        opts.out_h = int(self.etr_outh.get_text() or '1')
-        opts.border_w = float(self.etr_border.get_text() or '0') / 100.0
-        opts.border_c = self.colorbutton.get_rgba().to_string()
-
-
 class ComputingDialog(Gtk.Dialog):
     """Simple "please wait" dialog, with a "cancel" button"""
 
@@ -837,7 +760,7 @@ def main():
     # Enable threading. Without that, threads hang!
     GObject.threads_init()
 
-    win = PhotoCollageWindow()
+    win = MainWindow()
     win.connect("delete-event", Gtk.main_quit)
     win.show_all()
 

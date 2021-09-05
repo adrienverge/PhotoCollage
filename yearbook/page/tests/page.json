@@ -1,0 +1,7 @@
+{"shapes": [{"label": "HolidayActivities1",
+  "line_color": [241, 178, 214, 100],
+  "fill_color": [241, 178, 214, 100],
+  "points": [[50.776699029126235, 45.45631067961165], [587.7766990291262, 45.45631067961165], [587.7766990291262, 350.45631067961165], [50.776699029126235, 350.45631067961165]],
+  "difficult": false, "bndbox": [50, 45, 587, 350]}],
+  "imagePath": "/Users/ashah/Downloads/Appleseed-Room1-2018-2019_printready-templates/page-20.png",
+  "eventName" : "HolidayActivities"}

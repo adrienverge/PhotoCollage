@@ -3,7 +3,7 @@ import gettext
 from photocollage import APP_NAME
 
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gdk, GObject, GdkPixbuf  # noqa: E402, I100
+from gi.repository import Gtk
 
 gettext.textdomain(APP_NAME)
 _ = gettext.gettext
@@ -68,7 +68,7 @@ class ConfigSelectorDialog(Gtk.Dialog):
         grid.attach_next_to(self.out_dir_entry, self.btn_select_out_dir, Gtk.PositionType.RIGHT, 2, 1)
 
         self.btn_select_config.connect("clicked", self.setup_config_file_selector)
-        self.btn_select_corpus.connect("clicked", self.setup_corpus_dir_selector)
+        self.btn_select_corpus.connect("clicked", self.setup_processed_corpus_file_selector)
         self.btn_select_out_dir.connect("clicked", self.setup_output_folder_selector)
         self.btn_select_corpus_dir.connect("clicked", self.setup_corpus_dir_selector)
 
@@ -123,7 +123,7 @@ class ConfigSelectorDialog(Gtk.Dialog):
         if response == Gtk.ResponseType.OK:
             print("Processed Corpus file selected...", chooser.get_filename())
             self.config_parameters[PROCESSED_CORPUS_FILE] = chooser.get_filename()
-            self.btn_select_corpus.set_text(chooser.get_filename())
+            self.corpus_entry.set_text(chooser.get_filename())
             chooser.destroy()
         else:
             chooser.destroy()

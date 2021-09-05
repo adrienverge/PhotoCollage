@@ -3,7 +3,7 @@ import gettext
 from photocollage import APP_NAME
 
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gdk, GObject, GdkPixbuf  # noqa: E402, I100
+from gi.repository import Gtk, Gdk
 
 gettext.textdomain(APP_NAME)
 _ = gettext.gettext
@@ -42,11 +42,11 @@ class SettingsDialog(Gtk.Dialog):
         box.pack_end(Gtk.Label(_("pixels"), xalign=0), False, False, 0)
 
         templates = (
+            ("A4 portrait (300ppi)", (2480, 3508)),
             ("", None),
             ("800 × 600", (800, 600)),
             ("1600 × 1200", (1600, 1200)),
             ("A4 landscape (300ppi)", (3508, 2480)),
-            ("A4 portrait (300ppi)", (2480, 3508)),
             ("A3 landscape (300ppi)", (4960, 3508)),
             ("A3 portrait (300ppi)", (3508, 4960)),
             ("US-Letter landscape (300ppi)", (3300, 2550)),
