@@ -168,6 +168,8 @@ class MainWindow(Gtk.Window):
     def __init__(self):
         super().__init__(title=_("Yearbook Creator"))
         self.yearbook_configurator = Gtk.Button(label=_("Yearbook Settings..."))
+        self.yearbook = None
+        self.corpus = None
         self.btn_choose_images = Gtk.Button(label=_("Add images..."))
         self.img_preview = ImagePreviewArea(self)
         self.btn_settings = Gtk.Button()
@@ -176,8 +178,11 @@ class MainWindow(Gtk.Window):
         self.lbl_history_index = Gtk.Label(" ")
         self.btn_undo = Gtk.Button()
         self.btn_save = Gtk.Button(label=_("Save poster..."))
-        self.history = []
-        self.history_index = 0
+        self.btn_previous_page = Gtk.Button(label=_("Prev page..."))
+        self.btn_next_page = Gtk.Button(label=_("Next page..."))
+        self.current_page_index = 0
+        self.yearbook_parameters = {}
+        self.child = "Rilee"
 
         class Options:
             def __init__(self):
@@ -236,9 +241,16 @@ class MainWindow(Gtk.Window):
         self.btn_new_layout.set_image(Gtk.Image.new_from_stock(
             Gtk.STOCK_REFRESH, Gtk.IconSize.LARGE_TOOLBAR))
         self.btn_new_layout.set_always_show_image(True)
-        self.btn_new_layout.connect("clicked", self.regenerate_layout)
+        self.btn_new_layout.connect("clicked",
+                                    self.regenerate_layout)
         box.pack_start(self.btn_new_layout, False, False, 0)
 
+        box.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
+
+        box.pack_start(self.btn_previous_page, False, False, 0)
+        self.btn_previous_page.connect("clicked", self.select_prev_page)
+        box.pack_start(self.btn_next_page, True, True, 0)
+        self.btn_next_page.connect("clicked", self.select_next_page)
         box.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
 
         self.btn_settings.set_image(Gtk.Image.new_from_stock(
@@ -246,14 +258,6 @@ class MainWindow(Gtk.Window):
         self.btn_settings.set_always_show_image(True)
         self.btn_settings.connect("clicked", self.set_settings)
         box.pack_end(self.btn_settings, False, False, 0)
-
-        # -------------------
-        #  Children Tree View
-        # -------------------
-        box = Gtk.Box(spacing=10)
-        self.scrollable_treelist.set_vexpand(True)
-        self.scrollable_treelist.add(self.child_list_view)
-        box.pack_start(self.scrollable_treelist, True, True, 0)
 
         # -------------------
         #  Image preview pan
@@ -278,22 +282,22 @@ class MainWindow(Gtk.Window):
         self.btn_undo.set_sensitive(False)
         self.btn_redo.set_sensitive(False)
 
-        self.update_photolist([])
+        #self.update_photolist([])
 
-    def update_photolist(self, new_images):
+    def update_photolist(self, page, new_images):
         try:
             photolist = []
-            if self.history_index < len(self.history):
+            if page.history_index < len(page.history):
                 photolist = copy.copy(
-                    self.history[self.history_index].photolist)
+                    page.history[page.history_index].photolist)
             photolist.extend(render.build_photolist(new_images))
 
             if len(photolist) > 0:
                 new_collage = UserCollage(photolist)
                 new_collage.make_page(self.opts)
-                self.render_from_new_collage(new_collage)
+                self.render_from_new_collage(page, new_collage)
             else:
-                self.update_tool_buttons()
+                self.update_tool_buttons(page)
         except render.BadPhoto as e:
             dialog = ErrorDialog(
                 self, _("This image could not be opened:\n\"%(imgname)s\".")
@@ -305,37 +309,34 @@ class MainWindow(Gtk.Window):
         dialog = ConfigSelectorDialog(self)
         response = dialog.run()
         if response == Gtk.ResponseType.OK:
-            print(dialog.config_parameters)
-            corpus = corpus_processor(dialog.config_parameters["processed_corpus_file"])
-
-            events = corpus.get_events()
-            children = corpus.get_children()
+            self.yearbook_parameters = dialog.config_parameters
+            self.corpus = corpus_processor(self.yearbook_parameters["processed_corpus_file"])
 
             # Read the config file
-            yearbook = create_yearbook_metadata(dialog.config_parameters["config_file"], "","")
-            corpus_dir = dialog.config_parameters["corpus_dir"]
-            # Fix a child
-            child = "Rilee"
-            for page in yearbook.pages:
-                if not page.personalized:
-                    print("Skipping this page, %s" % page.event_name)
-                    continue
-
-                print("Working on page: (%s, %s, %s)" % (page.image, page.event_name, page.number))
-                _images_per_event = corpus.events_to_images[page.event_name]
-
-                child_images_per_event = corpus.get_child_images_for_event_with_scores(child, page.event_name)
-                print("Images per event: (%s) " % str(len(child_images_per_event)))
-
-                filenames = [os.path.join(corpus_dir, page.event_name, a_tuple[0]) for a_tuple in child_images_per_event]
-                self.update_photolist(filenames)
-                break
+            self.yearbook = create_yearbook_metadata(self.yearbook_parameters["config_file"], "","")
+            # Reset page to first
+            self.current_page_index = 0
+            current_page = self.yearbook.pages[self.current_page_index]
+            page_images = self.choose_page_images_for_child(current_page, self.child)
+            self.update_photolist(current_page, page_images)
 
             dialog.destroy()
-            if self.history:
-                self.render_preview()
+            if current_page.history:
+                self.render_preview(current_page)
         else:
             dialog.destroy()
+
+    def choose_page_images_for_child(self, page, child):
+        corpus_dir = self.yearbook_parameters["corpus_dir"]
+
+        if not page.personalized:
+            print("Load image as is, %s, %s" % (page.event_name, page.image))
+            images = [page.image]
+        else:
+            print("Working on: (%s, %s, %s)" % (page.image, page.event_name, page.number))
+            images = self.corpus.get_filenames_child_images_for_event(child, page.event_name, corpus_dir)
+
+        return images
 
     def choose_images(self, button):
         dialog = PreviewFileChooserDialog(title=_("Choose images"),
@@ -347,7 +348,7 @@ class MainWindow(Gtk.Window):
         if dialog.run() == Gtk.ResponseType.OK:
             files = dialog.get_filenames()
             dialog.destroy()
-            self.update_photolist(files)
+            self.update_photolist(self.yearbook.pages[self.current_page_index], files)
         else:
             dialog.destroy()
 
@@ -361,10 +362,14 @@ class MainWindow(Gtk.Window):
         for i in range(len(files)):
             if files[i].startswith("file://"):
                 files[i] = urllib.parse.unquote(files[i][7:])
-        self.update_photolist(files)
+        self.update_photolist(self.yearbook.pages[self.current_page_index], files)
 
-    def render_preview(self):
-        collage = self.history[self.history_index]
+    def render_preview(self, page):
+        try:
+            collage = page.history[page.history_index]
+        except IndexError:
+            page_images = self.choose_page_images_for_child(page, self.child)
+            self.update_photolist(page, page_images)
 
         # If the desired ratio changed in the meantime (e.g. from landscape to
         # portrait), it needs to be re-updated
@@ -410,40 +415,60 @@ class MainWindow(Gtk.Window):
             t.abort()
             compdialog.destroy()
 
-    def render_from_new_collage(self, collage):
-        self.history.append(collage)
-        self.history_index = len(self.history) - 1
-        self.update_tool_buttons()
-        self.render_preview()
+    def render_from_new_collage(self, page, collage):
+        page.history.append(collage)
+        page.history_index = len(page.history) - 1
+        self.update_tool_buttons(page)
+        self.render_preview(page)
 
-    def regenerate_layout(self, button=None):
-        new_collage = self.history[self.history_index].duplicate()
+    def regenerate_layout(self, button):
+        page = self.yearbook.pages[self.current_page_index]
+        new_collage = page.history[page.history_index].duplicate()
         new_collage.make_page(self.opts)
-        self.render_from_new_collage(new_collage)
+        self.render_from_new_collage(page, new_collage)
 
-    def select_prev_layout(self, button):
-        self.history_index -= 1
-        self.update_tool_buttons()
-        self.render_preview()
+    def select_prev_layout(self, button, page):
+        page.history_index -= 1
+        self.update_tool_buttons(page)
+        self.render_preview(page)
 
-    def select_next_layout(self, button):
-        self.history_index += 1
-        self.update_tool_buttons()
-        self.render_preview()
+    def select_next_layout(self, button, page):
+        page.history_index += 1
+        self.update_tool_buttons(page)
+        self.render_preview(page)
 
-    def set_settings(self, button):
+    def select_next_page(self, button):
+        old_page = self.yearbook.pages[self.current_page_index]
+        used_images = [photo.filename for photo in old_page.history[old_page.history_index].photolist]
+
+        self.current_page_index += 1
+        self.update_page_buttons()
+        current_page = self.yearbook.pages[self.current_page_index]
+        if not current_page.history:
+            page_images = self.choose_page_images_for_child(current_page, self.child)
+            remaining_images = [x for x in page_images if x not in used_images]
+            self.update_photolist(current_page, remaining_images)
+
+        self.render_preview(current_page)
+
+    def select_prev_page(self, button):
+        self.current_page_index -= 1
+        self.update_page_buttons()
+        self.render_preview(self.yearbook.pages[self.current_page_index])
+
+    def set_settings(self, button, page):
         dialog = SettingsDialog(self)
         response = dialog.run()
         if response == Gtk.ResponseType.OK:
             dialog.apply_opts(self.opts)
             dialog.destroy()
-            if self.history:
-                self.render_preview()
+            if page.history:
+                self.render_preview(page)
         else:
             dialog.destroy()
 
-    def save_poster(self, button):
-        collage = self.history[self.history_index]
+    def save_poster(self, button, page):
+        collage = page.history[page.history_index]
 
         enlargement = float(self.opts.out_w) / collage.page.w
         collage.page.scale(enlargement)
@@ -494,17 +519,21 @@ class MainWindow(Gtk.Window):
             t.abort()
             compdialog.destroy()
 
-    def update_tool_buttons(self):
-        self.btn_undo.set_sensitive(self.history_index > 0)
-        self.btn_redo.set_sensitive(self.history_index < len(self.history) - 1)
-        if self.history_index < len(self.history):
-            self.lbl_history_index.set_label(str(self.history_index + 1))
+    def update_page_buttons(self):
+        self.btn_previous_page.set_sensitive(self.current_page_index > 0)
+        self.btn_next_page.set_sensitive(self.current_page_index < len(self.yearbook.pages) - 1)
+
+    def update_tool_buttons(self, page):
+        self.btn_undo.set_sensitive(page.history_index > 0)
+        self.btn_redo.set_sensitive(page.history_index < len(page.history) - 1)
+        if page.history_index < len(page.history):
+            self.lbl_history_index.set_label(str(page.history_index + 1))
         else:
             self.lbl_history_index.set_label(" ")
         self.btn_save.set_sensitive(
-            self.history_index < len(self.history))
+            page.history_index < len(page.history))
         self.btn_new_layout.set_sensitive(
-            self.history_index < len(self.history))
+            page.history_index < len(page.history))
 
 
 class ImagePreviewArea(Gtk.DrawingArea):
@@ -631,6 +660,7 @@ class ImagePreviewArea(Gtk.DrawingArea):
         widget.queue_draw()
 
     def button_press_event(self, widget, event):
+        current_page = self.parent.yearbook.pages[self.parent.current_page_index]
         if self.mode == self.FLYING:
             x, y = self.get_pos_in_image(event.x, event.y)
             cell = self.collage.page.get_cell_at_position(x, y)
@@ -642,12 +672,12 @@ class ImagePreviewArea(Gtk.DrawingArea):
                 self.collage.photolist.remove(cell.photo)
                 if self.collage.photolist:
                     self.collage.make_page(self.parent.opts)
-                    self.parent.render_from_new_collage(self.collage)
+                    self.parent.render_from_new_collage(current_page, self.collage)
                 else:
                     self.image = None
                     self.mode = self.INSENSITIVE
-                    self.parent.history_index = len(self.parent.history)
-                    self.parent.update_tool_buttons()
+                    current_page.history_index = len(current_page.history)
+                    self.parent.update_tool_buttons(current_page)
             # Otherwise, the user wants to swap this image with another
             else:
                 self.swap_origin.x, self.swap_origin.y = x, y
@@ -656,6 +686,7 @@ class ImagePreviewArea(Gtk.DrawingArea):
         widget.queue_draw()
 
     def button_release_event(self, widget, event):
+        current_page = self.parent.yearbook.pages[self.parent.current_page_index]
         if self.mode == self.SWAPPING_OR_MOVING:
             self.swap_dest.x, self.swap_dest.y = \
                 self.get_pos_in_image(event.x, event.y)
@@ -666,13 +697,13 @@ class ImagePreviewArea(Gtk.DrawingArea):
                 # different cell: SWAPPING
                 self.collage.page.swap_photos(self.swap_origin.cell,
                                               self.swap_dest.cell)
-                self.parent.render_from_new_collage(self.collage)
+                self.parent.render_from_new_collage(current_page, self.collage)
             elif self.swap_dest.cell:
                 # same cell: MOVING
                 move_x = (self.swap_origin.x - self.x) / self.swap_dest.cell.w
                 move_y = (self.swap_origin.y - self.y) / self.swap_dest.cell.h
                 self.swap_dest.cell.photo.move(move_x, move_y)
-                self.parent.render_from_new_collage(self.collage)
+                self.parent.render_from_new_collage(current_page, self.collage)
             self.mode = self.FLYING
         widget.queue_draw()
 
@@ -761,7 +792,7 @@ def main():
     win.show_all()
 
     # If arguments are given, treat them as input images
-    if len(sys.argv) > 1:
-        win.update_photolist(sys.argv[1:])
+    # if len(sys.argv) > 1:
+    #    win.update_photolist(sys.argv[1:])
 
     Gtk.main()

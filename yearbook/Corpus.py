@@ -25,6 +25,11 @@ class Corpus:
 
         return child_images_per_event
 
+    def get_filenames_child_images_for_event(self, child, event, corpus_dir):
+        import os
+        child_images_per_event = self.get_child_images_for_event_with_scores(child, event)
+        return [os.path.join(corpus_dir, event, a_tuple[0]) for a_tuple in child_images_per_event]
+
     def get_child_images_for_event_with_scores(self, child, event):
 
         child_images_per_event = []

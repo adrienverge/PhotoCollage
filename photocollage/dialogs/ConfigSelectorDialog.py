@@ -42,7 +42,7 @@ class ConfigSelectorDialog(Gtk.Dialog):
 
         self.btn_select_corpus = Gtk.Button(label=_("Select Processed Corpus..."))
         self.corpus_entry = Gtk.Entry()
-        self.corpus_entry.set_text("/Users/ashah/GoogleDrive/processedCorpus_rilee_recognizer_new.out")
+        self.corpus_entry.set_text("/Users/ashah/GoogleDrive/Rilee4thGrade/processedCorpus_rilee_recognizer.out")
         self.config_parameters[PROCESSED_CORPUS_FILE] = self.corpus_entry.get_text()
 
         self.btn_select_corpus_dir = Gtk.Button(label=_("Select Corpus Dir..."))

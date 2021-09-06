@@ -34,8 +34,8 @@ def create_yearbook_metadata(config_file_path, school_name, email):
                     json_template = row[4]
                     orig_image_loc = row[5]
                 else:
-                    json_template = "/Users/ashah/GoogleDrive/8by8_MarkedUpPages/Photos6_v6.xml.json"  # row[4]
-                    orig_image_loc = "/Users/ashah/GoogleDrive/8by8_MarkedUpPages/Photos6_v6.png"  # row[5]
+                    json_template = row[4]
+                    orig_image_loc = row[5]
 
                 # Hard coded template and original image
 
