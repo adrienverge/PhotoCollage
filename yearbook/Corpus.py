@@ -28,6 +28,12 @@ class Corpus:
     def get_filenames_child_images_for_event(self, child, event, corpus_dir):
         import os
         child_images_per_event = self.get_child_images_for_event_with_scores(child, event)
+
+        # TODO: Figure out what should the fallback be in cases where there are no images of this child
+        # in this event. For now we're returning everything from that event
+        if len(child_images_per_event) < 2:
+            child_images_per_event = self.events_to_images[event]
+
         return [os.path.join(corpus_dir, event, a_tuple[0]) for a_tuple in child_images_per_event]
 
     def get_child_images_for_event_with_scores(self, child, event):
