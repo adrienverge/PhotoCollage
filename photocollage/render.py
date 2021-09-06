@@ -100,7 +100,10 @@ def build_photolist(filelist):
         try:
             img = PIL.Image.open(name)
         except OSError:
-            raise BadPhoto(name)
+            # raise BadPhoto(name)
+            print("Skipping a photo: %s", name)
+            continue
+
         w, h = img.size
 
         orientation = 0
@@ -150,6 +153,7 @@ class RenderingTask(Thread):
         self.on_fail = on_fail
 
         self.canceled = False
+        self.final_img = None
 
     def abort(self):
         self.canceled = True
@@ -203,6 +207,8 @@ class RenderingTask(Thread):
                         xy = (col.x - border / 2, c.y)
                         XY = (col.x + border / 2, c.y + c.h)
                         draw.rectangle(xy + XY, color)
+
+
         return canvas
 
     def resize_photo(self, cell, use_cache=False):
@@ -309,6 +315,8 @@ class RenderingTask(Thread):
 
             if self.on_complete:
                 self.on_complete(canvas)
+
+            self.final_img = canvas
         except Exception as e:
             if self.on_fail:
                 self.on_fail(e)

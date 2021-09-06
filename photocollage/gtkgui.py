@@ -20,7 +20,6 @@ from io import BytesIO
 import math
 import os.path
 import random
-import sys
 import urllib
 
 import cairo
@@ -36,7 +35,6 @@ from yearbook.Yearbook import create_yearbook_metadata
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GObject, GdkPixbuf  # noqa: E402, I100
-
 
 gettext.textdomain(APP_NAME)
 _ = gettext.gettext
@@ -133,6 +131,7 @@ class UserCollage:
 
     def __init__(self, photolist):
         self.photolist = photolist
+        self.page = None
 
     def make_page(self, opts):
         # Define the output image height / width ratio
@@ -179,7 +178,10 @@ class MainWindow(Gtk.Window):
         self.btn_undo = Gtk.Button()
         self.btn_save = Gtk.Button(label=_("Save poster..."))
         self.btn_previous_page = Gtk.Button(label=_("Prev page..."))
+        self.lbl_event_name = Gtk.Label(" ")
+        self.lbl_page_number = Gtk.Label(" ")
         self.btn_next_page = Gtk.Button(label=_("Next page..."))
+        self.btn_publish_book = Gtk.Button(label=_("Publish"))
         self.current_page_index = 0
         self.yearbook_parameters = {}
         self.child = "Rilee"
@@ -249,8 +251,14 @@ class MainWindow(Gtk.Window):
 
         box.pack_start(self.btn_previous_page, False, False, 0)
         self.btn_previous_page.connect("clicked", self.select_prev_page)
+
+        box.pack_start(self.lbl_page_number, False, False, 0)
+        box.pack_start(self.lbl_event_name, False, False, 0)
         box.pack_start(self.btn_next_page, True, True, 0)
         self.btn_next_page.connect("clicked", self.select_next_page)
+
+        box.pack_start(self.btn_publish_book, True, True, 0)
+        self.btn_publish_book.connect("clicked", self.publish_book)
         box.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
 
         self.btn_settings.set_image(Gtk.Image.new_from_stock(
@@ -282,7 +290,7 @@ class MainWindow(Gtk.Window):
         self.btn_undo.set_sensitive(False)
         self.btn_redo.set_sensitive(False)
 
-        #self.update_photolist([])
+        # self.update_photolist([])
 
     def update_photolist(self, page, new_images):
         try:
@@ -313,7 +321,7 @@ class MainWindow(Gtk.Window):
             self.corpus = corpus_processor(self.yearbook_parameters["processed_corpus_file"])
 
             # Read the config file
-            self.yearbook = create_yearbook_metadata(self.yearbook_parameters["config_file"], "","")
+            self.yearbook = create_yearbook_metadata(self.yearbook_parameters["config_file"], "", "")
             # Reset page to first
             self.current_page_index = 0
             current_page = self.yearbook.pages[self.current_page_index]
@@ -366,54 +374,55 @@ class MainWindow(Gtk.Window):
 
     def render_preview(self, page):
         try:
-            collage = page.history[page.history_index]
+            page_collage = page.history[page.history_index]
         except IndexError:
             page_images = self.choose_page_images_for_child(page, self.child)
             self.update_photolist(page, page_images)
+            page_collage = page.history[page.history_index]
 
         # If the desired ratio changed in the meantime (e.g. from landscape to
         # portrait), it needs to be re-updated
-        collage.page.target_ratio = 1.0 * self.opts.out_h / self.opts.out_w
-        collage.page.adjust_cols_heights()
+        page_collage.page.target_ratio = 1.0 * self.opts.out_h / self.opts.out_w
+        page_collage.page.adjust_cols_heights()
 
         w = self.img_preview.get_allocation().width
         h = self.img_preview.get_allocation().height
-        collage.page.scale_to_fit(w, h)
+        page_collage.page.scale_to_fit(w, h)
 
         # Display a "please wait" dialog and do the job.
-        compdialog = ComputingDialog(self)
+        comp_dialog = ComputingDialog(self)
 
         def on_update(img, fraction_complete):
-            self.img_preview.set_collage(img, collage)
-            compdialog.update(fraction_complete)
+            self.img_preview.set_collage(img, page_collage)
+            comp_dialog.update(fraction_complete)
 
         def on_complete(img):
-            self.img_preview.set_collage(img, collage)
-            compdialog.destroy()
+            self.img_preview.set_collage(img, page_collage)
+            comp_dialog.destroy()
             self.btn_save.set_sensitive(True)
 
         def on_fail(exception):
             dialog = ErrorDialog(self, "{}:\n\n{}".format(
                 _("An error occurred while rendering image:"), exception))
-            compdialog.destroy()
+            comp_dialog.destroy()
             dialog.run()
             dialog.destroy()
             self.btn_save.set_sensitive(False)
 
         t = render.RenderingTask(
-            collage.page,
-            border_width=self.opts.border_w * max(collage.page.w,
-                                                  collage.page.h),
+            page_collage.page,
+            border_width=self.opts.border_w * max(page_collage.page.w,
+                                                  page_collage.page.h),
             border_color=self.opts.border_c,
             on_update=gtk_run_in_main_thread(on_update),
             on_complete=gtk_run_in_main_thread(on_complete),
             on_fail=gtk_run_in_main_thread(on_fail))
         t.start()
 
-        response = compdialog.run()
+        response = comp_dialog.run()
         if response == Gtk.ResponseType.CANCEL:
             t.abort()
-            compdialog.destroy()
+            comp_dialog.destroy()
 
     def render_from_new_collage(self, page, collage):
         page.history.append(collage)
@@ -436,6 +445,23 @@ class MainWindow(Gtk.Window):
         page.history_index += 1
         self.update_tool_buttons(page)
         self.render_preview(page)
+
+    def publish_book(self, button):
+        output_dir = self.yearbook_parameters['output_dir']
+        for yearbook_page in self.yearbook.pages:
+            out_file = os.path.join(self.yearbook_parameters['output_dir'], str(yearbook_page.number) + ".jpg")
+            self.save_poster_no_dialog(yearbook_page, out_file)
+
+        # Lets read the page images again and write it to a pdf
+        final_pages = []
+        from PIL import Image
+        for yearbook_page in self.yearbook.pages:
+            out_file = os.path.join(self.yearbook_parameters['output_dir'], str(yearbook_page.number) + ".jpg")
+            final_pages.append(Image.open(out_file))
+
+        # now let's write this thing to a PDF file
+        final_pages[0].save(os.path.join(output_dir, self.child + "_version0.pdf"), save_all=True,
+                            append_images=final_pages[1:])
 
     def select_next_page(self, button):
         old_page = self.yearbook.pages[self.current_page_index]
@@ -466,6 +492,22 @@ class MainWindow(Gtk.Window):
                 self.render_preview(page)
         else:
             dialog.destroy()
+
+    def save_poster_no_dialog(self, yearbook_page, out_file):
+        page_collage = yearbook_page.history[yearbook_page.history_index]
+        enlargement = float(self.opts.out_w) / page_collage.page.w
+        page_collage.page.scale(enlargement)
+
+        t = render.RenderingTask(
+            page_collage.page, output_file=out_file,
+            border_width=self.opts.border_w * max(page_collage.page.w,
+                                                  page_collage.page.h),
+            border_color=self.opts.border_c,
+            on_update=None,
+            on_complete=None,
+            on_fail=None)
+
+        t.start()
 
     def save_poster(self, button, page):
         collage = page.history[page.history_index]
@@ -522,6 +564,13 @@ class MainWindow(Gtk.Window):
     def update_page_buttons(self):
         self.btn_previous_page.set_sensitive(self.current_page_index > 0)
         self.btn_next_page.set_sensitive(self.current_page_index < len(self.yearbook.pages) - 1)
+
+        if self.current_page_index < 0:
+            self.lbl_event_name.set_label("")
+            self.lbl_page_number.set_label("")
+        else:
+            self.lbl_event_name.set_label(self.yearbook.pages[self.current_page_index].event_name)
+            self.lbl_page_number.set_label(str(self.yearbook.pages[self.current_page_index].number))
 
     def update_tool_buttons(self, page):
         self.btn_undo.set_sensitive(page.history_index > 0)
