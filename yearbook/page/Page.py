@@ -43,6 +43,8 @@ class Page:
         self.image = orig_image_loc
         self.data["imagePath"] = orig_image_loc
         self.data["extension"] = os.path.splitext(orig_image_loc)[1]
+        self.history = []
+        self.history_index = 0
         #self.model = Resnet50Embedding()
         #self.generate_cropped_image_vectors()
 
