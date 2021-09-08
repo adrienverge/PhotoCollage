@@ -22,7 +22,7 @@ class ConfigSelectorDialog(Gtk.Dialog):
             title="Settings", parent=parent, flags=0,
             buttons=(Gtk.STOCK_OK, Gtk.ResponseType.OK,
                      Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
-
+        super().resize(600, 100)
         self.config_parameters = {SCHOOL_NAME: "Vargas Elementary"}
         self.etr_outw = None
         self.set_border_width(10)
@@ -31,8 +31,6 @@ class ConfigSelectorDialog(Gtk.Dialog):
         box = self.get_content_area()
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         box.add(vbox)
-
-        grid = Gtk.Grid()
 
         self.btn_select_config = Gtk.Button(label=_("Select Config..."))
         self.config_entry = Gtk.Entry()
@@ -56,22 +54,22 @@ class ConfigSelectorDialog(Gtk.Dialog):
         self.config_parameters[OUTPUT_DIR] = self.out_dir_entry.get_text()
 
         # Position the UI elements
+        grid = Gtk.Grid()
         grid.add(self.btn_select_config)
-        grid.attach(self.config_entry, 1, 0, 2, 1)
+        grid.attach(child=self.config_entry, left=1, top=0, width=8, height=1)
         grid.attach_next_to(self.btn_select_corpus, self.btn_select_config, Gtk.PositionType.BOTTOM, 1, 1)
-        grid.attach_next_to(self.corpus_entry, self.btn_select_corpus, Gtk.PositionType.RIGHT, 2, 1)
+        grid.attach_next_to(self.corpus_entry, self.btn_select_corpus, Gtk.PositionType.RIGHT, 4, 1)
 
         grid.attach_next_to(self.btn_select_corpus_dir, self.btn_select_corpus, Gtk.PositionType.BOTTOM, 1, 1)
-        grid.attach_next_to(self.corpus_dir_entry, self.btn_select_corpus_dir, Gtk.PositionType.RIGHT, 2, 1)
+        grid.attach_next_to(self.corpus_dir_entry, self.btn_select_corpus_dir, Gtk.PositionType.RIGHT, 4, 1)
 
         grid.attach_next_to(self.btn_select_out_dir, self.btn_select_corpus_dir, Gtk.PositionType.BOTTOM, 1, 1)
-        grid.attach_next_to(self.out_dir_entry, self.btn_select_out_dir, Gtk.PositionType.RIGHT, 2, 1)
+        grid.attach_next_to(self.out_dir_entry, self.btn_select_out_dir, Gtk.PositionType.RIGHT, 4, 1)
 
         self.btn_select_config.connect("clicked", self.setup_config_file_selector)
         self.btn_select_corpus.connect("clicked", self.setup_processed_corpus_file_selector)
         self.btn_select_out_dir.connect("clicked", self.setup_output_folder_selector)
         self.btn_select_corpus_dir.connect("clicked", self.setup_corpus_dir_selector)
-
 
         vbox.add(grid)
         self.show_all()

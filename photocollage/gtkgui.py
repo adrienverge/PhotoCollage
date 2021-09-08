@@ -482,14 +482,17 @@ class MainWindow(Gtk.Window):
         self.update_page_buttons()
         self.render_preview(self.yearbook.pages[self.current_page_index])
 
-    def set_settings(self, button, page):
+    def set_settings(self, button):
         dialog = SettingsDialog(self)
         response = dialog.run()
         if response == Gtk.ResponseType.OK:
             dialog.apply_opts(self.opts)
             dialog.destroy()
-            if page.history:
-                self.render_preview(page)
+
+            if self.yearbook:
+                page = self.yearbook.pages[self.current_page_index]
+                if page.history:
+                    self.render_preview(page)
         else:
             dialog.destroy()
 
