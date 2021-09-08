@@ -334,7 +334,7 @@ class MainWindow(Gtk.Window):
         else:
             dialog.destroy()
 
-    def choose_page_images_for_child(self, page, child):
+    def choose_page_images_for_child(self, page, child, max_count=12):
         corpus_dir = self.yearbook_parameters["corpus_dir"]
 
         if not page.personalized:
@@ -344,7 +344,7 @@ class MainWindow(Gtk.Window):
             print("Working on: (%s, %s, %s)" % (page.image, page.event_name, page.number))
             images = self.corpus.get_filenames_child_images_for_event(child, page.event_name, corpus_dir)
 
-        return images
+        return images[:max_count]
 
     def choose_images(self, button):
         dialog = PreviewFileChooserDialog(title=_("Choose images"),
