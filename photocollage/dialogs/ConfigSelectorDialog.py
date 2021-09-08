@@ -13,6 +13,7 @@ CORPUS_DIR = "corpus_dir"
 CONFIG_FILE = "config_file"
 OUTPUT_DIR = "output_dir"
 SCHOOL_NAME = "school_name"
+MAX_COUNT = "max_count"
 
 
 class ConfigSelectorDialog(Gtk.Dialog):
@@ -23,7 +24,7 @@ class ConfigSelectorDialog(Gtk.Dialog):
             buttons=(Gtk.STOCK_OK, Gtk.ResponseType.OK,
                      Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
         super().resize(600, 100)
-        self.config_parameters = {SCHOOL_NAME: "Vargas Elementary"}
+        self.config_parameters = {SCHOOL_NAME: "Vargas Elementary", MAX_COUNT: 12}
         self.etr_outw = None
         self.set_border_width(10)
         self.selected_border_color = parent.opts.border_c

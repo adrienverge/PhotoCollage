@@ -183,7 +183,7 @@ class MainWindow(Gtk.Window):
         self.btn_next_page = Gtk.Button(label=_("Next page..."))
         self.btn_publish_book = Gtk.Button(label=_("Publish"))
         self.current_page_index = 0
-        self.yearbook_parameters = {}
+        self.yearbook_parameters = {'max_count': 12}
         self.child = "Rilee"
 
         class Options:
@@ -334,7 +334,7 @@ class MainWindow(Gtk.Window):
         else:
             dialog.destroy()
 
-    def choose_page_images_for_child(self, page, child):
+    def choose_page_images_for_child(self, page, child, max_count=12):
         corpus_dir = self.yearbook_parameters["corpus_dir"]
 
         if not page.personalized:
@@ -344,7 +344,7 @@ class MainWindow(Gtk.Window):
             print("Working on: (%s, %s, %s)" % (page.image, page.event_name, page.number))
             images = self.corpus.get_filenames_child_images_for_event(child, page.event_name, corpus_dir)
 
-        return images
+        return images[:max_count]
 
     def choose_images(self, button):
         dialog = PreviewFileChooserDialog(title=_("Choose images"),
@@ -471,8 +471,9 @@ class MainWindow(Gtk.Window):
         self.update_page_buttons()
         current_page = self.yearbook.pages[self.current_page_index]
         if not current_page.history:
-            page_images = self.choose_page_images_for_child(current_page, self.child)
-            remaining_images = [x for x in page_images if x not in used_images]
+            max_count = self.yearbook_parameters['max_count']
+            new_page_images = self.choose_page_images_for_child(current_page, self.child, 100)
+            remaining_images = [x for x in new_page_images if x not in used_images][:max_count]
             self.update_photolist(current_page, remaining_images)
 
         self.render_preview(current_page)
