@@ -188,8 +188,8 @@ class MainWindow(Gtk.Window):
 
         class Options:
             def __init__(self):
-                self.border_w = 0.01
-                self.border_c = "blue"
+                self.border_w = 0.02
+                self.border_c = "white"
                 self.out_w = 2550
                 self.out_h = 3300
 
