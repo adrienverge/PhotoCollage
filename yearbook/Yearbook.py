@@ -28,18 +28,11 @@ def create_yearbook_metadata(config_file_path, school_name, email):
                     personalized = True
                 else:
                     personalized = False
-                drive_folder = row[3]
-                if event == 'June':
-                    print("Using original templates")
-                    json_template = row[4]
-                    orig_image_loc = row[5]
-                else:
-                    json_template = row[4]
-                    orig_image_loc = row[5]
+                orig_image_loc = row[3]
 
                 # Hard coded template and original image
 
-                page = Page(number, event, personalized, drive_folder, json_template, orig_image_loc)
+                page = Page(number, event, personalized, orig_image_loc)
                 page.print_image_name()
                 line_count += 1
                 pages.append(page)

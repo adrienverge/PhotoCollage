@@ -17,15 +17,9 @@ class PageTests(unittest.TestCase):
     def test_generate_cropped_image_vectors(self):
         print("Running Test for checking img vectors")
 
-        page = Page.Page(number=1, event="Graduation", personalized=True, drive_folder="/",
-                         template_loc="./Photos10_v3.json", orig_image_loc="./Photos10_v3.png")
+        page = Page.Page(number=1, event="Graduation", personalized=True, orig_image_loc="./Photos10_v3.png")
 
         assert page.data is not None
-
-        vector_dict = page.data["image_vect_dict"]
-        assert len(vector_dict.keys()) == 10
-        assert check_key(vector_dict, "img0")
-        assert len(vector_dict["img0"]) == 2048
 
 
 if __name__ == '__main__':
