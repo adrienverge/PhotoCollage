@@ -46,6 +46,13 @@ class TestDefaultReader(unittest.TestCase):
     def test_children_in_corpus(self):
         assert(len(self.corpus.get_children())) == 21
 
+    def test_get_filenames_child_images_for_event(self):
+        corpus = corpus_processor('./processedCorpus_2.test')
+        christmas_imgs_per_child1 = corpus.get_filenames_child_images_for_event("Rilee", "Christmas", "test_dir")
+        christmas_imgs_per_child2 = corpus.get_filenames_child_images_for_event("child3", "Christmas", "test_dir")
+
+        assert len(christmas_imgs_per_child1) == 6
+        assert len(christmas_imgs_per_child2) == 2
 
 if __name__ == '__main__':
     unittest.main()

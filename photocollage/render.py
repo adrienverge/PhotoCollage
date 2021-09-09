@@ -101,7 +101,7 @@ def build_photolist(filelist):
             img = PIL.Image.open(name)
         except OSError:
             # raise BadPhoto(name)
-            print("Skipping a photo: %s", name)
+            print("Skipping a photo: %s" % name)
             continue
 
         w, h = img.size
@@ -136,11 +136,12 @@ class RenderingTask(Thread):
     is a separated thread.
 
     """
-    def __init__(self, page, border_width=0.01, border_color=(0, 0, 0),
-                 quality=QUALITY_FAST, output_file=None,
+    def __init__(self, yearbook_page, page, border_width=0.01, border_color=(0, 0, 0),
+                 quality=QUALITY_BEST, output_file=None,
                  on_update=None, on_complete=None, on_fail=None):
         super().__init__()
 
+        self.yearbook_page = yearbook_page
         self.page = page
         self.border_width = border_width
         self.border_color = border_color
@@ -314,9 +315,9 @@ class RenderingTask(Thread):
                 canvas.save(self.output_file)
 
             if self.on_complete:
-                self.on_complete(canvas)
+                self.on_complete(canvas, self.output_file)
 
-            self.final_img = canvas
+            self.yearbook_page.final_img = canvas
         except Exception as e:
             if self.on_fail:
                 self.on_fail(e)
