@@ -28,7 +28,7 @@ def create_yearbook_metadata(config_file_path, school_name, email):
                     personalized = True
                 else:
                     personalized = False
-                orig_image_loc = row[2]
+                orig_image_loc = row[3]
 
                 # Hard coded template and original image
 
