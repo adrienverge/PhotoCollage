@@ -33,6 +33,7 @@ class Corpus:
         # in this event. For now we're returning everything from that event
         if len(child_images_per_event) < 2:
             child_images_per_event = self.events_to_images[event]
+            return [os.path.join(corpus_dir, event, a_tuple) for a_tuple in child_images_per_event]
 
         return [os.path.join(corpus_dir, event, a_tuple[0]) for a_tuple in child_images_per_event]
 

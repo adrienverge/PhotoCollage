@@ -372,13 +372,12 @@ class MainWindow(Gtk.Window):
                 files[i] = urllib.parse.unquote(files[i][7:])
         self.update_photolist(self.yearbook.pages[self.current_page_index], files)
 
-    def render_preview(self, page):
+    def render_preview(self, yearbook_page):
         try:
-            page_collage = page.history[page.history_index]
+            page_collage = yearbook_page.history[yearbook_page.history_index]
         except IndexError:
-            page_images = self.choose_page_images_for_child(page, self.child)
-            self.update_photolist(page, page_images)
-            page_collage = page.history[page.history_index]
+            page_images = self.choose_page_images_for_child(yearbook_page, self.child)
+            self.update_photolist(yearbook_page, page_images)
 
         # If the desired ratio changed in the meantime (e.g. from landscape to
         # portrait), it needs to be re-updated
@@ -396,7 +395,7 @@ class MainWindow(Gtk.Window):
             self.img_preview.set_collage(img, page_collage)
             comp_dialog.update(fraction_complete)
 
-        def on_complete(img):
+        def on_complete(img, out_file):
             self.img_preview.set_collage(img, page_collage)
             comp_dialog.destroy()
             self.btn_save.set_sensitive(True)
@@ -410,6 +409,7 @@ class MainWindow(Gtk.Window):
             self.btn_save.set_sensitive(False)
 
         t = render.RenderingTask(
+            yearbook_page,
             page_collage.page,
             border_width=self.opts.border_w * max(page_collage.page.w,
                                                   page_collage.page.h),
@@ -448,20 +448,57 @@ class MainWindow(Gtk.Window):
 
     def publish_book(self, button):
         output_dir = self.yearbook_parameters['output_dir']
+
+        all_pages = []
+        # Display a "please wait" dialog and do the job.
+        compdialog = ComputingDialog(self)
+        count_completed = 0
+        def on_update(img, fraction_complete):
+            compdialog.update(fraction_complete)
+
+        def on_complete(img, out_file_name):
+            compdialog.update(0)
+            print("Finished creating img %s", out_file_name)
+            all_pages.append(out_file_name)
+            if len(all_pages) == len(self.yearbook.pages):
+                print("Time to destroy this dialog, and save the final file")
+                all_final_images = [page.final_img for page in self.yearbook.pages]
+                all_final_images[0].save(os.path.join(output_dir, self.child + "_version0.pdf"), save_all=True,
+                                    append_images=all_final_images[1:])
+                compdialog.destroy()
+
+                return
+
+
+
         for yearbook_page in self.yearbook.pages:
             out_file = os.path.join(self.yearbook_parameters['output_dir'], str(yearbook_page.number) + ".jpg")
-            self.save_poster_no_dialog(yearbook_page, out_file)
+            page_collage = yearbook_page.history[yearbook_page.history_index]
+            enlargement = float(self.opts.out_w) / page_collage.page.w
+            page_collage.page.scale(enlargement)
+
+            t = render.RenderingTask(
+                yearbook_page,
+                page_collage.page,
+                output_file=out_file,
+                border_width=self.opts.border_w * max(page_collage.page.w,
+                                                      page_collage.page.h),
+                border_color=self.opts.border_c,
+                on_update=gtk_run_in_main_thread(on_update),
+                on_complete=gtk_run_in_main_thread(on_complete),
+                on_fail=None)
+
+            t.start()
 
         # Lets read the page images again and write it to a pdf
-        final_pages = []
-        from PIL import Image
-        for yearbook_page in self.yearbook.pages:
-            out_file = os.path.join(self.yearbook_parameters['output_dir'], str(yearbook_page.number) + ".jpg")
-            final_pages.append(Image.open(out_file))
+        # final_pages = []
+        # for yearbook_page in self.yearbook.pages:
+        #    final_pages.append(yearbook_page.final_img)
 
         # now let's write this thing to a PDF file
-        final_pages[0].save(os.path.join(output_dir, self.child + "_version0.pdf"), save_all=True,
-                            append_images=final_pages[1:])
+        print("Finished creating the final PDF file...")
+        # final_pages[0].save(os.path.join(output_dir, self.child + "_version0.pdf"), save_all=True,
+        #                    append_images=final_pages[1:])
 
     def select_next_page(self, button):
         old_page = self.yearbook.pages[self.current_page_index]
@@ -497,22 +534,6 @@ class MainWindow(Gtk.Window):
         else:
             dialog.destroy()
 
-    def save_poster_no_dialog(self, yearbook_page, out_file):
-        page_collage = yearbook_page.history[yearbook_page.history_index]
-        enlargement = float(self.opts.out_w) / page_collage.page.w
-        page_collage.page.scale(enlargement)
-
-        t = render.RenderingTask(
-            page_collage.page, output_file=out_file,
-            border_width=self.opts.border_w * max(page_collage.page.w,
-                                                  page_collage.page.h),
-            border_color=self.opts.border_c,
-            on_update=None,
-            on_complete=None,
-            on_fail=None)
-
-        t.start()
-
     def save_poster(self, button, page):
         collage = page.history[page.history_index]
 
@@ -540,7 +561,7 @@ class MainWindow(Gtk.Window):
         def on_update(img, fraction_complete):
             compdialog.update(fraction_complete)
 
-        def on_complete(img):
+        def on_complete(img, out_file_name):
             compdialog.destroy()
 
         def on_fail(exception):
@@ -551,6 +572,7 @@ class MainWindow(Gtk.Window):
             dialog.destroy()
 
         t = render.RenderingTask(
+            page,
             collage.page, output_file=savefile,
             border_width=self.opts.border_w * max(collage.page.w,
                                                   collage.page.h),
