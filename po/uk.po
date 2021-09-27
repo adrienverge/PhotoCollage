@@ -16,7 +16,6 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
-"X-Generator: Poedit 1.8.7.1\n"
 "X-Language: uk_UA\n"
 "X-Source-Language: C\n"
 
@@ -48,7 +47,7 @@ msgstr "Перегенерувати"
 #: photocollage/gtkgui.py:279
 #, python-format
 msgid ""
-"Изображение не удалось открыть:\n"
+"This image could not be opened:\n"
 "\"%(imgname)s\"."
 msgstr ""
 "Зображення не вдалося відкрити:\n"
@@ -60,7 +59,7 @@ msgstr "Обрати зображення"
 
 #: photocollage/gtkgui.py:339 photocollage/gtkgui.py:424
 msgid "An error occurred while rendering image:"
-msgstr "При рендерингу зображення трапилася помилка:"
+msgstr "При рендерингу зображення сталася помилка:"
 
 #: photocollage/gtkgui.py:398
 msgid "Save image"
@@ -88,20 +87,20 @@ msgstr "Обрамлення"
 
 #: photocollage/gtkgui.py:691
 msgid "Thickness:"
-msgstr "Толщина:"
+msgstr "Товщина:"
 
 #: photocollage/gtkgui.py:701
 msgid "Color:"
-msgstr "Цвет:"
+msgstr "Колір:"
 
 #: photocollage/gtkgui.py:740
 msgid "Please wait"
-msgstr "Пожалуйста, подождите"
+msgstr "Будь ласка, зачекайте"
 
 #: photocollage/gtkgui.py:749
 msgid "Performing image computation..."
-msgstr "Выполнение вычисления изображений..."
+msgstr "Обчислюю зображення..."
 
 #: photocollage/gtkgui.py:764
 msgid "Error"
-msgstr "Ошибка"
+msgstr "Помилка"

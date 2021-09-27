@@ -2,6 +2,7 @@
 # Copyright (C) 2021 Andrey Novikov <cooking95@yandex.ru>
 # This file is distributed under the same license as the PhotoCollage package.
 # Andrey Novikov <cooking95@yandex.ru>, 2021.
+# Eugene Uvin <eugene.uvin@protonmail.com>, 2021.
 #
 msgid ""
 msgstr ""
@@ -37,7 +38,7 @@ msgstr "Добавить изображения..."
 
 #: photocollage/gtkgui.py:196
 msgid "Save poster..."
-msgstr "Сохранить плакат..."
+msgstr "Сохранить коллаж..."
 
 #: photocollage/gtkgui.py:221
 msgid "Regenerate"
@@ -46,10 +47,10 @@ msgstr "Перегенерировать"
 #: photocollage/gtkgui.py:279
 #, python-format
 msgid ""
-"Изображение не удалось открыть:\n"
+"This image could not be opened:\n"
 "\"%(imgname)s\"."
 msgstr ""
-"Cette image n'a pas pu être ouverte :\n"
+"Изображение не удалось открыть:\n"
 "\"%(imgname)s\"."
 
 #: photocollage/gtkgui.py:285
@@ -78,7 +79,7 @@ msgstr "пиксели"
 
 #: photocollage/gtkgui.py:673
 msgid "Apply a template:"
-msgstr "Примените шаблон:"
+msgstr "Применить шаблон:"
 
 #: photocollage/gtkgui.py:686
 msgid "Border"

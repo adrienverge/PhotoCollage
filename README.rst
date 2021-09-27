@@ -37,7 +37,7 @@ Features:
 * save high-resolution image
 * works even with a large number of photos (> 100)
 * integrates into the GNOME environment
-* available in English, French, German, Czech, Italian, Bulgarian, Dutch, Russian and Spanish
+* available in English, French, German, Czech, Italian, Bulgarian, Dutch, Russian, Spanish and Ukrainian
 
 Installation
 ------------
