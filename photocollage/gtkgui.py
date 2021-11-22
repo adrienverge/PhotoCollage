@@ -176,7 +176,6 @@ class MainWindow(Gtk.Window):
         self.btn_redo = Gtk.Button()
         self.lbl_history_index = Gtk.Label(" ")
         self.btn_undo = Gtk.Button()
-        self.btn_save = Gtk.Button(label=_("Save poster..."))
         self.btn_previous_page = Gtk.Button(label=_("Prev page..."))
         self.lbl_event_name = Gtk.Label(" ")
         self.lbl_page_number = Gtk.Label(" ")
@@ -218,12 +217,6 @@ class MainWindow(Gtk.Window):
         self.btn_choose_images.set_always_show_image(True)
         self.btn_choose_images.connect("clicked", self.choose_images)
         box.pack_start(self.btn_choose_images, False, False, 0)
-
-        self.btn_save.set_image(Gtk.Image.new_from_stock(
-            Gtk.STOCK_SAVE_AS, Gtk.IconSize.LARGE_TOOLBAR))
-        self.btn_save.set_always_show_image(True)
-        self.btn_save.connect("clicked", self.save_poster)
-        box.pack_start(self.btn_save, False, False, 0)
 
         # -----------------------
         #  Tools pan
@@ -284,8 +277,6 @@ class MainWindow(Gtk.Window):
         self.img_preview.drag_dest_set_target_list(targets)
 
         box.pack_start(self.img_preview, True, True, 0)
-
-        self.btn_save.set_sensitive(False)
 
         self.btn_undo.set_sensitive(False)
         self.btn_redo.set_sensitive(False)
@@ -398,7 +389,6 @@ class MainWindow(Gtk.Window):
         def on_complete(img, out_file):
             self.img_preview.set_collage(img, page_collage)
             comp_dialog.destroy()
-            self.btn_save.set_sensitive(True)
 
         def on_fail(exception):
             dialog = ErrorDialog(self, "{}:\n\n{}".format(
@@ -406,7 +396,6 @@ class MainWindow(Gtk.Window):
             comp_dialog.destroy()
             dialog.run()
             dialog.destroy()
-            self.btn_save.set_sensitive(False)
 
         t = render.RenderingTask(
             yearbook_page,
@@ -605,8 +594,6 @@ class MainWindow(Gtk.Window):
             self.lbl_history_index.set_label(str(page.history_index + 1))
         else:
             self.lbl_history_index.set_label(" ")
-        self.btn_save.set_sensitive(
-            page.history_index < len(page.history))
         self.btn_new_layout.set_sensitive(
             page.history_index < len(page.history))
 
