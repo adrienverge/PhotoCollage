@@ -317,12 +317,13 @@ class MainWindow(Gtk.Window):
         # Need to remove all previously added images
         [flowbox.remove(child) for child in flowbox.get_children()]
 
-        print(page.photo_list)
+        print([photo.filename for photo in page.photo_list])
 
         for img in event_images:
 
             # Lets not add the image to the viewer if it's on the page.
-            if img in page.photo_list:
+            if img in [photo.filename for photo in page.photo_list]:
+                print("Skip displaying this image...")
                 continue
 
             pixbuf = get_orientation_fixed_pixbuf(img)
