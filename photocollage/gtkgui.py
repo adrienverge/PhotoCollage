@@ -317,8 +317,6 @@ class MainWindow(Gtk.Window):
         # Need to remove all previously added images
         [flowbox.remove(child) for child in flowbox.get_children()]
 
-        print([photo.filename for photo in page.photo_list])
-
         for img in event_images:
 
             # Lets not add the image to the viewer if it's on the page.
@@ -330,9 +328,10 @@ class MainWindow(Gtk.Window):
 
             try:
                 image = Gtk.Image.new_from_pixbuf(pixbuf)
-                img_frame = Gtk.Frame()
-                img_frame.add(image)
-                flowbox.add(img_frame)
+                img_box = Gtk.EventBox()
+                img_box.add(image)
+                img_box.connect("button_press_event", self.invoke_add_image, img)
+                flowbox.add(img_box)
 
             except OSError:
                 # raise BadPhoto(name)
@@ -342,6 +341,16 @@ class MainWindow(Gtk.Window):
         scrolled.add(flowbox)
         self.add(scrolled)
         self.show_all()
+
+    def invoke_add_image(self, widget, event, img_name):
+        print("clicked image ")
+        print(widget)
+        if event.type == Gdk.EventType._2BUTTON_PRESS:
+            print("double click, %s", img_name)
+            self.update_photolist(self.yearbook.pages[self.current_page_index], [img_name])
+            self.update_flow_box_with_images(self.yearbook.pages[self.current_page_index])
+        else:
+            print("single click")
 
     def update_photolist(self, page, new_images):
         photolist = []
