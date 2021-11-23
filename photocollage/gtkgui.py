@@ -32,11 +32,16 @@ from photocollage.dialogs.SettingsDialog import SettingsDialog
 
 from data.readers.default import corpus_processor
 from yearbook.Yearbook import create_yearbook_metadata
+from yearbook.Yearbook import Page
+
+from images.utils import get_orientation_fixed_pixbuf
 
 gi.require_version('Gtk', '3.0')
 gi.require_version('GdkPixbuf', '2.0')
 
 from gi.repository import Gtk, Gdk, GObject, GdkPixbuf  # noqa: E402, I100
+
+import PIL.Image
 
 gettext.textdomain(APP_NAME)
 _ = gettext.gettext
@@ -293,7 +298,7 @@ class MainWindow(Gtk.Window):
 
         box.pack_start(self.images_flow_box, True, True, 0)
 
-    def update_flow_box_with_images(self, page):
+    def update_flow_box_with_images(self, page: Page):
         corpus_dir = self.yearbook_parameters["corpus_dir"]
         if not page.personalized:
             print("Load image as is, %s, %s" % (page.event_name, page.image))
@@ -312,16 +317,21 @@ class MainWindow(Gtk.Window):
         # Need to remove all previously added images
         [flowbox.remove(child) for child in flowbox.get_children()]
 
-        for img in event_images:
-            try:
-                pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
-                    filename=img,
-                    width=120,
-                    height=120,
-                    preserve_aspect_ratio=True)
+        print(page.photo_list)
 
+        for img in event_images:
+
+            # Lets not add the image to the viewer if it's on the page.
+            if img in page.photo_list:
+                continue
+
+            pixbuf = get_orientation_fixed_pixbuf(img)
+
+            try:
                 image = Gtk.Image.new_from_pixbuf(pixbuf)
-                flowbox.add(image)
+                img_frame = Gtk.Frame()
+                img_frame.add(image)
+                flowbox.add(img_frame)
 
             except OSError:
                 # raise BadPhoto(name)
@@ -333,8 +343,8 @@ class MainWindow(Gtk.Window):
         self.show_all()
 
     def update_photolist(self, page, new_images):
+        photolist = []
         try:
-            photolist = []
             if page.history_index < len(page.history):
                 photolist = copy.copy(
                     page.history[page.history_index].photolist)
@@ -353,6 +363,8 @@ class MainWindow(Gtk.Window):
             dialog.run()
             dialog.destroy()
 
+        page.photo_list = photolist
+
     def setup_yearbook_config(self, button):
         dialog = ConfigSelectorDialog(self)
         response = dialog.run()
@@ -364,7 +376,7 @@ class MainWindow(Gtk.Window):
             self.yearbook = create_yearbook_metadata(self.yearbook_parameters["config_file"], "", "")
             # Reset page to first
             self.current_page_index = 0
-            current_page = self.yearbook.pages[self.current_page_index]
+            current_page: Page = self.yearbook.pages[self.current_page_index]
             all_page_images = self.choose_page_images_for_child(current_page, self.child, max_count=100)
 
             # Need to use a small set of these images to create the initial collage

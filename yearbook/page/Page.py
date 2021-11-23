@@ -27,6 +27,7 @@ class Page:
         self.history = []
         self.history_index = 0
         self.final_image = None
+        self.photo_list = []
 
     def print_image_name(self):
         print("Name:: " + self.image)
