@@ -12,7 +12,17 @@ class Corpus:
         return self.events_to_images.keys()
 
     def is_image_from_event(self, image, event):
+        # Doesn't check for missing events for now
         return image in self.events_to_images[event]
+
+    def get_images_for_event(self, event):
+        # Doesn't check for missing events for now
+        return self.events_to_images[event]
+
+    def get_filenames_for_event_images(self, event, corpus_dir):
+        import os
+        images_per_event = self.events_to_images[event]
+        return [os.path.join(corpus_dir, event, a_tuple) for a_tuple in images_per_event]
 
     def get_child_images_for_event(self, child, event):
 

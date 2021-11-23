@@ -17,7 +17,8 @@
 import base64
 from io import BytesIO
 
-import cairo
+import cairo, gi
+gi.require_version('GdkPixbuf', '2.0')
 from gi.repository import GdkPixbuf
 
 

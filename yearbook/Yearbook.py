@@ -12,7 +12,7 @@ Also holds a reference to the face recognition model and probably the image simi
 
 
 def create_yearbook_metadata(config_file_path, school_name, email):
-    pages = []
+    pages: [Page] = []
 
     with open(config_file_path) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
@@ -46,7 +46,7 @@ def create_yearbook_metadata(config_file_path, school_name, email):
 
 class Yearbook:
 
-    def __init__(self, pages, school, email):
+    def __init__(self, pages: [Page], school: str, email: str):
         self.pages = pages
         self.school = school
         self.email = email

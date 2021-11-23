@@ -32,9 +32,16 @@ from photocollage.dialogs.SettingsDialog import SettingsDialog
 
 from data.readers.default import corpus_processor
 from yearbook.Yearbook import create_yearbook_metadata
+from yearbook.Yearbook import Page
+
+from images.utils import get_orientation_fixed_pixbuf
 
 gi.require_version('Gtk', '3.0')
+gi.require_version('GdkPixbuf', '2.0')
+
 from gi.repository import Gtk, Gdk, GObject, GdkPixbuf  # noqa: E402, I100
+
+import PIL.Image
 
 gettext.textdomain(APP_NAME)
 _ = gettext.gettext
@@ -171,6 +178,7 @@ class MainWindow(Gtk.Window):
         self.corpus = None
         self.btn_choose_images = Gtk.Button(label=_("Add images..."))
         self.img_preview = ImagePreviewArea(self)
+        self.images_flow_box = Gtk.FlowBox()
         self.btn_settings = Gtk.Button()
         self.btn_new_layout = Gtk.Button(label=_("Regenerate"))
         self.btn_redo = Gtk.Button()
@@ -281,11 +289,72 @@ class MainWindow(Gtk.Window):
         self.btn_undo.set_sensitive(False)
         self.btn_redo.set_sensitive(False)
 
-        # self.update_photolist([])
+        # --------------------------------------------
+        #  GTK Flow Box to view other candidate images
+        # --------------------------------------------
+        box = Gtk.Box(spacing=10)
+        box_window.pack_start(box, True, True, 0)
+        self.images_flow_box.set_size_request(600, 200)
+
+        box.pack_start(self.images_flow_box, True, True, 0)
+
+    def update_flow_box_with_images(self, page: Page):
+        corpus_dir = self.yearbook_parameters["corpus_dir"]
+        if not page.personalized:
+            print("Load image as is, %s, %s" % (page.event_name, page.image))
+            event_images = [page.image]
+        else:
+            event_images = self.corpus.get_filenames_for_event_images(page.event_name, corpus_dir)
+
+        scrolled = Gtk.ScrolledWindow()
+        scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+
+        flowbox = self.images_flow_box
+        flowbox.set_valign(Gtk.Align.START)
+        flowbox.set_max_children_per_line(10)
+        flowbox.set_selection_mode(Gtk.SelectionMode.SINGLE)
+
+        # Need to remove all previously added images
+        [flowbox.remove(child) for child in flowbox.get_children()]
+
+        for img in event_images:
+
+            # Lets not add the image to the viewer if it's on the page.
+            if img in [photo.filename for photo in page.photo_list]:
+                print("Skip displaying this image...")
+                continue
+
+            pixbuf = get_orientation_fixed_pixbuf(img)
+
+            try:
+                image = Gtk.Image.new_from_pixbuf(pixbuf)
+                img_box = Gtk.EventBox()
+                img_box.add(image)
+                img_box.connect("button_press_event", self.invoke_add_image, img)
+                flowbox.add(img_box)
+
+            except OSError:
+                # raise BadPhoto(name)
+                print("Skipping a photo: %s" % img)
+                continue
+
+        scrolled.add(flowbox)
+        self.add(scrolled)
+        self.show_all()
+
+    def invoke_add_image(self, widget, event, img_name):
+        print("clicked image ")
+        print(widget)
+        if event.type == Gdk.EventType._2BUTTON_PRESS:
+            print("double click, %s", img_name)
+            self.update_photolist(self.yearbook.pages[self.current_page_index], [img_name])
+            self.update_flow_box_with_images(self.yearbook.pages[self.current_page_index])
+        else:
+            print("single click")
 
     def update_photolist(self, page, new_images):
+        photolist = []
         try:
-            photolist = []
             if page.history_index < len(page.history):
                 photolist = copy.copy(
                     page.history[page.history_index].photolist)
@@ -304,6 +373,8 @@ class MainWindow(Gtk.Window):
             dialog.run()
             dialog.destroy()
 
+        page.photo_list = photolist
+
     def setup_yearbook_config(self, button):
         dialog = ConfigSelectorDialog(self)
         response = dialog.run()
@@ -315,9 +386,14 @@ class MainWindow(Gtk.Window):
             self.yearbook = create_yearbook_metadata(self.yearbook_parameters["config_file"], "", "")
             # Reset page to first
             self.current_page_index = 0
-            current_page = self.yearbook.pages[self.current_page_index]
-            page_images = self.choose_page_images_for_child(current_page, self.child)
-            self.update_photolist(current_page, page_images)
+            current_page: Page = self.yearbook.pages[self.current_page_index]
+            all_page_images = self.choose_page_images_for_child(current_page, self.child, max_count=100)
+
+            # Need to use a small set of these images to create the initial collage
+            self.update_photolist(current_page, all_page_images[:12])
+
+            # Populate the flow box with all candidates
+            self.update_flow_box_with_images(current_page)
 
             dialog.destroy()
             if current_page.history:
@@ -348,6 +424,7 @@ class MainWindow(Gtk.Window):
             files = dialog.get_filenames()
             dialog.destroy()
             self.update_photolist(self.yearbook.pages[self.current_page_index], files)
+            self.update_flow_box_with_images(self.yearbook.pages[self.current_page_index])
         else:
             dialog.destroy()
 
@@ -362,6 +439,7 @@ class MainWindow(Gtk.Window):
             if files[i].startswith("file://"):
                 files[i] = urllib.parse.unquote(files[i][7:])
         self.update_photolist(self.yearbook.pages[self.current_page_index], files)
+        self.update_flow_box_with_images(self.yearbook.pages[self.current_page_index])
 
     def render_preview(self, yearbook_page):
         try:
@@ -369,6 +447,7 @@ class MainWindow(Gtk.Window):
         except IndexError:
             page_images = self.choose_page_images_for_child(yearbook_page, self.child)
             self.update_photolist(yearbook_page, page_images)
+            self.update_flow_box_with_images(yearbook_page)
 
         # If the desired ratio changed in the meantime (e.g. from landscape to
         # portrait), it needs to be re-updated
@@ -442,6 +521,7 @@ class MainWindow(Gtk.Window):
         # Display a "please wait" dialog and do the job.
         compdialog = ComputingDialog(self)
         count_completed = 0
+
         def on_update(img, fraction_complete):
             compdialog.update(fraction_complete)
 
@@ -453,12 +533,10 @@ class MainWindow(Gtk.Window):
                 print("Time to destroy this dialog, and save the final file")
                 all_final_images = [page.final_img for page in self.yearbook.pages]
                 all_final_images[0].save(os.path.join(output_dir, self.child + "_version0.pdf"), save_all=True,
-                                    append_images=all_final_images[1:])
+                                         append_images=all_final_images[1:])
                 compdialog.destroy()
 
                 return
-
-
 
         for yearbook_page in self.yearbook.pages:
             out_file = os.path.join(self.yearbook_parameters['output_dir'], str(yearbook_page.number) + ".jpg")
@@ -498,16 +576,19 @@ class MainWindow(Gtk.Window):
         current_page = self.yearbook.pages[self.current_page_index]
         if not current_page.history:
             max_count = self.yearbook_parameters['max_count']
-            new_page_images = self.choose_page_images_for_child(current_page, self.child, 100)
+            new_page_images = self.choose_page_images_for_child(current_page, self.child)
             remaining_images = [x for x in new_page_images if x not in used_images][:max_count]
             self.update_photolist(current_page, remaining_images)
 
         self.render_preview(current_page)
+        self.update_flow_box_with_images(current_page)
 
     def select_prev_page(self, button):
         self.current_page_index -= 1
         self.update_page_buttons()
-        self.render_preview(self.yearbook.pages[self.current_page_index])
+        current_page = self.yearbook.pages[self.current_page_index]
+        self.render_preview(current_page)
+        self.update_flow_box_with_images(current_page)
 
     def set_settings(self, button):
         dialog = SettingsDialog(self)
@@ -522,59 +603,6 @@ class MainWindow(Gtk.Window):
                     self.render_preview(page)
         else:
             dialog.destroy()
-
-    def save_poster(self, button, page):
-        collage = page.history[page.history_index]
-
-        enlargement = float(self.opts.out_w) / collage.page.w
-        collage.page.scale(enlargement)
-
-        dialog = Gtk.FileChooserDialog(_("Save image"), button.get_toplevel(),
-                                       Gtk.FileChooserAction.SAVE)
-        dialog.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
-        dialog.add_button(Gtk.STOCK_OK, Gtk.ResponseType.OK)
-        dialog.set_do_overwrite_confirmation(True)
-        set_save_image_filters(dialog)
-        if dialog.run() != Gtk.ResponseType.OK:
-            dialog.destroy()
-            return
-        savefile = dialog.get_filename()
-        base, ext = os.path.splitext(savefile)
-        if ext == "" or not ext[1:].lower() in get_all_save_image_exts():
-            savefile += ".jpg"
-        dialog.destroy()
-
-        # Display a "please wait" dialog and do the job.
-        compdialog = ComputingDialog(self)
-
-        def on_update(img, fraction_complete):
-            compdialog.update(fraction_complete)
-
-        def on_complete(img, out_file_name):
-            compdialog.destroy()
-
-        def on_fail(exception):
-            dialog = ErrorDialog(self, "{}:\n\n{}".format(
-                _("An error occurred while rendering image:"), exception))
-            compdialog.destroy()
-            dialog.run()
-            dialog.destroy()
-
-        t = render.RenderingTask(
-            page,
-            collage.page, output_file=savefile,
-            border_width=self.opts.border_w * max(collage.page.w,
-                                                  collage.page.h),
-            border_color=self.opts.border_c,
-            on_update=gtk_run_in_main_thread(on_update),
-            on_complete=gtk_run_in_main_thread(on_complete),
-            on_fail=gtk_run_in_main_thread(on_fail))
-        t.start()
-
-        response = compdialog.run()
-        if response == Gtk.ResponseType.CANCEL:
-            t.abort()
-            compdialog.destroy()
 
     def update_page_buttons(self):
         self.btn_previous_page.set_sensitive(self.current_page_index > 0)
