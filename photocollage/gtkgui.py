@@ -193,6 +193,16 @@ class MainWindow(Gtk.Window):
         self.yearbook_parameters = {'max_count': 12}
         self.child = "Rilee"
 
+        from data.sqllite.reader import get_tree_model
+        self.treeView = Gtk.TreeView(get_tree_model('/Users/ashah/GoogleDrive/Rilee4thGrade/VargasElementary.db'))
+        self.tv_column = Gtk.TreeViewColumn('Roster')
+        self.treeView.append_column(self.tv_column)
+        self.treeView.expand_all()
+
+        self.cell = Gtk.CellRendererText()
+        self.tv_column.pack_start(self.cell, True)
+        self.tv_column.add_attribute(self.cell, 'text', 0)
+
         class Options:
             def __init__(self):
                 self.border_w = 0.02
@@ -269,11 +279,20 @@ class MainWindow(Gtk.Window):
         box.pack_end(self.btn_settings, False, False, 0)
 
         # -------------------
+        #  Tree View
+        # -------------------
+        box = Gtk.Box(spacing=10)
+        scrolledWindow = Gtk.ScrolledWindow()
+        box_window.pack_start(box, True, True, 0)
+        scrolledWindow.add(self.treeView)
+        box.pack_start(scrolledWindow, True, True, 0)
+
+        # -------------------
         #  Image preview pan
         # -------------------
 
-        box = Gtk.Box(spacing=10)
-        box_window.pack_start(box, True, True, 0)
+        #box = Gtk.Box(spacing=10)
+        #box_window.pack_start(box, True, True, 0)
 
         self.img_preview.set_size_request(600, 400)
         self.img_preview.connect("drag-data-received", self.on_drag)
