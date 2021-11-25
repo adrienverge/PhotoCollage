@@ -11,7 +11,7 @@ Also holds a reference to the face recognition model and probably the image simi
 """
 
 
-def create_yearbook_metadata(config_file_path, school_name, email):
+def create_yearbook_metadata_from_csv(config_file_path, school_name, email):
     pages: [Page] = []
 
     with open(config_file_path) as csv_file:
@@ -38,6 +38,25 @@ def create_yearbook_metadata(config_file_path, school_name, email):
                 pages.append(page)
 
         print(f'Processed {line_count} lines.')
+
+    print("Pages in yearbook %s" % str(len(pages)))
+
+    return Yearbook(pages, school_name, email)
+
+
+def create_yearbook_metadata(db_file_path, school_name, email='anuj.for@gmail.com'):
+    import os
+    pages: [Page] = []
+    from data.sqllite.reader import get_album_details_for_school
+    album_details = get_album_details_for_school(db_file_path, school_name)
+    for row in album_details:
+        personalized = False
+        if row[2].startswith('Dynamic'):
+            personalized = True
+
+        page = Page(int(row[3]), str(row[1]), personalized, os.path.join(os.path.dirname(db_file_path), row[4]))
+        print(row)
+        pages.append(page)
 
     print("Pages in yearbook %s" % str(len(pages)))
 

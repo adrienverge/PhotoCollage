@@ -33,21 +33,19 @@ class ConfigSelectorDialog(Gtk.Dialog):
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         box.add(vbox)
 
-        self.btn_select_config = Gtk.Button(label=_("Select Config..."))
-        self.config_entry = Gtk.Entry()
-        self.config_entry.set_activates_default(True)
-        self.config_entry.set_text("/Users/ashah/GoogleDrive/Rilee4thGrade/YearbookConfig.csv")
-        self.config_parameters[CONFIG_FILE] = self.config_entry.get_text()
+        self.btn_select_db = Gtk.Button(label=_("Select Database File..."))
+        self.db_entry = Gtk.Entry()
+        self.db_entry.set_activates_default(True)
+        self.db_entry.set_text("/Users/ashah/GoogleDrive/Rilee4thGrade/RY.db")
+        self.config_parameters[CONFIG_FILE] = self.db_entry.get_text()
 
         self.btn_select_corpus = Gtk.Button(label=_("Select Processed Corpus..."))
         self.corpus_entry = Gtk.Entry()
         self.corpus_entry.set_text("/Users/ashah/GoogleDrive/Rilee4thGrade/processedCorpus_rilee_recognizer.out")
         self.config_parameters[PROCESSED_CORPUS_FILE] = self.corpus_entry.get_text()
 
-        self.btn_select_corpus_dir = Gtk.Button(label=_("Select Corpus Dir..."))
-        self.corpus_dir_entry = Gtk.Entry()
-        self.corpus_dir_entry.set_text("/Users/ashah/GoogleDrive/Rilee4thGrade/")
-        self.config_parameters[CORPUS_DIR] = self.corpus_dir_entry.get_text()
+        import os.path
+        self.config_parameters[CORPUS_DIR] = os.path.dirname(self.corpus_entry.get_text())
 
         self.btn_select_out_dir = Gtk.Button(label=_("Select Output Dir..."))
         self.out_dir_entry = Gtk.Entry()
@@ -56,21 +54,16 @@ class ConfigSelectorDialog(Gtk.Dialog):
 
         # Position the UI elements
         grid = Gtk.Grid()
-        grid.add(self.btn_select_config)
-        grid.attach(child=self.config_entry, left=1, top=0, width=8, height=1)
-        grid.attach_next_to(self.btn_select_corpus, self.btn_select_config, Gtk.PositionType.BOTTOM, 1, 1)
-        grid.attach_next_to(self.corpus_entry, self.btn_select_corpus, Gtk.PositionType.RIGHT, 4, 1)
-
-        grid.attach_next_to(self.btn_select_corpus_dir, self.btn_select_corpus, Gtk.PositionType.BOTTOM, 1, 1)
-        grid.attach_next_to(self.corpus_dir_entry, self.btn_select_corpus_dir, Gtk.PositionType.RIGHT, 4, 1)
-
-        grid.attach_next_to(self.btn_select_out_dir, self.btn_select_corpus_dir, Gtk.PositionType.BOTTOM, 1, 1)
+        grid.add(self.btn_select_db)
+        grid.attach(child=self.db_entry, left=1, top=0, width=8, height=1)
+        grid.attach_next_to(self.btn_select_corpus, self.btn_select_db, Gtk.PositionType.BOTTOM, 1, 1)
+        grid.attach_next_to(self.corpus_entry, self.btn_select_corpus, Gtk.PositionType.RIGHT, 2, 1)
+        grid.attach_next_to(self.btn_select_out_dir, self.btn_select_corpus, Gtk.PositionType.BOTTOM, 1, 1)
         grid.attach_next_to(self.out_dir_entry, self.btn_select_out_dir, Gtk.PositionType.RIGHT, 4, 1)
 
-        self.btn_select_config.connect("clicked", self.setup_config_file_selector)
+        self.btn_select_db.connect("clicked", self.setup_config_file_selector)
         self.btn_select_corpus.connect("clicked", self.setup_processed_corpus_file_selector)
         self.btn_select_out_dir.connect("clicked", self.setup_output_folder_selector)
-        self.btn_select_corpus_dir.connect("clicked", self.setup_corpus_dir_selector)
 
         vbox.add(grid)
         self.show_all()
@@ -87,7 +80,7 @@ class ConfigSelectorDialog(Gtk.Dialog):
         response = chooser.run()
         if response == Gtk.ResponseType.OK:
             print(button.get_label() + " :Config file selected...", chooser.get_filename())
-            self.config_entry.set_text(chooser.get_filename())
+            self.db_entry.set_text(chooser.get_filename())
             self.config_parameters[CONFIG_FILE] = chooser.get_filename()
             chooser.destroy()
         else:
