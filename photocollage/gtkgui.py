@@ -167,6 +167,18 @@ class UserCollage:
         return UserCollage(copy.copy(self.photolist))
 
 
+def on_tree_selection_changed(selection, db_file_path):
+    model, treeiter = selection.get_selected()
+    if treeiter is not None:
+        str_loc = model.get_string_from_iter(treeiter).split(':')[0]
+        new_tree_iter = model.get_iter_from_string(str_loc)
+        school_name = model[new_tree_iter][0]
+        print("You belong to: ", school_name)
+
+        # Once we know the school name, we should be able to retrieve the album details
+        yearbook = create_yearbook_metadata(db_file_path, school_name)
+
+
 class MainWindow(Gtk.Window):
     TARGET_TYPE_TEXT = 1
     TARGET_TYPE_URI = 2
@@ -194,7 +206,8 @@ class MainWindow(Gtk.Window):
         self.child = "Rilee"
 
         from data.sqllite.reader import get_tree_model
-        self.treeView = Gtk.TreeView(get_tree_model('/Users/ashah/GoogleDrive/Rilee4thGrade/VargasElementary.db'))
+        self.db_file_path = '/Users/ashah/GoogleDrive/Rilee4thGrade/RY.db'
+        self.treeView = Gtk.TreeView(get_tree_model(self.db_file_path))
         self.tv_column = Gtk.TreeViewColumn('Roster')
         self.treeView.append_column(self.tv_column)
         self.treeView.expand_all()
@@ -282,17 +295,18 @@ class MainWindow(Gtk.Window):
         #  Tree View
         # -------------------
         box = Gtk.Box(spacing=10)
-        scrolledWindow = Gtk.ScrolledWindow()
+        _scrolledWindow = Gtk.ScrolledWindow()
+        _scrolledWindow.add(self.treeView)
         box_window.pack_start(box, True, True, 0)
-        scrolledWindow.add(self.treeView)
-        box.pack_start(scrolledWindow, True, True, 0)
+        box.pack_start(_scrolledWindow, True, True, 0)
+        self.treeView.get_selection().connect("changed", on_tree_selection_changed, self.db_file_path)
 
         # -------------------
         #  Image preview pan
         # -------------------
 
-        #box = Gtk.Box(spacing=10)
-        #box_window.pack_start(box, True, True, 0)
+        # box = Gtk.Box(spacing=10)
+        # box_window.pack_start(box, True, True, 0)
 
         self.img_preview.set_size_request(600, 400)
         self.img_preview.connect("drag-data-received", self.on_drag)
@@ -394,6 +408,22 @@ class MainWindow(Gtk.Window):
 
         page.photo_list = photolist
 
+    def select_page_at_index(self, index: int):
+
+        self.current_page_index = index
+        current_page: Page = self.yearbook.pages[self.current_page_index]
+
+        # TODO:: This will reset the images for that page, we'll have to be smarter than that
+        all_page_images = self.choose_page_images_for_child(current_page, self.child, max_count=100)
+
+        # Need to use a small set of these images to create the initial collage
+        self.update_photolist(current_page, all_page_images[:12])
+
+        # Populate the flow box with all candidates
+        self.update_flow_box_with_images(current_page)
+
+        return current_page
+
     def setup_yearbook_config(self, button):
         dialog = ConfigSelectorDialog(self)
         response = dialog.run()
@@ -402,21 +432,13 @@ class MainWindow(Gtk.Window):
             self.corpus = corpus_processor(self.yearbook_parameters["processed_corpus_file"])
 
             # Read the config file
-            self.yearbook = create_yearbook_metadata(self.yearbook_parameters["config_file"], "", "")
+            self.yearbook = create_yearbook_metadata(self.yearbook_parameters["config_file"], "Rilee4thGrade", "")
             # Reset page to first
-            self.current_page_index = 0
-            current_page: Page = self.yearbook.pages[self.current_page_index]
-            all_page_images = self.choose_page_images_for_child(current_page, self.child, max_count=100)
-
-            # Need to use a small set of these images to create the initial collage
-            self.update_photolist(current_page, all_page_images[:12])
-
-            # Populate the flow box with all candidates
-            self.update_flow_box_with_images(current_page)
+            _current_page = self.select_page_at_index(index=0)
 
             dialog.destroy()
-            if current_page.history:
-                self.render_preview(current_page)
+            if _current_page.history:
+                self.render_preview(_current_page)
         else:
             dialog.destroy()
 

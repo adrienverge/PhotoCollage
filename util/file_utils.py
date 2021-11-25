@@ -13,4 +13,3 @@ def read_student_names_from_dir(directory):
 def read_page_template(directory):
     return [Page.read_page_json(os.path.join(directory, p)) for p in sorted(os.listdir(directory)) if
             p.endswith('.json')]
-

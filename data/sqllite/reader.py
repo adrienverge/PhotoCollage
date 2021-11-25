@@ -25,8 +25,17 @@ def select_schools(conn):
 
 def get_all_rows(conn):
     cur = conn.cursor()
-    query = "SELECT Distinct p.name, grade, class, r.name, c.album FROM roster r, schools p, spreads C " \
-            "where r.school = p.[School ID] and c.album=p.[Album Id] order by 1,2,3,4"
+    query = "SELECT Distinct s.name, grade, class, r.name, p.album FROM roster r, schools s, pages p " \
+            "where r.school = s.[School ID] and p.album=s.[Album Id] order by 1,2,3,4"
+    return cur.execute(query)
+
+
+def get_album_details_for_school(db_file: str, school_name: str):
+    conn = create_connection(db_file)
+    cur = conn.cursor()
+    query = 'Select a.id, a.name, a.type, a.page_number, a.image from pages a, schools s ' \
+            'where a.album = s.[Album Id] and s.name = "%s" ' % school_name
+
     return cur.execute(query)
 
 

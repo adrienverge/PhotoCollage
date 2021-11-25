@@ -36,7 +36,7 @@ class ConfigSelectorDialog(Gtk.Dialog):
         self.btn_select_db = Gtk.Button(label=_("Select Database File..."))
         self.db_entry = Gtk.Entry()
         self.db_entry.set_activates_default(True)
-        self.db_entry.set_text("/Users/ashah/GoogleDrive/Rilee4thGrade/VargasElementary.db")
+        self.db_entry.set_text("/Users/ashah/GoogleDrive/Rilee4thGrade/RY.db")
         self.config_parameters[CONFIG_FILE] = self.db_entry.get_text()
 
         self.btn_select_corpus = Gtk.Button(label=_("Select Processed Corpus..."))
