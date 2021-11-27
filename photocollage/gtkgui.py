@@ -167,18 +167,6 @@ class UserCollage:
         return UserCollage(copy.copy(self.photolist))
 
 
-def on_tree_selection_changed(selection, db_file_path):
-    model, treeiter = selection.get_selected()
-    if treeiter is not None:
-        str_loc = model.get_string_from_iter(treeiter).split(':')[0]
-        new_tree_iter = model.get_iter_from_string(str_loc)
-        school_name = model[new_tree_iter][0]
-        print("You belong to: ", school_name)
-
-        # Once we know the school name, we should be able to retrieve the album details
-        yearbook = create_yearbook_metadata(db_file_path, school_name)
-
-
 class MainWindow(Gtk.Window):
     TARGET_TYPE_TEXT = 1
     TARGET_TYPE_URI = 2
@@ -187,7 +175,6 @@ class MainWindow(Gtk.Window):
         super().__init__(title=_("Yearbook Creator"))
         self.yearbook_configurator = Gtk.Button(label=_("Yearbook Settings..."))
         self.yearbook = None
-        self.corpus = None
         self.btn_choose_images = Gtk.Button(label=_("Add images..."))
         self.img_preview = ImagePreviewArea(self)
         self.images_flow_box = Gtk.FlowBox()
@@ -202,12 +189,20 @@ class MainWindow(Gtk.Window):
         self.btn_next_page = Gtk.Button(label=_("Next page..."))
         self.btn_publish_book = Gtk.Button(label=_("Publish"))
         self.current_page_index = 0
-        self.yearbook_parameters = {'max_count': 12}
+        self.yearbook_parameters = {'max_count': 12,
+                                    'corpus_dir': '/Users/ashah/GoogleDrive/Rilee4thGrade',
+                                    'db_file_path': '/Users/ashah/GoogleDrive/Rilee4thGrade/RY.db',
+                                    'processed_corpus_file': '/Users/ashah/GoogleDrive/Rilee4thGrade/processedCorpus_rilee_recognizer.out',
+                                    'output_dir': '/Users/ashah/Downloads/VargasElementary'}
+
+        self.corpus = corpus_processor(self.yearbook_parameters["processed_corpus_file"])
+
+        # Maybe this gets moved into yearbook-parameters, or we need a reference to the current child
+        # since that can be selected from the tree.
         self.child = "Rilee"
 
         from data.sqllite.reader import get_tree_model
-        self.db_file_path = '/Users/ashah/GoogleDrive/Rilee4thGrade/RY.db'
-        self.treeView = Gtk.TreeView(get_tree_model(self.db_file_path))
+        self.treeView = Gtk.TreeView(get_tree_model(self.yearbook_parameters['db_file_path']))
         self.tv_column = Gtk.TreeViewColumn('Roster')
         self.treeView.append_column(self.tv_column)
         self.treeView.expand_all()
@@ -299,7 +294,7 @@ class MainWindow(Gtk.Window):
         _scrolledWindow.add(self.treeView)
         box_window.pack_start(box, True, True, 0)
         box.pack_start(_scrolledWindow, True, True, 0)
-        self.treeView.get_selection().connect("changed", on_tree_selection_changed, self.db_file_path)
+        self.treeView.get_selection().connect("changed", self.on_tree_selection_changed)
 
         # -------------------
         #  Image preview pan
@@ -330,6 +325,35 @@ class MainWindow(Gtk.Window):
         self.images_flow_box.set_size_request(600, 200)
 
         box.pack_start(self.images_flow_box, True, True, 0)
+
+    def on_tree_selection_changed(self, selection):
+        model, treeiter = selection.get_selected()
+        if treeiter is not None:
+            str_loc = model.get_string_from_iter(treeiter).split(':')[0]
+            new_tree_iter = model.get_iter_from_string(str_loc)
+            school_name = model[new_tree_iter][0]
+            child_name = model[treeiter][0]
+            print("You belong to: ", school_name)
+            print("You are: ", model[treeiter][0])
+
+            # Once we know the school name, we should be able to retrieve the album details
+            yearbook = create_yearbook_metadata(self.yearbook_parameters["db_file_path"], school_name)
+            for current_page in yearbook.pages:
+                all_page_images = self.choose_page_images_for_child(current_page, child_name, max_count=100)
+
+                # Need to use a small set of these images to create the initial collage
+                self.update_photolist(current_page, all_page_images[:12], display=False)
+                print("Finished updating the photo list for page, %s", current_page.event_name )
+
+            # Let's update the yearbook on selection to display
+            self.yearbook = yearbook
+            # Reset page to first
+            _current_page = self.select_page_at_index(index=0)
+            if _current_page.history:
+                self.render_preview(_current_page)
+            # Update the tool buttons
+            self.update_tool_buttons(_current_page)
+            self.update_page_buttons()
 
     def update_flow_box_with_images(self, page: Page):
         corpus_dir = self.yearbook_parameters["corpus_dir"]
@@ -385,7 +409,7 @@ class MainWindow(Gtk.Window):
         else:
             print("single click")
 
-    def update_photolist(self, page, new_images):
+    def update_photolist(self, page, new_images, display: bool = True):
         photolist = []
         try:
             if page.history_index < len(page.history):
@@ -396,7 +420,8 @@ class MainWindow(Gtk.Window):
             if len(photolist) > 0:
                 new_collage = UserCollage(photolist)
                 new_collage.make_page(self.opts)
-                self.render_from_new_collage(page, new_collage)
+                if display:
+                    self.render_from_new_collage(page, new_collage)
             else:
                 self.update_tool_buttons(page)
         except render.BadPhoto as e:
@@ -609,7 +634,7 @@ class MainWindow(Gtk.Window):
         #                    append_images=final_pages[1:])
 
     def select_next_page(self, button):
-        old_page = self.yearbook.pages[self.current_page_index]
+        old_page: Page = self.yearbook.pages[self.current_page_index]
         used_images = [photo.filename for photo in old_page.history[old_page.history_index].photolist]
 
         self.current_page_index += 1
@@ -692,6 +717,7 @@ class ImagePreviewArea(Gtk.DrawingArea):
                         Gdk.EventMask.POINTER_MOTION_MASK)
 
         self.image = None
+        self.collage = None
         self.mode = self.INSENSITIVE
 
         class SwapEnd:
@@ -704,15 +730,15 @@ class ImagePreviewArea(Gtk.DrawingArea):
         self.swap_origin = SwapEnd()
         self.swap_dest = SwapEnd()
 
-    def set_collage(self, image, collage):
-        self.image = pil_image_to_cairo_surface(image)
+    def set_collage(self, _image, _collage):
+        self.image = pil_image_to_cairo_surface(_image)
         # The Collage object must be deeply copied.
         # Otherwise, SWAPPING_OR_MOVING photos in a new page would also affect
         # the original page (in history).
         # The deep copy is done here (not in button_release_event) because
         # references to cells are gathered in other functions, so that making
         # the copy at the end would invalidate these references.
-        self.collage = copy.deepcopy(collage)
+        self.collage = copy.deepcopy(_collage)
         self.mode = self.FLYING
         self.queue_draw()
 
@@ -791,6 +817,9 @@ class ImagePreviewArea(Gtk.DrawingArea):
         widget.queue_draw()
 
     def button_press_event(self, widget, event):
+        if self.parent.yearbook is None:
+            return
+
         current_page = self.parent.yearbook.pages[self.parent.current_page_index]
         if self.mode == self.FLYING:
             x, y = self.get_pos_in_image(event.x, event.y)
@@ -817,6 +846,9 @@ class ImagePreviewArea(Gtk.DrawingArea):
         widget.queue_draw()
 
     def button_release_event(self, widget, event):
+        if self.parent.yearbook is None:
+            return
+
         current_page = self.parent.yearbook.pages[self.parent.current_page_index]
         if self.mode == self.SWAPPING_OR_MOVING:
             self.swap_dest.x, self.swap_dest.y = \
