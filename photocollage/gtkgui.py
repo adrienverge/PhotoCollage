@@ -41,8 +41,6 @@ gi.require_version('GdkPixbuf', '2.0')
 
 from gi.repository import Gtk, Gdk, GObject, GdkPixbuf  # noqa: E402, I100
 
-import PIL.Image
-
 gettext.textdomain(APP_NAME)
 _ = gettext.gettext
 _n = gettext.ngettext
@@ -337,16 +335,23 @@ class MainWindow(Gtk.Window):
             print("You are: ", model[treeiter][0])
 
             # Once we know the school name, we should be able to retrieve the album details
-            yearbook = create_yearbook_metadata(self.yearbook_parameters["db_file_path"], school_name)
-            for current_page in yearbook.pages:
-                all_page_images = self.choose_page_images_for_child(current_page, child_name, max_count=100)
+            # TODO:: This check needs to incorporate whether the yearbook belongs to the selection.
+            # For the time being we're going to deal with only 1 yearbook
+            if self.yearbook is None:
+                yearbook = create_yearbook_metadata(self.yearbook_parameters["db_file_path"], school_name)
+                for current_page in yearbook.pages:
 
-                # Need to use a small set of these images to create the initial collage
-                self.update_photolist(current_page, all_page_images[:12], display=False)
-                print("Finished updating the photo list for page, %s", current_page.event_name )
+                    # TODO: Add intelligence here since we should be able to refine the images to pick
+                    # based on page information
+                    all_page_images = self.choose_page_images_for_child(current_page, child_name, max_count=100)
 
-            # Let's update the yearbook on selection to display
-            self.yearbook = yearbook
+                    # Need to use a small set of these images to create the initial collage
+                    self.update_photolist(current_page, all_page_images[:12], display=True)
+                    print("Finished updating the photo list for page, %s", current_page.event_name)
+
+                # Let's update the yearbook on selection to display
+                self.yearbook = yearbook
+
             # Reset page to first
             _current_page = self.select_page_at_index(index=0)
             if _current_page.history:
@@ -436,18 +441,9 @@ class MainWindow(Gtk.Window):
     def select_page_at_index(self, index: int):
 
         self.current_page_index = index
-        current_page: Page = self.yearbook.pages[self.current_page_index]
+        self.select_next_page(self.btn_next_page)
 
-        # TODO:: This will reset the images for that page, we'll have to be smarter than that
-        all_page_images = self.choose_page_images_for_child(current_page, self.child, max_count=100)
-
-        # Need to use a small set of these images to create the initial collage
-        self.update_photolist(current_page, all_page_images[:12])
-
-        # Populate the flow box with all candidates
-        self.update_flow_box_with_images(current_page)
-
-        return current_page
+        return self.yearbook.pages[index]
 
     def setup_yearbook_config(self, button):
         dialog = ConfigSelectorDialog(self)
@@ -507,9 +503,9 @@ class MainWindow(Gtk.Window):
         self.update_photolist(self.yearbook.pages[self.current_page_index], files)
         self.update_flow_box_with_images(self.yearbook.pages[self.current_page_index])
 
-    def render_preview(self, yearbook_page):
+    def render_preview(self, yearbook_page: Page):
         try:
-            page_collage = yearbook_page.history[yearbook_page.history_index]
+            page_collage: UserCollage = yearbook_page.history[yearbook_page.history_index]
         except IndexError:
             page_images = self.choose_page_images_for_child(yearbook_page, self.child)
             self.update_photolist(yearbook_page, page_images)
@@ -542,9 +538,12 @@ class MainWindow(Gtk.Window):
             dialog.run()
             dialog.destroy()
 
+        out_file = os.path.join(self.yearbook_parameters['output_dir'], str(yearbook_page.number) + ".jpg")
+
         t = render.RenderingTask(
             yearbook_page,
             page_collage.page,
+            output_file=out_file,
             border_width=self.opts.border_w * max(page_collage.page.w,
                                                   page_collage.page.h),
             border_color=self.opts.border_c,
@@ -558,8 +557,8 @@ class MainWindow(Gtk.Window):
             t.abort()
             comp_dialog.destroy()
 
-    def render_from_new_collage(self, page, collage):
-        page.history.append(collage)
+    def render_from_new_collage(self, page, _collage):
+        page.history.append(_collage)
         page.history_index = len(page.history) - 1
         self.update_tool_buttons(page)
         self.render_preview(page)
@@ -581,18 +580,31 @@ class MainWindow(Gtk.Window):
         self.render_preview(page)
 
     def publish_book(self, button):
+        from PIL import Image
+        print("Publishing....")
+        output_dir = self.yearbook_parameters['output_dir']
+
+        # if we can't retrieve it from the object, lets try to get it from the directory
+        pil_images = [Image.open(os.path.join(output_dir, str(page.number) + ".jpg")) for page in self.yearbook.pages]
+        print("Will look for images starting with ", pil_images[0])
+        pdf_path = os.path.join(output_dir, self.child + "_version0.pdf")
+        pil_images[0].save(pdf_path, save_all=True,
+                           append_images=pil_images[1:])
+        print("Finished creating PDF version... ", pdf_path)
+
+    def publish_book_old(self, button):
         output_dir = self.yearbook_parameters['output_dir']
 
         all_pages = []
         # Display a "please wait" dialog and do the job.
-        compdialog = ComputingDialog(self)
+        comp_dialog = ComputingDialog(self)
         count_completed = 0
 
         def on_update(img, fraction_complete):
-            compdialog.update(fraction_complete)
+            comp_dialog.update(fraction_complete)
 
         def on_complete(img, out_file_name):
-            compdialog.update(0)
+            comp_dialog.update(0)
             print("Finished creating img %s", out_file_name)
             all_pages.append(out_file_name)
             if len(all_pages) == len(self.yearbook.pages):
@@ -600,10 +612,11 @@ class MainWindow(Gtk.Window):
                 all_final_images = [page.final_img for page in self.yearbook.pages]
                 all_final_images[0].save(os.path.join(output_dir, self.child + "_version0.pdf"), save_all=True,
                                          append_images=all_final_images[1:])
-                compdialog.destroy()
+                comp_dialog.destroy()
 
                 return
 
+        print("Will create a yearbook with page count: ", str(len(self.yearbook.pages)))
         for yearbook_page in self.yearbook.pages:
             out_file = os.path.join(self.yearbook_parameters['output_dir'], str(yearbook_page.number) + ".jpg")
             page_collage = yearbook_page.history[yearbook_page.history_index]

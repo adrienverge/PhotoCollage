@@ -321,8 +321,7 @@ class Column:
                 self.h = 0
                 self.cells = []
 
-        groups = []
-        groups.append(Group(0))
+        groups = [Group(0)]
         for c in self.cells:
             # While a cell extent is not reached, keep add cells to the group
             if not c.is_extension():

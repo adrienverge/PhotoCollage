@@ -1,4 +1,5 @@
 import os
+import PIL.Image
 
 """
     A representation of a Page in the context of Rethink yearbooks
@@ -26,7 +27,7 @@ class Page:
         self.data = {"imagePath": orig_image_loc, "extension": os.path.splitext(orig_image_loc)[1]}
         self.history = []
         self.history_index = 0
-        self.final_image = None
+        self.final_image: [PIL.Image] = []
         self.photo_list = []
 
     def print_image_name(self):
