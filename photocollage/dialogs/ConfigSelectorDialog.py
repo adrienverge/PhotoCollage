@@ -10,7 +10,7 @@ _ = gettext.gettext
 
 PROCESSED_CORPUS_FILE = "processed_corpus_file"
 CORPUS_DIR = "corpus_dir"
-CONFIG_FILE = "config_file"
+DB_FILE = "db_file_path"
 OUTPUT_DIR = "output_dir"
 SCHOOL_NAME = "school_name"
 MAX_COUNT = "max_count"
@@ -37,7 +37,7 @@ class ConfigSelectorDialog(Gtk.Dialog):
         self.db_entry = Gtk.Entry()
         self.db_entry.set_activates_default(True)
         self.db_entry.set_text("/Users/ashah/GoogleDrive/Rilee4thGrade/RY.db")
-        self.config_parameters[CONFIG_FILE] = self.db_entry.get_text()
+        self.config_parameters[DB_FILE] = self.db_entry.get_text()
 
         self.btn_select_corpus = Gtk.Button(label=_("Select Processed Corpus..."))
         self.corpus_entry = Gtk.Entry()
@@ -81,7 +81,7 @@ class ConfigSelectorDialog(Gtk.Dialog):
         if response == Gtk.ResponseType.OK:
             print(button.get_label() + " :Config file selected...", chooser.get_filename())
             self.db_entry.set_text(chooser.get_filename())
-            self.config_parameters[CONFIG_FILE] = chooser.get_filename()
+            self.config_parameters[DB_FILE] = chooser.get_filename()
             chooser.destroy()
         else:
             chooser.destroy()
