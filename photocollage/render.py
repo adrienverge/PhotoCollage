@@ -23,7 +23,7 @@ import PIL.ImageDraw
 import PIL.ImageFile
 
 from photocollage.collage import Photo
-
+from yearbook.page import Page
 
 QUALITY_SKEL = 0
 QUALITY_FAST = 1
@@ -136,7 +136,7 @@ class RenderingTask(Thread):
     is a separated thread.
 
     """
-    def __init__(self, yearbook_page, page, border_width=0.01, border_color=(0, 0, 0),
+    def __init__(self, yearbook_page: Page, page, border_width=0.01, border_color=(0, 0, 0),
                  quality=QUALITY_BEST, output_file=None,
                  on_update=None, on_complete=None, on_fail=None):
         super().__init__()
@@ -154,7 +154,6 @@ class RenderingTask(Thread):
         self.on_fail = on_fail
 
         self.canceled = False
-        self.final_img = None
 
     def abort(self):
         self.canceled = True
@@ -208,7 +207,6 @@ class RenderingTask(Thread):
                         xy = (col.x - border / 2, c.y)
                         XY = (col.x + border / 2, c.y + c.h)
                         draw.rectangle(xy + XY, color)
-
 
         return canvas
 
@@ -274,6 +272,8 @@ class RenderingTask(Thread):
 
     def run(self):
         try:
+            print("rendering ", self.yearbook_page.event_name)
+
             canvas = PIL.Image.new(
                 "RGB", (int(self.page.w), int(self.page.h)), "white")
 
@@ -311,13 +311,19 @@ class RenderingTask(Thread):
 
                 self.draw_borders(canvas)
 
+            # This is a hack since we're passing by value and can mutate lists
+            del self.yearbook_page.final_image[:]
+            self.yearbook_page.final_image.append(canvas)
+
+            print("Finished setting the final image ...")
             if self.output_file:
+                print("Saving image at ...", self.output_file)
                 canvas.save(self.output_file)
 
             if self.on_complete:
                 self.on_complete(canvas, self.output_file)
 
-            self.yearbook_page.final_img = canvas
+
         except Exception as e:
             if self.on_fail:
                 self.on_fail(e)
