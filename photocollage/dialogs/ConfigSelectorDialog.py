@@ -24,7 +24,7 @@ class ConfigSelectorDialog(Gtk.Dialog):
             buttons=(Gtk.STOCK_OK, Gtk.ResponseType.OK,
                      Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
         super().resize(600, 100)
-        self.config_parameters = {SCHOOL_NAME: "Vargas Elementary", MAX_COUNT: 12}
+        self.config_parameters = {SCHOOL_NAME: "Rilee4thGrade", MAX_COUNT: 12}
         self.etr_outw = None
         self.set_border_width(10)
         self.selected_border_color = parent.opts.border_c
@@ -36,12 +36,12 @@ class ConfigSelectorDialog(Gtk.Dialog):
         self.btn_select_db = Gtk.Button(label=_("Select Database File..."))
         self.db_entry = Gtk.Entry()
         self.db_entry.set_activates_default(True)
-        self.db_entry.set_text("/Users/ashah/GoogleDrive/Rilee4thGrade/RY.db")
+        self.db_entry.set_text(parent.google_drive_dir + "/" + self.config_parameters['SCHOOL_NAME'] + "/RY.db")
         self.config_parameters[DB_FILE] = self.db_entry.get_text()
 
         self.btn_select_corpus = Gtk.Button(label=_("Select Processed Corpus..."))
         self.corpus_entry = Gtk.Entry()
-        self.corpus_entry.set_text("/Users/ashah/GoogleDrive/Rilee4thGrade/processedCorpus_rilee_recognizer.out")
+        self.corpus_entry.set_text(parent.google_drive_dir + "/" + self.config_parameters['SCHOOL_NAME'] + "/processedCorpus_rilee_recognizer.out")
         self.config_parameters[PROCESSED_CORPUS_FILE] = self.corpus_entry.get_text()
 
         import os.path
@@ -49,7 +49,7 @@ class ConfigSelectorDialog(Gtk.Dialog):
 
         self.btn_select_out_dir = Gtk.Button(label=_("Select Output Dir..."))
         self.out_dir_entry = Gtk.Entry()
-        self.out_dir_entry.set_text("/Users/ashah/Downloads/VargasElementary")
+        self.out_dir_entry.set_text(parent.google_drive_dir + "/Output/" + self.config_parameters['SCHOOL_NAME'] + "/")
         self.config_parameters[OUTPUT_DIR] = self.out_dir_entry.get_text()
 
         # Position the UI elements

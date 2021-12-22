@@ -188,18 +188,22 @@ class MainWindow(Gtk.Window):
         self.btn_next_page = Gtk.Button(label=_("Next page..."))
         self.btn_publish_book = Gtk.Button(label=_("Publish"))
         self.current_page_index = 0
+        self.google_drive_dir = '/Users/ashah/GoogleDrive'
         self.yearbook_parameters = {'max_count': 12,
-                                    'corpus_dir': '/Users/ashah/GoogleDrive/Rilee4thGrade',
-                                    'db_file_path': '/Users/ashah/GoogleDrive/Rilee4thGrade/RY.db',
-                                    'processed_corpus_file': '/Users/ashah/GoogleDrive/Rilee4thGrade/processedCorpus_rilee_recognizer.out',
-                                    'output_dir': '/Users/ashah/Downloads/VargasElementary'}
+                                    'corpus_dir': os.path.join(self.google_drive_dir, 'Rilee4thGrade'),
+                                    'db_file_path': os.path.join(self.google_drive_dir, 'RY.db'),
+                                    'processed_corpus_file': os.path.join(self.google_drive_dir, 'Rilee4thGrade/processedCorpus_rilee_recognizer.out'),
+                                    'output_dir': os.path.join(self.google_drive_dir, 'VargasElementary')}
 
         self.corpus = corpus_processor(self.yearbook_parameters["processed_corpus_file"])
 
+        if not os.path.exists(self.yearbook_parameters["output_dir"]):
+            os.mkdir(self.yearbook_parameters["output_dir"])
+
         # Maybe this gets moved into yearbook-parameters, or we need a reference to the current child
         # since that can be selected from the tree.
-        self.child_name = "Rilee"
         self.school_name = "Rilee4thGrade"
+        self.child_name = "Rilee"
 
         from data.sqllite.reader import get_tree_model
         self.treeView = Gtk.TreeView(get_tree_model(self.yearbook_parameters['db_file_path']))
@@ -368,7 +372,7 @@ class MainWindow(Gtk.Window):
                 print("Saved yearbook here: ", pickle_path)
 
             # Reset page to first
-            _current_page = self.select_page_at_index(index=5)
+            _current_page = self.select_page_at_index(index=0)
             if _current_page.history:
                 self.render_preview(_current_page)
             # Update the tool buttons
