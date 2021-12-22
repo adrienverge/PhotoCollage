@@ -25,13 +25,14 @@ import urllib
 import cairo
 import gi
 
+from data.pickle.utils import store_yearbook, pickle_path_for_child
 from photocollage import APP_NAME, artwork, collage, render
 from photocollage.render import PIL_SUPPORTED_EXTS as EXTS
 from photocollage.dialogs.ConfigSelectorDialog import ConfigSelectorDialog
 from photocollage.dialogs.SettingsDialog import SettingsDialog
 
 from data.readers.default import corpus_processor
-from yearbook.Yearbook import create_yearbook_metadata
+from yearbook.Yearbook import create_yearbook_from_db
 from yearbook.Yearbook import Page
 
 from images.utils import get_orientation_fixed_pixbuf
@@ -197,7 +198,8 @@ class MainWindow(Gtk.Window):
 
         # Maybe this gets moved into yearbook-parameters, or we need a reference to the current child
         # since that can be selected from the tree.
-        self.child = "Rilee"
+        self.child_name = "Rilee"
+        self.school_name = "Rilee4thGrade"
 
         from data.sqllite.reader import get_tree_model
         self.treeView = Gtk.TreeView(get_tree_model(self.yearbook_parameters['db_file_path']))
@@ -319,31 +321,40 @@ class MainWindow(Gtk.Window):
         #  GTK Flow Box to view other candidate images
         # --------------------------------------------
         box = Gtk.Box(spacing=10)
+        _scrolledWindow = Gtk.ScrolledWindow()
         box_window.pack_start(box, True, True, 0)
         self.images_flow_box.set_size_request(600, 200)
-
-        box.pack_start(self.images_flow_box, True, True, 0)
+        _scrolledWindow.add(self.images_flow_box)
+        box.pack_start(_scrolledWindow, True, True, 0)
 
     def on_tree_selection_changed(self, selection):
         model, treeiter = selection.get_selected()
         if treeiter is not None:
             str_loc = model.get_string_from_iter(treeiter).split(':')[0]
             new_tree_iter = model.get_iter_from_string(str_loc)
-            school_name = model[new_tree_iter][0]
-            child_name = model[treeiter][0]
-            print("You belong to: ", school_name)
+            self.school_name = model[new_tree_iter][0]
+            self.child_name = model[treeiter][0]
+            print("You belong to: ", self.school_name)
             print("You are: ", model[treeiter][0])
+
+            print("Check for pickle file")
+            pickle_path = pickle_path_for_child(self.yearbook_parameters["output_dir"], self.school_name, self.child_name)
+            if os.path.exists(pickle_path):
+                print("Pickle file exists and we can load the yearbook from there")
+                from yearbook.Yearbook import create_yearbook_from_pickle
+                self.yearbook = create_yearbook_from_pickle(pickle_path)
+                print("Successfully loaded a yearbook from pickle file")
 
             # Once we know the school name, we should be able to retrieve the album details
             # TODO:: This check needs to incorporate whether the yearbook belongs to the selection.
             # For the time being we're going to deal with only 1 yearbook
             if self.yearbook is None:
-                yearbook = create_yearbook_metadata(self.yearbook_parameters["db_file_path"], school_name)
+                yearbook = create_yearbook_from_db(self.yearbook_parameters["db_file_path"], self.school_name)
                 for current_page in yearbook.pages:
 
                     # TODO: Add intelligence here since we should be able to refine the images to pick
                     # based on page information
-                    all_page_images = self.choose_page_images_for_child(current_page, child_name, max_count=100)
+                    all_page_images = self.choose_page_images_for_child(current_page, self.child_name, max_count=100)
 
                     # Need to use a small set of these images to create the initial collage
                     self.update_photolist(current_page, all_page_images[:12], display=True)
@@ -352,12 +363,16 @@ class MainWindow(Gtk.Window):
                 # Let's update the yearbook on selection to display
                 self.yearbook = yearbook
 
+                # TODO:: Remove this save, for testing, let's save the pickle file here and try to load on next startup
+                store_yearbook(self.yearbook, pickle_path)
+                print("Saved yearbook here: ", pickle_path)
+
             # Reset page to first
-            _current_page = self.select_page_at_index(index=0)
+            _current_page = self.select_page_at_index(index=5)
             if _current_page.history:
                 self.render_preview(_current_page)
             # Update the tool buttons
-            self.update_tool_buttons(_current_page)
+            self.update_tool_buttons()
             self.update_page_buttons()
 
     def update_flow_box_with_images(self, page: Page):
@@ -368,8 +383,8 @@ class MainWindow(Gtk.Window):
         else:
             event_images = self.corpus.get_filenames_for_event_images(page.event_name, corpus_dir)
 
-        scrolled = Gtk.ScrolledWindow()
-        scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        # scrolled = Gtk.ScrolledWindow()
+        # scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
 
         flowbox = self.images_flow_box
         flowbox.set_valign(Gtk.Align.START)
@@ -400,8 +415,8 @@ class MainWindow(Gtk.Window):
                 print("Skipping a photo: %s" % img)
                 continue
 
-        scrolled.add(flowbox)
-        self.add(scrolled)
+        # scrolled.add(flowbox)
+        # self.add(scrolled)
         self.show_all()
 
     def invoke_add_image(self, widget, event, img_name):
@@ -428,7 +443,7 @@ class MainWindow(Gtk.Window):
                 if display:
                     self.render_from_new_collage(page, new_collage)
             else:
-                self.update_tool_buttons(page)
+                self.update_tool_buttons()
         except render.BadPhoto as e:
             dialog = ErrorDialog(
                 self, _("This image could not be opened:\n\"%(imgname)s\".")
@@ -453,7 +468,8 @@ class MainWindow(Gtk.Window):
             self.corpus = corpus_processor(self.yearbook_parameters["processed_corpus_file"])
 
             # Read the config file
-            self.yearbook = create_yearbook_metadata(self.yearbook_parameters["config_file"], "Rilee4thGrade", "")
+            # TODO:: This school name needs to come from a combo box on the UI once the database file is provided
+            self.yearbook = create_yearbook_from_db(self.yearbook_parameters["config_file"], "Rilee4thGrade", "")
             # Reset page to first
             _current_page = self.select_page_at_index(index=0)
 
@@ -507,7 +523,7 @@ class MainWindow(Gtk.Window):
         try:
             page_collage: UserCollage = yearbook_page.history[yearbook_page.history_index]
         except IndexError:
-            page_images = self.choose_page_images_for_child(yearbook_page, self.child)
+            page_images = self.choose_page_images_for_child(yearbook_page, self.child_name)
             self.update_photolist(yearbook_page, page_images)
             self.update_flow_box_with_images(yearbook_page)
 
@@ -560,7 +576,7 @@ class MainWindow(Gtk.Window):
     def render_from_new_collage(self, page, _collage):
         page.history.append(_collage)
         page.history_index = len(page.history) - 1
-        self.update_tool_buttons(page)
+        self.update_tool_buttons()
         self.render_preview(page)
 
     def regenerate_layout(self, button):
@@ -571,12 +587,12 @@ class MainWindow(Gtk.Window):
 
     def select_prev_layout(self, button, page):
         page.history_index -= 1
-        self.update_tool_buttons(page)
+        self.update_tool_buttons()
         self.render_preview(page)
 
     def select_next_layout(self, button, page):
         page.history_index += 1
-        self.update_tool_buttons(page)
+        self.update_tool_buttons()
         self.render_preview(page)
 
     def publish_book(self, button):
@@ -587,10 +603,16 @@ class MainWindow(Gtk.Window):
         # if we can't retrieve it from the object, lets try to get it from the directory
         pil_images = [Image.open(os.path.join(output_dir, str(page.number) + ".jpg")) for page in self.yearbook.pages]
         print("Will look for images starting with ", pil_images[0])
-        pdf_path = os.path.join(output_dir, self.child + "_version0.pdf")
+        pdf_path = os.path.join(output_dir, self.child_name + "_version0.pdf")
         pil_images[0].save(pdf_path, save_all=True,
                            append_images=pil_images[1:])
         print("Finished creating PDF version... ", pdf_path)
+
+        pickle_path = pickle_path_for_child(output_dir, school_name=self.school_name, child_name=self.child_name)
+        store_yearbook(self.yearbook, pickle_path)
+        print("Saved pickled yearbook here: ", pickle_path)
+        print("image 5 ", self.yearbook.pages[5].final_image)
+        print("image 4 ", self.yearbook.pages[4].final_image)
 
     def publish_book_old(self, button):
         output_dir = self.yearbook_parameters['output_dir']
@@ -610,7 +632,7 @@ class MainWindow(Gtk.Window):
             if len(all_pages) == len(self.yearbook.pages):
                 print("Time to destroy this dialog, and save the final file")
                 all_final_images = [page.final_img for page in self.yearbook.pages]
-                all_final_images[0].save(os.path.join(output_dir, self.child + "_version0.pdf"), save_all=True,
+                all_final_images[0].save(os.path.join(output_dir, self.child_name + "_version0.pdf"), save_all=True,
                                          append_images=all_final_images[1:])
                 comp_dialog.destroy()
 
@@ -655,7 +677,7 @@ class MainWindow(Gtk.Window):
         current_page = self.yearbook.pages[self.current_page_index]
         if not current_page.history:
             max_count = self.yearbook_parameters['max_count']
-            new_page_images = self.choose_page_images_for_child(current_page, self.child)
+            new_page_images = self.choose_page_images_for_child(current_page, self.child_name)
             remaining_images = [x for x in new_page_images if x not in used_images][:max_count]
             self.update_photolist(current_page, remaining_images)
 
@@ -694,7 +716,11 @@ class MainWindow(Gtk.Window):
             self.lbl_event_name.set_label(self.yearbook.pages[self.current_page_index].event_name)
             self.lbl_page_number.set_label(str(self.yearbook.pages[self.current_page_index].number))
 
-    def update_tool_buttons(self, page):
+    def update_tool_buttons(self):
+        if self.yearbook is None:
+            return
+
+        page = self.yearbook.pages[self.current_page_index]
         self.btn_undo.set_sensitive(page.history_index > 0)
         self.btn_redo.set_sensitive(page.history_index < len(page.history) - 1)
         if page.history_index < len(page.history):
@@ -850,7 +876,7 @@ class ImagePreviewArea(Gtk.DrawingArea):
                     self.image = None
                     self.mode = self.INSENSITIVE
                     current_page.history_index = len(current_page.history)
-                    self.parent.update_tool_buttons(current_page)
+                    self.parent.update_tool_buttons()
             # Otherwise, the user wants to swap this image with another
             else:
                 self.swap_origin.x, self.swap_origin.y = x, y

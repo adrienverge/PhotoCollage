@@ -27,8 +27,13 @@ class Page:
         self.data = {"imagePath": orig_image_loc, "extension": os.path.splitext(orig_image_loc)[1]}
         self.history = []
         self.history_index = 0
-        self.final_image: [PIL.Image] = []
+        self.final_image: PIL.Image = None
         self.photo_list = []
 
     def print_image_name(self):
         print("Name:: " + self.image)
+
+    def update_final_image(self, canvas: PIL.Image):
+        print("Image before update, ", self.final_image)
+        self.final_image = canvas
+        print("Image after update, ", self.final_image)

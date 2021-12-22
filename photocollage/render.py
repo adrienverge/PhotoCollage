@@ -220,7 +220,7 @@ class RenderingTask(Thread):
         else:
             img = PIL.Image.open(cell.photo.filename)
 
-            # Rotate image is EXIF says so
+            # Rotate image if EXIF says so
             if cell.photo.orientation == 3:
                 img = img.rotate(180, expand=True)
             elif cell.photo.orientation == 6:
@@ -273,7 +273,7 @@ class RenderingTask(Thread):
     def run(self):
         try:
             print("rendering ", self.yearbook_page.event_name)
-
+            print("should render ", self.yearbook_page.final_image)
             canvas = PIL.Image.new(
                 "RGB", (int(self.page.w), int(self.page.h)), "white")
 
@@ -311,14 +311,13 @@ class RenderingTask(Thread):
 
                 self.draw_borders(canvas)
 
-            # This is a hack since we're passing by value and can mutate lists
-            del self.yearbook_page.final_image[:]
-            self.yearbook_page.final_image.append(canvas)
+            # Need to call a method to update the final image
+            self.yearbook_page.update_final_image(canvas)
 
             print("Finished setting the final image ...")
             if self.output_file:
                 print("Saving image at ...", self.output_file)
-                canvas.save(self.output_file)
+                canvas.save(self.output_file, quality=95)
 
             if self.on_complete:
                 self.on_complete(canvas, self.output_file)

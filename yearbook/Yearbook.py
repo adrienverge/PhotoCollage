@@ -44,7 +44,12 @@ def create_yearbook_metadata_from_csv(config_file_path, school_name, email):
     return Yearbook(pages, school_name, email)
 
 
-def create_yearbook_metadata(db_file_path, school_name, email='anuj.for@gmail.com'):
+def create_yearbook_from_pickle(pickle_file_path):
+    from data.pickle.utils import load_pickled_yearbook
+    return load_pickled_yearbook(pickle_file_path)
+
+
+def create_yearbook_from_db(db_file_path, school_name, email='anuj.for@gmail.com'):
     import os
     pages: [Page] = []
     from data.sqllite.reader import get_album_details_for_school
@@ -77,4 +82,3 @@ class Yearbook:
 
     def get_drive_folders_with_event_name(self):
         return {(page.drive_folder, page.event_name) for page in self.pages if page.personalized}
-
