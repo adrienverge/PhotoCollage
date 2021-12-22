@@ -10,11 +10,8 @@ def store_yearbook(yearbook: Yearbook, filename: str):
     os.makedirs(path1.parent, exist_ok=True)
 
     # Important to open the file in binary mode
-    pickle_file = open(filename, 'ab')
-
-    pickle.dump(yearbook, pickle_file)
-
-    pickle_file.close()
+    with open(filename, 'wb') as f:
+        pickle.dump(yearbook, f)
 
 
 def load_pickled_yearbook(filename: str):
@@ -24,4 +21,8 @@ def load_pickled_yearbook(filename: str):
 
     return yearbook
 
+
+def pickle_path_for_child(output_dir:str, school_name: str, child_name: str):
+    import os
+    return os.path.join(output_dir, ".pickle", school_name, child_name + ".pickle")
 
