@@ -22,7 +22,30 @@ def load_pickled_yearbook(filename: str):
     return yearbook
 
 
-def pickle_path_for_child(output_dir:str, school_name: str, child_name: str):
+def get_dir_path(output_dir: str, school_name: str, grade: str, classroom: str, child_name: str, direc_name:str):
     import os
-    return os.path.join(output_dir, ".pickle", school_name, child_name + ".pickle")
+    if grade is None:
+        pickle_file_path = os.path.join(output_dir, ".", direc_name, school_name + "." + direc_name)
+    elif classroom is None:
+        pickle_file_path = os.path.join(output_dir, ".", direc_name, school_name, grade + "." + direc_name)
+    elif child_name is None:
+        pickle_file_path = os.path.join(output_dir, ".", direc_name, school_name, grade, classroom + "." + direc_name)
+    else:
+        pickle_file_path = os.path.join(output_dir, ".", direc_name, school_name, grade, classroom, child_name + "." + direc_name)
+
+    # we will make the directory for now
+    os.makedirs(pickle_file_path, exist_ok=True)
+    return pickle_file_path
+
+
+def get_pickle_path(output_dir: str, school_name: str, grade: str, classroom: str, child_name: str):
+    return get_dir_path(output_dir, school_name, grade, classroom, child_name, "pickle")
+
+
+def get_jpg_path(output_dir: str, school_name: str, grade: str, classroom: str, child_name: str):
+    return get_dir_path(output_dir, school_name, grade, classroom, child_name, "jpg")
+
+
+def get_pdf_path(output_dir: str, school_name: str, grade: str, classroom: str, child_name: str):
+    return get_dir_path(output_dir, school_name, grade, classroom, child_name, "pdf")
 
