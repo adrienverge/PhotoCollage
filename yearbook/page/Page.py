@@ -34,6 +34,4 @@ class Page:
         print("Name:: " + self.image)
 
     def update_final_image(self, canvas: PIL.Image):
-        print("Image before update, ", self.final_image)
         self.final_image = canvas
-        print("Image after update, ", self.final_image)

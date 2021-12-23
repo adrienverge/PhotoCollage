@@ -25,7 +25,7 @@ import urllib
 import cairo
 import gi
 
-from data.pickle.utils import store_yearbook, get_pickle_path, get_jpg_path, get_pdf_path
+from data.pickle.utils import store_pickled_yearbook, get_pickle_path, get_jpg_path, get_pdf_path
 from photocollage import APP_NAME, artwork, collage, render
 from photocollage.render import PIL_SUPPORTED_EXTS as EXTS
 from photocollage.dialogs.ConfigSelectorDialog import ConfigSelectorDialog
@@ -362,19 +362,20 @@ class MainWindow(Gtk.Window):
             print("You belong to: ", self.class_room)
             print("You are: ", self.child_name)
 
-            pickle_path = get_pickle_path(self.yearbook_parameters["output_dir"], self.school_name,
-                                          self.grade_name, self.class_room, self.child_name)
-
-            if os.path.exists(pickle_path):
+            pickle_filename = os.path.join(get_pickle_path(self.yearbook_parameters["output_dir"], self.school_name,
+                                                           self.grade_name, self.class_room, self.child_name),
+                                           "file.pickle")
+            if os.path.exists(pickle_filename):
                 print("Pickle file exists and we can load the yearbook from there")
                 from yearbook.Yearbook import create_yearbook_from_pickle
-                self.yearbook = create_yearbook_from_pickle(pickle_path)
+                self.yearbook = create_yearbook_from_pickle(pickle_filename)
                 print("Successfully loaded a yearbook from pickle file")
 
             # Once we know the school name, we should be able to retrieve the album details
             # TODO:: This check needs to incorporate whether the yearbook belongs to the selection.
             # For the time being we're going to deal with only 1 yearbook
             if self.yearbook is None:
+                print("Creating yearbook from database")
                 yearbook = create_yearbook_from_db(self.yearbook_parameters["db_file_path"], self.school_name)
                 for current_page in yearbook.pages:
 
@@ -390,8 +391,8 @@ class MainWindow(Gtk.Window):
                 self.yearbook = yearbook
 
                 # TODO:: Remove this save, for testing, let's save the pickle file here and try to load on next startup
-                store_yearbook(self.yearbook, pickle_path)
-                print("Saved yearbook here: ", pickle_path)
+                store_pickled_yearbook(self.yearbook, pickle_filename)
+                print("Saved yearbook here: ", pickle_filename)
 
             # Reset page to first
             _current_page = self.select_page_at_index(index=0)
@@ -640,9 +641,10 @@ class MainWindow(Gtk.Window):
 
         pickle_path = get_pickle_path(output_dir, school_name=self.school_name, grade=self.grade_name,
                                       classroom=self.class_room, child_name=self.child_name)
+        pickle_filename = os.path.join(pickle_path, "file.pickle")
 
-        store_yearbook(self.yearbook, pickle_path)
-        print("Saved pickled yearbook here: ", pickle_path)
+        store_pickled_yearbook(self.yearbook, pickle_filename)
+        print("Saved pickled yearbook here: ", pickle_filename)
 
     def select_next_page(self, button):
         old_page: Page = self.yearbook.pages[self.current_page_index]
