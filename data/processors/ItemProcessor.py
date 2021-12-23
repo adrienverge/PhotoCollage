@@ -9,5 +9,5 @@ class ItemProcessor:
     At a later date, we will define the contents of the dictionary via some strong typing.
     For now, we'll assume the keys are known to the outside callers.
     """
-    def process(self, source_image_path:str) -> {} :
+    def process(self, source_image_path:str) -> {}:
         pass

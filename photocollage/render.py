@@ -272,8 +272,6 @@ class RenderingTask(Thread):
 
     def run(self):
         try:
-            print("rendering ", self.yearbook_page.event_name)
-            print("should render ", self.yearbook_page.final_image)
             canvas = PIL.Image.new(
                 "RGB", (int(self.page.w), int(self.page.h)), "white")
 

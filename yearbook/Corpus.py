@@ -1,9 +1,10 @@
 class Corpus:
 
-    def __init__(self, image_map: {}, events_to_images: {}, child_to_images: {}):
+    def __init__(self, image_map: {}, events_to_images: {}, child_to_images: {}, corpus_dir: str):
         self.image_map = image_map
         self.events_to_images = events_to_images
         self.child_to_images = child_to_images
+        self.corpus_dir = corpus_dir
 
     def get_children(self):
         return self.child_to_images.keys()
@@ -19,10 +20,10 @@ class Corpus:
         # Doesn't check for missing events for now
         return self.events_to_images[event]
 
-    def get_filenames_for_event_images(self, event, corpus_dir):
+    def get_filenames_for_event_images(self, event):
         import os
         images_per_event = self.events_to_images[event]
-        return [os.path.join(corpus_dir, event, a_tuple) for a_tuple in images_per_event]
+        return [os.path.join(self.corpus_dir, event, a_tuple) for a_tuple in images_per_event]
 
     def get_child_images_for_event(self, child, event):
 
@@ -35,7 +36,7 @@ class Corpus:
 
         return child_images_per_event
 
-    def get_filenames_child_images_for_event(self, child, event, corpus_dir):
+    def get_filenames_child_images_for_event(self, child, event):
         import os
         child_images_per_event = self.get_child_images_for_event_with_scores(child, event)
 
@@ -43,17 +44,21 @@ class Corpus:
         # in this event. For now we're returning everything from that event
         if len(child_images_per_event) < 2:
             child_images_per_event = self.events_to_images[event]
-            return [os.path.join(corpus_dir, event, a_tuple) for a_tuple in child_images_per_event]
+            return [os.path.join(self.corpus_dir, event, a_tuple) for a_tuple in child_images_per_event]
 
-        return [os.path.join(corpus_dir, event, a_tuple[0]) for a_tuple in child_images_per_event]
+        return [os.path.join(self.corpus_dir, event, a_tuple[0]) for a_tuple in child_images_per_event]
 
     def get_child_images_for_event_with_scores(self, child, event):
 
         child_images_per_event = []
-
-        for image in self.child_to_images[child]:
-            if image[0] in self.events_to_images[event]:
-                child_images_per_event.append(image)
+        try:
+            for image in self.child_to_images[child]:
+                if image[0] in self.events_to_images[event]:
+                    child_images_per_event.append(image)
+        except KeyError:
+            # This means child doesn't have any images specific to this event
+            # We should show all images in that case. And we provide a tuple with image_name, score, and bounding_box []
+            [child_images_per_event.append((image, '0.5', [])) for image in self.events_to_images[event]]
 
         return child_images_per_event
 

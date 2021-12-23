@@ -30,6 +30,7 @@ class TestDefaultReader(unittest.TestCase):
         assert self.corpus.get_child_images_for_event_with_scores('Elise', 'Front_Cover') is not None
         assert len(self.corpus.get_child_images_for_event_with_scores('Elise', 'Front_Cover')) == 3
         print(self.corpus.get_child_images_for_event_with_scores('Elise', 'Front_Cover'))
+        print(self.corpus.get_child_images_for_event_with_scores('Elisah', 'Front_Cover'))
 
     def test_face_bounding_box(self):
         print("Running Test with scores")
@@ -48,11 +49,14 @@ class TestDefaultReader(unittest.TestCase):
 
     def test_get_filenames_child_images_for_event(self):
         corpus = corpus_processor('./processedCorpus_2.test')
-        christmas_imgs_per_child1 = corpus.get_filenames_child_images_for_event("Rilee", "Christmas", "test_dir")
-        christmas_imgs_per_child2 = corpus.get_filenames_child_images_for_event("child3", "Christmas", "test_dir")
-
+        christmas_imgs_per_child1 = corpus.get_filenames_child_images_for_event("Rilee", "Christmas")
+        christmas_imgs_per_child2 = corpus.get_filenames_child_images_for_event("child3", "Christmas")
+        christmas_imgs_per_unknown = corpus.get_filenames_child_images_for_event("asdfasdf", "Portraits")
+        print(christmas_imgs_per_unknown)
         assert len(christmas_imgs_per_child1) == 6
         assert len(christmas_imgs_per_child2) == 2
+        assert len(christmas_imgs_per_unknown) == 11
+
 
 if __name__ == '__main__':
     unittest.main()
