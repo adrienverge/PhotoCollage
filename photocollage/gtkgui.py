@@ -25,7 +25,7 @@ import urllib
 import cairo
 import gi
 
-from data.pickle.utils import store_yearbook, pickle_path_for_child
+from data.pickle.utils import store_pickled_yearbook, get_pickle_path, get_jpg_path, get_pdf_path
 from photocollage import APP_NAME, artwork, collage, render
 from photocollage.render import PIL_SUPPORTED_EXTS as EXTS
 from photocollage.dialogs.ConfigSelectorDialog import ConfigSelectorDialog
@@ -193,16 +193,16 @@ class MainWindow(Gtk.Window):
                                     'corpus_dir': os.path.join(self.google_drive_dir, 'Rilee4thGrade'),
                                     'db_file_path': os.path.join(self.google_drive_dir, 'RY.db'),
                                     'processed_corpus_file': os.path.join(self.google_drive_dir, 'Rilee4thGrade/processedCorpus_rilee_recognizer.out'),
-                                    'output_dir': os.path.join(self.google_drive_dir, 'VargasElementary')}
+                                    'output_dir': os.path.join(self.google_drive_dir, 'VargasElementary_ashah')}
 
         self.corpus = corpus_processor(self.yearbook_parameters["processed_corpus_file"])
 
         if not os.path.exists(self.yearbook_parameters["output_dir"]):
             os.mkdir(self.yearbook_parameters["output_dir"])
 
-        # Maybe this gets moved into yearbook-parameters, or we need a reference to the current child
-        # since that can be selected from the tree.
         self.school_name = "Rilee4thGrade"
+        self.grade_name = "Grade4"
+        self.class_room = "4A"
         self.child_name = "Rilee"
 
         from data.sqllite.reader import get_tree_model
@@ -334,25 +334,48 @@ class MainWindow(Gtk.Window):
     def on_tree_selection_changed(self, selection):
         model, treeiter = selection.get_selected()
         if treeiter is not None:
-            str_loc = model.get_string_from_iter(treeiter).split(':')[0]
+            levels = model.get_string_from_iter(treeiter).split(':')
+            str_loc = levels[0]
             new_tree_iter = model.get_iter_from_string(str_loc)
             self.school_name = model[new_tree_iter][0]
-            self.child_name = model[treeiter][0]
-            print("You belong to: ", self.school_name)
-            print("You are: ", model[treeiter][0])
 
-            print("Check for pickle file")
-            pickle_path = pickle_path_for_child(self.yearbook_parameters["output_dir"], self.school_name, self.child_name)
-            if os.path.exists(pickle_path):
+            try:
+                new_tree_iter = model.get_iter_from_string(levels[0] + ":" + levels[1])
+                self.grade_name = model[new_tree_iter][0]
+            except IndexError:
+                self.grade_name = None
+
+            try:
+                new_tree_iter = model.get_iter_from_string(levels[0] + ":" + levels[1] + ":" + levels[2])
+                self.class_room = model[new_tree_iter][0]
+            except IndexError:
+                self.class_room = None
+
+            try:
+                new_tree_iter = model.get_iter_from_string(levels[0] + ":" + levels[1] + ":" + levels[2] + ":" + levels[3])
+                self.child_name = model[new_tree_iter][0]
+            except IndexError:
+                self.child_name = None
+
+            print("You belong to: ", self.school_name)
+            print("You belong to: ", self.grade_name)
+            print("You belong to: ", self.class_room)
+            print("You are: ", self.child_name)
+
+            pickle_filename = os.path.join(get_pickle_path(self.yearbook_parameters["output_dir"], self.school_name,
+                                                           self.grade_name, self.class_room, self.child_name),
+                                           "file.pickle")
+            if os.path.exists(pickle_filename):
                 print("Pickle file exists and we can load the yearbook from there")
                 from yearbook.Yearbook import create_yearbook_from_pickle
-                self.yearbook = create_yearbook_from_pickle(pickle_path)
+                self.yearbook = create_yearbook_from_pickle(pickle_filename)
                 print("Successfully loaded a yearbook from pickle file")
 
             # Once we know the school name, we should be able to retrieve the album details
             # TODO:: This check needs to incorporate whether the yearbook belongs to the selection.
             # For the time being we're going to deal with only 1 yearbook
             if self.yearbook is None:
+                print("Creating yearbook from database")
                 yearbook = create_yearbook_from_db(self.yearbook_parameters["db_file_path"], self.school_name)
                 for current_page in yearbook.pages:
 
@@ -368,8 +391,8 @@ class MainWindow(Gtk.Window):
                 self.yearbook = yearbook
 
                 # TODO:: Remove this save, for testing, let's save the pickle file here and try to load on next startup
-                store_yearbook(self.yearbook, pickle_path)
-                print("Saved yearbook here: ", pickle_path)
+                store_pickled_yearbook(self.yearbook, pickle_filename)
+                print("Saved yearbook here: ", pickle_filename)
 
             # Reset page to first
             _current_page = self.select_page_at_index(index=0)
@@ -558,7 +581,8 @@ class MainWindow(Gtk.Window):
             dialog.run()
             dialog.destroy()
 
-        out_file = os.path.join(self.yearbook_parameters['output_dir'], str(yearbook_page.number) + ".jpg")
+        out_file = os.path.join(get_jpg_path(self.yearbook_parameters['output_dir'], self.school_name, self.grade_name,
+                                             self.class_room, self.child_name), str(yearbook_page.number) + ".jpg")
 
         t = render.RenderingTask(
             yearbook_page,
@@ -604,73 +628,23 @@ class MainWindow(Gtk.Window):
         print("Publishing....")
         output_dir = self.yearbook_parameters['output_dir']
 
-        # if we can't retrieve it from the object, lets try to get it from the directory
-        pil_images = [Image.open(os.path.join(output_dir, str(page.number) + ".jpg")) for page in self.yearbook.pages]
+        pil_images = [Image.open(os.path.join(get_jpg_path(output_dir, self.school_name, self.grade_name,
+                                                           self.class_room, self.child_name),
+                                              str(page.number) + ".jpg")) for page in self.yearbook.pages]
+
         print("Will look for images starting with ", pil_images[0])
-        pdf_path = os.path.join(output_dir, self.child_name + "_version0.pdf")
+        pdf_path = os.path.join(get_pdf_path(output_dir, self.school_name, self.grade_name,
+                                             self.class_room, self.child_name), "yearbook.pdf")
         pil_images[0].save(pdf_path, save_all=True,
                            append_images=pil_images[1:])
         print("Finished creating PDF version... ", pdf_path)
 
-        pickle_path = pickle_path_for_child(output_dir, school_name=self.school_name, child_name=self.child_name)
-        store_yearbook(self.yearbook, pickle_path)
-        print("Saved pickled yearbook here: ", pickle_path)
-        print("image 5 ", self.yearbook.pages[5].final_image)
-        print("image 4 ", self.yearbook.pages[4].final_image)
+        pickle_path = get_pickle_path(output_dir, school_name=self.school_name, grade=self.grade_name,
+                                      classroom=self.class_room, child_name=self.child_name)
+        pickle_filename = os.path.join(pickle_path, "file.pickle")
 
-    def publish_book_old(self, button):
-        output_dir = self.yearbook_parameters['output_dir']
-
-        all_pages = []
-        # Display a "please wait" dialog and do the job.
-        comp_dialog = ComputingDialog(self)
-        count_completed = 0
-
-        def on_update(img, fraction_complete):
-            comp_dialog.update(fraction_complete)
-
-        def on_complete(img, out_file_name):
-            comp_dialog.update(0)
-            print("Finished creating img %s", out_file_name)
-            all_pages.append(out_file_name)
-            if len(all_pages) == len(self.yearbook.pages):
-                print("Time to destroy this dialog, and save the final file")
-                all_final_images = [page.final_img for page in self.yearbook.pages]
-                all_final_images[0].save(os.path.join(output_dir, self.child_name + "_version0.pdf"), save_all=True,
-                                         append_images=all_final_images[1:])
-                comp_dialog.destroy()
-
-                return
-
-        print("Will create a yearbook with page count: ", str(len(self.yearbook.pages)))
-        for yearbook_page in self.yearbook.pages:
-            out_file = os.path.join(self.yearbook_parameters['output_dir'], str(yearbook_page.number) + ".jpg")
-            page_collage = yearbook_page.history[yearbook_page.history_index]
-            enlargement = float(self.opts.out_w) / page_collage.page.w
-            page_collage.page.scale(enlargement)
-
-            t = render.RenderingTask(
-                yearbook_page,
-                page_collage.page,
-                output_file=out_file,
-                border_width=self.opts.border_w * max(page_collage.page.w,
-                                                      page_collage.page.h),
-                border_color=self.opts.border_c,
-                on_update=gtk_run_in_main_thread(on_update),
-                on_complete=gtk_run_in_main_thread(on_complete),
-                on_fail=None)
-
-            t.start()
-
-        # Lets read the page images again and write it to a pdf
-        # final_pages = []
-        # for yearbook_page in self.yearbook.pages:
-        #    final_pages.append(yearbook_page.final_img)
-
-        # now let's write this thing to a PDF file
-        print("Finished creating the final PDF file...")
-        # final_pages[0].save(os.path.join(output_dir, self.child + "_version0.pdf"), save_all=True,
-        #                    append_images=final_pages[1:])
+        store_pickled_yearbook(self.yearbook, pickle_filename)
+        print("Saved pickled yearbook here: ", pickle_filename)
 
     def select_next_page(self, button):
         old_page: Page = self.yearbook.pages[self.current_page_index]
