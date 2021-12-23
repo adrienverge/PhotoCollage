@@ -46,4 +46,5 @@ def corpus_processor(corpus_file) -> {}:
         sorted_images = sorted(imgs, key=lambda x: x[1], reverse=True)
         face_to_image_map[face] = sorted_images
 
-    return Corpus(image_map=all_images_map, child_to_images=face_to_image_map, events_to_images=event_to_image_map)
+    import os
+    return Corpus(image_map=all_images_map, child_to_images=face_to_image_map, events_to_images=event_to_image_map,corpus_dir=os.path.dirname(corpus_file))

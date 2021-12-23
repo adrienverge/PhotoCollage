@@ -26,6 +26,7 @@ import cairo
 import gi
 
 from data.pickle.utils import store_pickled_yearbook, get_pickle_path, get_jpg_path, get_pdf_path
+from data.rankers import RankerFactory
 from photocollage import APP_NAME, artwork, collage, render
 from photocollage.render import PIL_SUPPORTED_EXTS as EXTS
 from photocollage.dialogs.ConfigSelectorDialog import ConfigSelectorDialog
@@ -192,7 +193,8 @@ class MainWindow(Gtk.Window):
         self.yearbook_parameters = {'max_count': 12,
                                     'corpus_dir': os.path.join(self.google_drive_dir, 'Rilee4thGrade'),
                                     'db_file_path': os.path.join(self.google_drive_dir, 'RY.db'),
-                                    'processed_corpus_file': os.path.join(self.google_drive_dir, 'Rilee4thGrade/processedCorpus_rilee_recognizer.out'),
+                                    'processed_corpus_file': os.path.join(self.google_drive_dir, 'Rilee4thGrade'
+                                                                          ,'processedCorpus_rilee_recognizer.out'),
                                     'output_dir': os.path.join(self.google_drive_dir, 'VargasElementary_ashah')}
 
         self.corpus = corpus_processor(self.yearbook_parameters["processed_corpus_file"])
@@ -381,7 +383,7 @@ class MainWindow(Gtk.Window):
 
                     # TODO: Add intelligence here since we should be able to refine the images to pick
                     # based on page information
-                    all_page_images = self.choose_page_images_for_child(current_page, self.child_name, max_count=100)
+                    all_page_images = self.choose_images_for_page(current_page, max_count=100)
 
                     # Need to use a small set of these images to create the initial collage
                     self.update_photolist(current_page, all_page_images[:12], display=True)
@@ -403,12 +405,11 @@ class MainWindow(Gtk.Window):
             self.update_page_buttons()
 
     def update_flow_box_with_images(self, page: Page):
-        corpus_dir = self.yearbook_parameters["corpus_dir"]
         if not page.personalized:
             print("Load image as is, %s, %s" % (page.event_name, page.image))
             event_images = [page.image]
         else:
-            event_images = self.corpus.get_filenames_for_event_images(page.event_name, corpus_dir)
+            event_images = self.corpus.get_filenames_for_event_images(page.event_name)
 
         # scrolled = Gtk.ScrolledWindow()
         # scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
@@ -506,15 +507,17 @@ class MainWindow(Gtk.Window):
         else:
             dialog.destroy()
 
-    def choose_page_images_for_child(self, page, child, max_count=12):
-        corpus_dir = self.yearbook_parameters["corpus_dir"]
-
+    def choose_images_for_page(self, page, max_count=12):
         if not page.personalized:
             print("Load image as is, %s, %s" % (page.event_name, page.image))
             images = [page.image]
         else:
+            # Let's find the right ranker to delegate to
+            ranker = RankerFactory.create_ranker(self.corpus, self.school_name, self.grade_name,
+                                                 self.class_room, self.child_name)
+
             print("Working on: (%s, %s, %s)" % (page.image, page.event_name, page.number))
-            images = self.corpus.get_filenames_child_images_for_event(child, page.event_name, corpus_dir)
+            images = ranker.rank(self.school_name, self.grade_name, self.class_room, self.child_name, page.event_name)
 
         return images[:max_count]
 
@@ -550,7 +553,7 @@ class MainWindow(Gtk.Window):
         try:
             page_collage: UserCollage = yearbook_page.history[yearbook_page.history_index]
         except IndexError:
-            page_images = self.choose_page_images_for_child(yearbook_page, self.child_name)
+            page_images = self.choose_images_for_page(yearbook_page)
             self.update_photolist(yearbook_page, page_images)
             self.update_flow_box_with_images(yearbook_page)
 
@@ -655,7 +658,7 @@ class MainWindow(Gtk.Window):
         current_page = self.yearbook.pages[self.current_page_index]
         if not current_page.history:
             max_count = self.yearbook_parameters['max_count']
-            new_page_images = self.choose_page_images_for_child(current_page, self.child_name)
+            new_page_images = self.choose_images_for_page(current_page)
             remaining_images = [x for x in new_page_images if x not in used_images][:max_count]
             self.update_photolist(current_page, remaining_images)
 
