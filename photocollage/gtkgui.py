@@ -339,9 +339,8 @@ class MainWindow(Gtk.Window):
             self.school_name = model[new_tree_iter][0]
             self.child_name = model[treeiter][0]
             print("You belong to: ", self.school_name)
-            print("You are: ", model[treeiter][0])
+            print("You are: ", self.child_name)
 
-            print("Check for pickle file")
             pickle_path = pickle_path_for_child(self.yearbook_parameters["output_dir"], self.school_name, self.child_name)
             if os.path.exists(pickle_path):
                 print("Pickle file exists and we can load the yearbook from there")
@@ -617,60 +616,6 @@ class MainWindow(Gtk.Window):
         print("Saved pickled yearbook here: ", pickle_path)
         print("image 5 ", self.yearbook.pages[5].final_image)
         print("image 4 ", self.yearbook.pages[4].final_image)
-
-    def publish_book_old(self, button):
-        output_dir = self.yearbook_parameters['output_dir']
-
-        all_pages = []
-        # Display a "please wait" dialog and do the job.
-        comp_dialog = ComputingDialog(self)
-        count_completed = 0
-
-        def on_update(img, fraction_complete):
-            comp_dialog.update(fraction_complete)
-
-        def on_complete(img, out_file_name):
-            comp_dialog.update(0)
-            print("Finished creating img %s", out_file_name)
-            all_pages.append(out_file_name)
-            if len(all_pages) == len(self.yearbook.pages):
-                print("Time to destroy this dialog, and save the final file")
-                all_final_images = [page.final_img for page in self.yearbook.pages]
-                all_final_images[0].save(os.path.join(output_dir, self.child_name + "_version0.pdf"), save_all=True,
-                                         append_images=all_final_images[1:])
-                comp_dialog.destroy()
-
-                return
-
-        print("Will create a yearbook with page count: ", str(len(self.yearbook.pages)))
-        for yearbook_page in self.yearbook.pages:
-            out_file = os.path.join(self.yearbook_parameters['output_dir'], str(yearbook_page.number) + ".jpg")
-            page_collage = yearbook_page.history[yearbook_page.history_index]
-            enlargement = float(self.opts.out_w) / page_collage.page.w
-            page_collage.page.scale(enlargement)
-
-            t = render.RenderingTask(
-                yearbook_page,
-                page_collage.page,
-                output_file=out_file,
-                border_width=self.opts.border_w * max(page_collage.page.w,
-                                                      page_collage.page.h),
-                border_color=self.opts.border_c,
-                on_update=gtk_run_in_main_thread(on_update),
-                on_complete=gtk_run_in_main_thread(on_complete),
-                on_fail=None)
-
-            t.start()
-
-        # Lets read the page images again and write it to a pdf
-        # final_pages = []
-        # for yearbook_page in self.yearbook.pages:
-        #    final_pages.append(yearbook_page.final_img)
-
-        # now let's write this thing to a PDF file
-        print("Finished creating the final PDF file...")
-        # final_pages[0].save(os.path.join(output_dir, self.child + "_version0.pdf"), save_all=True,
-        #                    append_images=final_pages[1:])
 
     def select_next_page(self, button):
         old_page: Page = self.yearbook.pages[self.current_page_index]

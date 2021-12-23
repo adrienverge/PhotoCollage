@@ -74,9 +74,6 @@ def get_tree_model(db_file: str):
             treestore.append(class_parent, [current_child])
             added_schools[school_name][current_grade][current_class][current_child] = {}
 
-
-
-
     return treestore
 
 
