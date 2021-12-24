@@ -59,7 +59,7 @@ def create_yearbook_from_db(db_file_path, school_name, email='anuj.for@gmail.com
         if row[2].startswith('Dynamic'):
             personalized = True
 
-        page = Page(int(row[3]), str(row[1]), personalized, os.path.join(os.path.dirname(db_file_path), school_name, row[4]))
+        page = Page(int(row[3]), str(row[1]).strip(), personalized, os.path.join(os.path.dirname(db_file_path), school_name, row[4]))
         print(row)
         pages.append(page)
 

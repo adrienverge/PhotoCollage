@@ -174,8 +174,13 @@ class MainWindow(Gtk.Window):
     def __init__(self):
         super().__init__(title=_("Yearbook Creator"))
         self.yearbook_configurator = Gtk.Button(label=_("Yearbook Settings..."))
-        self.current_yearbook = None
+
         self.yearbook_cache = {}
+        self.corpus_cache = {}
+
+        self.current_yearbook = None
+        self.corpus = None
+
         self.btn_choose_images = Gtk.Button(label=_("Add images..."))
         self.img_preview = ImagePreviewArea(self)
         self.images_flow_box = Gtk.FlowBox()
@@ -189,34 +194,32 @@ class MainWindow(Gtk.Window):
         self.lbl_page_number = Gtk.Label(" ")
         self.btn_next_page = Gtk.Button(label=_("Next page..."))
         self.btn_publish_book = Gtk.Button(label=_("Publish"))
+
+        # TODO: Make this yearbook specific
         self.current_page_index = 0
-        self.google_drive_dir = '/Users/ashah/GoogleDrive'
-        self.yearbook_parameters = {'max_count': 12,
-                                    'corpus_dir': os.path.join(self.google_drive_dir, 'Rilee4thGrade'),
-                                    'db_file_path': os.path.join(self.google_drive_dir, 'RY.db'),
-                                    'processed_corpus_file': os.path.join(self.google_drive_dir, 'Rilee4thGrade'
-                                                                          ,'processedCorpus_rilee_recognizer.out'),
-                                    'output_dir': os.path.join(self.google_drive_dir, 'VargasElementary_ashah')}
 
-        self.corpus = corpus_processor(self.yearbook_parameters["processed_corpus_file"])
-
-        if not os.path.exists(self.yearbook_parameters["output_dir"]):
-            os.mkdir(self.yearbook_parameters["output_dir"])
-
+        import getpass
+        self.google_drive_dir = os.path.join('/Users', getpass.getuser(), 'GoogleDrive')
         self.school_name = "Rilee4thGrade"
         self.grade_name = "Grade4"
         self.class_room = "4A"
         self.child_name = "Rilee"
 
+        self.yearbook_parameters = {'max_count': 12,
+                                    'db_file_path': os.path.join(self.google_drive_dir, 'RY.db'),
+                                    'output_dir': os.path.join(self.google_drive_dir, getpass.getuser())}
+
+        self.set_current_corpus()
+
         from data.sqllite.reader import get_tree_model
         self.treeView = Gtk.TreeView(get_tree_model(self.yearbook_parameters['db_file_path']))
-        self.tv_column = Gtk.TreeViewColumn('Roster')
-        self.treeView.append_column(self.tv_column)
+        tv_column = Gtk.TreeViewColumn('Roster')
+        self.treeView.append_column(tv_column)
         self.treeView.expand_all()
 
-        self.cell = Gtk.CellRendererText()
-        self.tv_column.pack_start(self.cell, True)
-        self.tv_column.add_attribute(self.cell, 'text', 0)
+        cell = Gtk.CellRendererText()
+        tv_column.pack_start(cell, True)
+        tv_column.add_attribute(cell, 'text', 0)
 
         class Options:
             def __init__(self):
@@ -335,9 +338,12 @@ class MainWindow(Gtk.Window):
         box.pack_start(_scrolledWindow, True, True, 0)
 
     def set_current_yearbook(self, str_loc: str):
+        yearbook = None
+        print(self.yearbook_cache.keys())
+
         if str_loc in self.yearbook_cache:
             print("Retrieving yearbook from the cache...")
-            self.current_yearbook = self.yearbook_cache[str_loc]
+            yearbook = self.yearbook_cache[str_loc]
         else:
             # We need to create the yearbook and everything else associated with it and add it to the cache
 
@@ -348,11 +354,11 @@ class MainWindow(Gtk.Window):
             if os.path.exists(pickle_filename):
                 print("Pickle file exists and we can load the yearbook from there")
                 from yearbook.Yearbook import create_yearbook_from_pickle
-                self.current_yearbook = create_yearbook_from_pickle(pickle_filename)
+                yearbook = create_yearbook_from_pickle(pickle_filename)
                 print("Successfully loaded a yearbook from pickle file")
 
-            if self.current_yearbook is None:
-                print("First attempt to access a yearbook for tree node...")
+            if yearbook is None:
+                print("First attempt to access a yearbook for this tree node...")
                 yearbook = create_yearbook_from_db(self.yearbook_parameters["db_file_path"], self.school_name)
                 for current_page in yearbook.pages:
 
@@ -364,14 +370,22 @@ class MainWindow(Gtk.Window):
                     self.update_photolist(current_page, all_page_images[:12], display=True)
                     print("Finished updating the photo list for page, %s", current_page.event_name)
 
-                # Let's update the yearbook on selection to display
-                self.current_yearbook = yearbook
-
-                store_pickled_yearbook(self.current_yearbook, pickle_filename)
+                store_pickled_yearbook(yearbook, pickle_filename)
                 print("Saved yearbook here: ", pickle_filename)
 
-            # Add that yearbook to the cache
-            self.yearbook_cache[str_loc] = self.current_yearbook
+        # Add that yearbook to the cache
+        self.yearbook_cache[str_loc] = yearbook
+        self.current_yearbook = yearbook
+
+        # Reset the page index for the time being as a hack
+        self.current_page_index = 0
+
+    def set_current_corpus(self):
+        if self.school_name in self.corpus_cache:
+            self.corpus = self.corpus_cache[self.school_name]
+        else:
+            self.corpus = corpus_processor(self.school_name)
+            self.corpus_cache[self.school_name] = self.corpus
 
     def on_tree_selection_changed(self, selection):
         model, treeiter = selection.get_selected()
@@ -405,7 +419,8 @@ class MainWindow(Gtk.Window):
             print("You are: ", self.child_name)
 
             # TODO:: This doesn't remember the exact page you were browsing, but should be fine for now.
-            self.set_current_yearbook(str_loc)
+            self.set_current_corpus()
+            self.set_current_yearbook(model.get_string_from_iter(treeiter))
 
             # Reset page to first
             _current_page = self.select_page_at_index(index=0)
@@ -434,7 +449,7 @@ class MainWindow(Gtk.Window):
 
             # Lets not add the image to the viewer if it's on the page.
             # TODO: This need to account for all previous pages and be smarter than what it currently is
-            if img in [photo.filename for photo in page.photo_list]:
+            if page.personalized and img in [photo.filename for photo in page.photo_list]:
                 print("Skip displaying this image...")
                 continue
 
@@ -491,10 +506,7 @@ class MainWindow(Gtk.Window):
         page.photo_list = photolist
 
     def select_page_at_index(self, index: int):
-
         self.current_page_index = index
-        self.select_next_page(self.btn_next_page)
-
         return self.current_yearbook.pages[index]
 
     def setup_yearbook_config(self, button):
@@ -502,7 +514,7 @@ class MainWindow(Gtk.Window):
         response = dialog.run()
         if response == Gtk.ResponseType.OK:
             self.yearbook_parameters = dialog.config_parameters
-            self.corpus = corpus_processor(self.yearbook_parameters["processed_corpus_file"])
+            self.set_current_corpus()
 
             # Read the config file
             # TODO:: This school name needs to come from a combo box on the UI once the database file is provided
@@ -696,6 +708,8 @@ class MainWindow(Gtk.Window):
             dialog.destroy()
 
     def update_page_buttons(self):
+        # TODO:: Need to fix this as a bug fix, since it's not related to the page of the yearbook
+        # but it's referring to the page of ANY previous yearbook
         self.btn_previous_page.set_sensitive(self.current_page_index > 0)
         self.btn_next_page.set_sensitive(self.current_page_index < len(self.current_yearbook.pages) - 1)
 

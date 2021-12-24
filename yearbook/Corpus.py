@@ -1,6 +1,7 @@
 class Corpus:
 
-    def __init__(self, image_map: {}, events_to_images: {}, child_to_images: {}, corpus_dir: str):
+    def __init__(self, school_name: str, image_map: {}, events_to_images: {}, child_to_images: {}, corpus_dir: str):
+        self.school_name = school_name
         self.image_map = image_map
         self.events_to_images = events_to_images
         self.child_to_images = child_to_images
