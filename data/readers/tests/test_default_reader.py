@@ -7,7 +7,7 @@ class TestDefaultReader(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         print('BasicTest.__init__')
         super(TestDefaultReader, self).__init__(*args, **kwargs)
-        self.corpus = corpus_processor('./processedCorpus.test')
+        self.corpus = corpus_processor('appleseed', './processedCorpus.test')
 
     def test_faces_in_image(self):
         photograph = self.corpus.image_map['1jT1b017LNxXFNKfOTmtF-i1LGvmiMxvt.jpg']
@@ -48,7 +48,7 @@ class TestDefaultReader(unittest.TestCase):
         assert(len(self.corpus.get_children())) == 21
 
     def test_get_filenames_child_images_for_event(self):
-        corpus = corpus_processor('./processedCorpus_2.test')
+        corpus = corpus_processor('appleseed', './processedCorpus_2.test')
         christmas_imgs_per_child1 = corpus.get_filenames_child_images_for_event("Rilee", "Christmas")
         christmas_imgs_per_child2 = corpus.get_filenames_child_images_for_event("child3", "Christmas")
         christmas_imgs_per_unknown = corpus.get_filenames_child_images_for_event("asdfasdf", "Portraits")
@@ -56,6 +56,10 @@ class TestDefaultReader(unittest.TestCase):
         assert len(christmas_imgs_per_child1) == 6
         assert len(christmas_imgs_per_child2) == 2
         assert len(christmas_imgs_per_unknown) == 11
+
+    def test_google_drive_corpus(self):
+        corpus = corpus_processor(school_name='Appleseed_2018_2019')
+        print(corpus.get_filenames_child_images_for_event('Ariya', 'Front_Cover'))
 
 
 if __name__ == '__main__':

@@ -4,11 +4,18 @@ from yearbook.Photograph import Photograph
 from util.utils import get_box_from_points_arr
 
 
-def corpus_processor(corpus_file) -> {}:
+def corpus_processor(school_name: str, corpus_file: str = None) -> {}:
     face_to_image_map = {}
     event_to_image_map = {}  # For a given event, we can track the images
 
     all_images_map = {}
+
+    # Corpus files are stored in GoogleDrive/ProcessedCorpus
+    import os
+    import getpass
+
+    if corpus_file is None:
+        corpus_file = os.path.join('/Users', getpass.getuser(), 'GoogleDrive', 'ProcessedCorpus', school_name + ".out")
 
     # read the corpus file
     with open(corpus_file, 'r') as reader:
@@ -47,4 +54,8 @@ def corpus_processor(corpus_file) -> {}:
         face_to_image_map[face] = sorted_images
 
     import os
-    return Corpus(image_map=all_images_map, child_to_images=face_to_image_map, events_to_images=event_to_image_map,corpus_dir=os.path.dirname(corpus_file))
+    corpus_dir = os.path.join('/Users', getpass.getuser(), 'GoogleDrive', school_name)
+
+    return Corpus(school_name=school_name, image_map=all_images_map, child_to_images=face_to_image_map,
+                  events_to_images=event_to_image_map,
+                  corpus_dir=corpus_dir)
