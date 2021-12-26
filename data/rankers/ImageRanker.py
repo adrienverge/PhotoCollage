@@ -31,7 +31,7 @@ class SchoolRanker(ImageRanker):
 
     def rank(self, school: str, grade: str, classroom: str, child: str, event_name: str) -> []:
         # Return a list of images that are applicable to the school level
-        return self.corpus.get_images_for_event(event_name)
+        return self.corpus.get_filenames_for_event_images(event_name)
 
     def whoamI(self):
         print("SchoolRanker, %s" % self.school_name)
@@ -43,7 +43,7 @@ class GradeRanker(ImageRanker):
 
     def rank(self, school: str, grade: str, classroom: str, child: str, event_name: str) -> []:
         # Return a list of images that are applicable to the grade level
-        return self.corpus.get_images_for_event(event_name)
+        return self.corpus.get_filenames_for_event_images(event_name)
 
     def whoamI(self):
         print("GradeRanker")
@@ -55,7 +55,7 @@ class ClassroomRanker(ImageRanker):
 
     def rank(self, school: str, grade: str, classroom: str, child: str, event_name: str) -> []:
         # Return a list of images that are applicable to the classroom level
-        return self.corpus.get_images_for_event(event_name)
+        return self.corpus.get_filenames_for_event_images(event_name)
 
     def whoamI(self):
         print("ClassRoomRanker")

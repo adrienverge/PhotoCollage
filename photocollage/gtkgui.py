@@ -33,6 +33,7 @@ from photocollage.dialogs.ConfigSelectorDialog import ConfigSelectorDialog
 from photocollage.dialogs.SettingsDialog import SettingsDialog
 
 from data.readers.default import corpus_processor
+from util.utils import get_unique_list_insertion_order
 from yearbook.Yearbook import create_yearbook_from_db, Yearbook
 from yearbook.Yearbook import Page
 
@@ -178,7 +179,7 @@ class MainWindow(Gtk.Window):
         self.yearbook_cache = {}
         self.corpus_cache = {}
 
-        self.current_yearbook = None
+        self.current_yearbook: Yearbook = None
         self.corpus = None
 
         self.btn_choose_images = Gtk.Button(label=_("Add images..."))
@@ -339,7 +340,6 @@ class MainWindow(Gtk.Window):
 
     def set_current_yearbook(self, str_loc: str):
         yearbook = None
-        print(self.yearbook_cache.keys())
 
         if str_loc in self.yearbook_cache:
             print("Retrieving yearbook from the cache...")
@@ -360,7 +360,15 @@ class MainWindow(Gtk.Window):
             if yearbook is None:
                 print("First attempt to access a yearbook for this tree node...")
                 yearbook = create_yearbook_from_db(self.yearbook_parameters["db_file_path"], self.school_name)
-                for current_page in yearbook.pages:
+                str_loc_list = str_loc.split(":")
+                for page_index in range(len(yearbook.pages)):
+                    current_page = yearbook.pages[page_index]
+
+                    # Find the parent nodes selected and retrieve their pages
+                    parent_iter_locs = [":".join(str_loc_list[:i+1]) for i in range(len(str_loc_list)-1)]
+                    parent_yearbooks = [self.yearbook_cache[parent_str] for parent_str in parent_iter_locs
+                                            if parent_str in self.yearbook_cache]
+                    current_page.parent_pages = [yearbook.pages[page_index] for yearbook in parent_yearbooks]
 
                     # TODO: Add intelligence here since we should be able to refine the images to pick
                     # based on page information
@@ -408,7 +416,8 @@ class MainWindow(Gtk.Window):
                 self.class_room = None
 
             try:
-                new_tree_iter = model.get_iter_from_string(levels[0] + ":" + levels[1] + ":" + levels[2] + ":" + levels[3])
+                new_tree_iter = model.get_iter_from_string(
+                    levels[0] + ":" + levels[1] + ":" + levels[2] + ":" + levels[3])
                 self.child_name = model[new_tree_iter][0]
             except IndexError:
                 self.child_name = None
@@ -518,7 +527,8 @@ class MainWindow(Gtk.Window):
 
             # Read the config file
             # TODO:: This school name needs to come from a combo box on the UI once the database file is provided
-            self.current_yearbook = create_yearbook_from_db(self.yearbook_parameters["config_file"], "Rilee4thGrade", "")
+            self.current_yearbook = create_yearbook_from_db(self.yearbook_parameters["config_file"], "Rilee4thGrade",
+                                                            "")
             # Reset page to first
             _current_page = self.select_page_at_index(index=0)
 
@@ -528,7 +538,7 @@ class MainWindow(Gtk.Window):
         else:
             dialog.destroy()
 
-    def choose_images_for_page(self, page, max_count=12):
+    def choose_images_for_page(self, page: Page, max_count=12):
         if not page.personalized:
             print("Load image as is, %s, %s" % (page.event_name, page.image))
             images = [page.image]
@@ -540,7 +550,10 @@ class MainWindow(Gtk.Window):
             print("Working on: (%s, %s, %s)" % (page.image, page.event_name, page.number))
             images = ranker.rank(self.school_name, self.grade_name, self.class_room, self.child_name, page.event_name)
 
-        return images[:max_count]
+        _pinned_photos = page.get_pinned_photos()
+        _pinned_photos.extend(images[:max_count])
+
+        return get_unique_list_insertion_order(_pinned_photos)
 
     def choose_images(self, button):
         dialog = PreviewFileChooserDialog(title=_("Choose images"),
@@ -682,9 +695,11 @@ class MainWindow(Gtk.Window):
             new_page_images = self.choose_images_for_page(current_page)
             remaining_images = [x for x in new_page_images if x not in used_images][:max_count]
             self.update_photolist(current_page, remaining_images)
+            print("Updating with new images here, maybe")
 
         self.render_preview(current_page)
         self.update_flow_box_with_images(current_page)
+        print("NextClick - Number of images pinned %s" % str(len(current_page.get_pinned_photos())))
 
     def select_prev_page(self, button):
         self.current_page_index -= 1
@@ -692,6 +707,7 @@ class MainWindow(Gtk.Window):
         current_page = self.current_yearbook.pages[self.current_page_index]
         self.render_preview(current_page)
         self.update_flow_box_with_images(current_page)
+        print("PrevClick - Number of images pinned %s" % str(len(current_page.get_pinned_photos())))
 
     def set_settings(self, button):
         dialog = SettingsDialog(self)
@@ -826,6 +842,24 @@ class ImagePreviewArea(Gtk.DrawingArea):
         context.line_to(x + 4, y - 4)
         context.stroke()
 
+    def paint_image_pin_button(self, context, cell):
+        x0, y0 = self.get_image_offset()
+
+        x = x0 + cell.x + cell.w - 30
+        y = y0 + cell.y + 12
+
+        context.arc(x, y, 8, 0, 6.2832)
+        context.set_source_rgb(0.0, 0.8, 0.0)
+        context.fill()
+        context.arc(x, y, 8, 0, 6.2832)
+        context.set_source_rgb(0.0, 0.0, 0.0)
+        context.set_line_width(1)
+        context.move_to(x - 4, y - 4)
+        context.line_to(x + 4, y + 4)
+        context.move_to(x - 4, y + 4)
+        context.line_to(x + 4, y - 4)
+        context.stroke()
+
     def draw(self, widget, context):
         if self.image is not None:
             x0, y0 = self.get_image_offset()
@@ -836,7 +870,15 @@ class ImagePreviewArea(Gtk.DrawingArea):
                 cell = self.collage.page.get_cell_at_position(self.x, self.y)
                 if cell:
                     self.paint_image_border(context, cell)
-                    self.paint_image_delete_button(context, cell)
+
+                    if self.parent.current_page_index is not None:
+                        _current_page = self.parent.current_yearbook.pages[self.parent.current_page_index]
+                        if cell.photo.filename not in _current_page.get_parent_pinned_photos():
+                            # Allow deleting only when the image is pinned by any parent.
+                            self.paint_image_delete_button(context, cell)
+
+                    # So far we can allow pinning at all levels. At a leaf node, pinning has no effect
+                    self.paint_image_pin_button(context, cell)
             elif self.mode == self.SWAPPING_OR_MOVING:
                 self.paint_image_border(context, self.swap_origin.cell, (3, 3))
                 cell = self.collage.page.get_cell_at_position(self.x, self.y)
@@ -870,8 +912,9 @@ class ImagePreviewArea(Gtk.DrawingArea):
             if not cell:
                 return
             # Has the user clicked the delete button?
-            dist = (cell.x + cell.w - 12 - x) ** 2 + (cell.y + 12 - y) ** 2
-            if dist <= 8 * 8:
+            dist_delete = (cell.x + cell.w - 12 - x) ** 2 + (cell.y + 12 - y) ** 2
+            dist_pinned = (cell.x + cell.w - 30 - x) ** 2 + (cell.y + 12 - y) ** 2
+            if dist_delete <= 8 * 8:
                 self.collage.photolist.remove(cell.photo)
                 if self.collage.photolist:
                     self.collage.make_page(self.parent.opts)
@@ -881,6 +924,9 @@ class ImagePreviewArea(Gtk.DrawingArea):
                     self.mode = self.INSENSITIVE
                     current_page.history_index = len(current_page.history)
                     self.parent.update_tool_buttons()
+            elif dist_pinned <= 8 * 8:
+                print("This photo in the page needs to be pinned")
+                current_page.pin_photo(cell.photo)
             # Otherwise, the user wants to swap this image with another
             else:
                 self.swap_origin.x, self.swap_origin.y = x, y

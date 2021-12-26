@@ -44,3 +44,9 @@ def get_center_coods_of_rectangle(rectangle_points: [float, float, float, float]
     center_y = rectangle_points[1] + _height / 2
 
     return center_x, center_y
+
+
+def get_unique_list_insertion_order(flat_list):
+    from collections import OrderedDict
+    unique_list = list(OrderedDict.fromkeys(flat_list))
+    return unique_list
