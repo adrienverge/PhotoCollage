@@ -100,7 +100,6 @@ def build_photolist(filelist):
         try:
             img = PIL.Image.open(name)
         except OSError:
-            # raise BadPhoto(name)
             print("Skipping a photo: %s" % name)
             continue
 

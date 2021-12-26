@@ -61,6 +61,10 @@ class TestDefaultReader(unittest.TestCase):
         corpus = corpus_processor(school_name='Appleseed_2018_2019')
         print(corpus.get_filenames_child_images_for_event('Ariya', 'Front_Cover'))
 
+    def test_get_filenames_for_event_images(self):
+        corpus = corpus_processor(school_name='Appleseed_2018_2019')
+        print(corpus.get_filenames_for_event_images('Portraits'))
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,6 +1,9 @@
 import os
 import PIL.Image
 
+from photocollage.collage import Photo
+from util.utils import get_unique_list_insertion_order
+
 """
     A representation of a Page in the context of Rethink yearbooks
     TODO:: Need to store the final created canvas with the page.
@@ -28,10 +31,37 @@ class Page:
         self.history = []
         self.history_index = 0
         self.final_image: PIL.Image = None
-        self.photo_list = []
+        self.photo_list: [Photo] = []
+        self.pinned_photos = set()
+        self.parent_pages: [Page] = []
 
     def print_image_name(self):
         print("Name:: " + self.image)
 
     def update_final_image(self, canvas: PIL.Image):
         self.final_image = canvas
+
+    def pin_photo(self, photo: Photo):
+        # find the photo in the list of photos, it's always going to be in there
+        photo_to_pin: Photo = next(x for x in self.photo_list if x.filename == photo.filename)
+        self.pinned_photos.add(photo_to_pin)
+
+    def remove_pinned_photo(self, photo: Photo):
+        photo_to_unpin = next(x for x in self.photo_list if x.filename == photo.filename)
+        self.pinned_photos.remove(photo_to_unpin)
+
+    def get_parent_pinned_photos(self) -> [str]:
+        _flat_list = [pinned_photo.filename for parent_page in self.parent_pages for pinned_photo in
+                      parent_page.get_pinned_photos()]
+
+        return get_unique_list_insertion_order(_flat_list)
+
+    '''
+    This method will return all pinned photos and keep track of 
+    '''
+
+    def get_pinned_photos(self) -> [str]:
+        parent_pinned_pictures = self.get_parent_pinned_photos()
+        # Keep the pictures that come from the parent at the top and append pictures from this page
+        parent_pinned_pictures.extend(self.pinned_photos)
+        return parent_pinned_pictures
