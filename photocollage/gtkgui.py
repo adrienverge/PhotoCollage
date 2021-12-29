@@ -175,7 +175,6 @@ class MainWindow(Gtk.Window):
 
     def __init__(self):
         super().__init__(title=_("Yearbook Creator"))
-        self.yearbook_configurator = Gtk.Button(label=_("Yearbook Settings..."))
 
         self.yearbook_cache = {}
         self.corpus_cache = {}
@@ -247,9 +246,6 @@ class MainWindow(Gtk.Window):
 
         box = Gtk.Box(spacing=6, orientation=Gtk.Orientation.HORIZONTAL)
         box_window.pack_start(box, False, False, 0)
-
-        self.yearbook_configurator.connect("clicked", self.setup_yearbook_config)
-        box.pack_start(self.yearbook_configurator, False, False, 0)
 
         self.btn_choose_images.set_image(Gtk.Image.new_from_stock(
             Gtk.STOCK_OPEN, Gtk.IconSize.LARGE_TOOLBAR))
@@ -547,26 +543,6 @@ class MainWindow(Gtk.Window):
     def select_page_at_index(self, index: int):
         self.current_page_index = index
         return self.current_yearbook.pages[index]
-
-    def setup_yearbook_config(self, button):
-        dialog = ConfigSelectorDialog(self)
-        response = dialog.run()
-        if response == Gtk.ResponseType.OK:
-            self.yearbook_parameters = dialog.config_parameters
-            self.set_current_corpus()
-
-            # Read the config file
-            # TODO:: This school name needs to come from a combo box on the UI once the database file is provided
-            self.current_yearbook = create_yearbook_from_db(self.yearbook_parameters["config_file"], "Rilee4thGrade",
-                                                            "")
-            # Reset page to first
-            _current_page = self.select_page_at_index(index=0)
-
-            dialog.destroy()
-            if _current_page.history:
-                self.render_preview(_current_page)
-        else:
-            dialog.destroy()
 
     def choose_images_for_page(self, page: Page, max_count=12):
         if not page.personalized:
