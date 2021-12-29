@@ -32,7 +32,7 @@ class Page:
         self.history_index = 0
         self.final_image: PIL.Image = None
         self.photo_list: [Photo] = []
-        self.pinned_photos = set()
+        self.pinned_photos: {str} = set()
         self.parent_pages: [Page] = []
 
     def print_image_name(self):
@@ -44,15 +44,18 @@ class Page:
     def pin_photo(self, photo: Photo):
         # find the photo in the list of photos, it's always going to be in there
         photo_to_pin: Photo = next(x for x in self.photo_list if x.filename == photo.filename)
-        self.pinned_photos.add(photo_to_pin)
+        self.pinned_photos.add(photo_to_pin.filename)
 
     def remove_pinned_photo(self, photo: Photo):
-        photo_to_unpin = next(x for x in self.photo_list if x.filename == photo.filename)
-        self.pinned_photos.remove(photo_to_unpin)
+        try:
+            photo_to_unpin: Photo = next(x for x in self.photo_list if x.filename == photo.filename)
+            self.pinned_photos.remove(photo_to_unpin.filename)
+        except KeyError:
+            pass
 
     def get_parent_pinned_photos(self) -> [str]:
-        _flat_list = [pinned_photo.filename for parent_page in self.parent_pages for pinned_photo in
-                      parent_page.get_pinned_photos()]
+        _flat_list = [filename for parent_page in self.parent_pages for filename in
+                      parent_page.get_all_pinned_photos()]
 
         return get_unique_list_insertion_order(_flat_list)
 
@@ -60,7 +63,7 @@ class Page:
     This method will return all pinned photos and keep track of 
     '''
 
-    def get_pinned_photos(self) -> [str]:
+    def get_all_pinned_photos(self) -> [str]:
         parent_pinned_pictures = self.get_parent_pinned_photos()
         # Keep the pictures that come from the parent at the top and append pictures from this page
         parent_pinned_pictures.extend(self.pinned_photos)
