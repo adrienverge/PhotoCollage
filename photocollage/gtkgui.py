@@ -27,6 +27,7 @@ import gi
 
 from data.pickle.utils import store_pickled_yearbook, get_pickle_path, get_jpg_path, get_pdf_path
 from data.rankers import RankerFactory
+from data.sqllite.reader import get_tree_model
 from photocollage import APP_NAME, artwork, collage, render
 from photocollage.render import PIL_SUPPORTED_EXTS as EXTS
 from photocollage.dialogs.SettingsDialog import SettingsDialog
@@ -174,14 +175,30 @@ class MainWindow(Gtk.Window):
 
     def __init__(self):
         super().__init__(title=_("Yearbook Creator"))
+        import getpass
+        self.google_drive_dir = os.path.join('/Users', getpass.getuser(), 'GoogleDrive')
+        self.school_name = "Rilee4thGrade"
+        self.grade_name = "Grade4"
+        self.class_room = "4A"
+        self.child_name = "Rilee"
+
+        self.yearbook_parameters = {'max_count': 12,
+                                    'db_file_path': os.path.join(self.google_drive_dir, 'RY.db'),
+                                    'output_dir': os.path.join(self.google_drive_dir, getpass.getuser())}
 
         self.yearbook_cache = {}
         self.corpus_cache = {}
 
         self.current_yearbook: Yearbook = None
         self.corpus = None
+        from data.sqllite.reader import get_tree_model, get_school_list
+        self.school_combo = Gtk.ComboBoxText.new()
+        school_list = get_school_list(self.yearbook_parameters['db_file_path'])
+        for school in school_list:
+            self.school_combo.append_text(school)
 
-        self.btn_choose_images = Gtk.Button(label=_("Add images..."))
+        self.school_combo.set_active(0)
+
         self.img_preview = ImagePreviewArea(self)
         self.images_flow_box = Gtk.FlowBox()
         self.portraits_flow_box = Gtk.FlowBox()
@@ -198,25 +215,14 @@ class MainWindow(Gtk.Window):
 
         # TODO: Make this yearbook specific
         self.current_page_index = 0
-
-        import getpass
-        self.google_drive_dir = os.path.join('/Users', getpass.getuser(), 'GoogleDrive')
-        self.school_name = "Rilee4thGrade"
-        self.grade_name = "Grade4"
-        self.class_room = "4A"
-        self.child_name = "Rilee"
-
-        self.yearbook_parameters = {'max_count': 12,
-                                    'db_file_path': os.path.join(self.google_drive_dir, 'RY.db'),
-                                    'output_dir': os.path.join(self.google_drive_dir, getpass.getuser())}
-
         self.set_current_corpus()
 
-        from data.sqllite.reader import get_tree_model
-        self.treeView = Gtk.TreeView(get_tree_model(self.yearbook_parameters['db_file_path']))
+        self.treeView = Gtk.TreeView(get_tree_model(self.yearbook_parameters['db_file_path'], self.school_combo.get_active_text()))
         tv_column = Gtk.TreeViewColumn('Roster')
         self.treeView.append_column(tv_column)
         self.treeView.expand_all()
+
+        self.school_combo.connect("changed", self.on_school_combo_changed)
 
         cell = Gtk.CellRendererText()
         tv_column.pack_start(cell, True)
@@ -246,11 +252,7 @@ class MainWindow(Gtk.Window):
         box = Gtk.Box(spacing=6, orientation=Gtk.Orientation.HORIZONTAL)
         box_window.pack_start(box, False, False, 0)
 
-        self.btn_choose_images.set_image(Gtk.Image.new_from_stock(
-            Gtk.STOCK_OPEN, Gtk.IconSize.LARGE_TOOLBAR))
-        self.btn_choose_images.set_always_show_image(True)
-        self.btn_choose_images.connect("clicked", self.choose_images)
-        box.pack_start(self.btn_choose_images, False, False, 0)
+        box.pack_start(self.school_combo, False, False, 0)
 
         # -----------------------
         #  Tools pan
@@ -344,6 +346,10 @@ class MainWindow(Gtk.Window):
         self.images_flow_box.set_size_request(600, 300)
         _scrolledWindow.add(self.images_flow_box)
         box.pack_start(_scrolledWindow, True, True, 0)
+
+    def on_school_combo_changed(self, combo):
+        self.treeView.set_model(get_tree_model(self.yearbook_parameters['db_file_path'], self.school_combo.get_active_text()))
+        self.treeView.expand_all()
 
     def set_current_yearbook(self, str_loc: str):
         yearbook = None

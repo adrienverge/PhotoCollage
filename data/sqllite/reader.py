@@ -17,10 +17,9 @@ def create_connection(db_file):
     return conn
 
 
-def select_schools(conn):
+def get_schools(conn):
     cur = conn.cursor()
-    cur.execute("SELECT [School name] FROM School order by 1;")
-    return cur.fetchall()
+    return cur.execute("SELECT [name] FROM schools order by 1;")
 
 
 def get_all_rows(conn):
@@ -39,8 +38,38 @@ def get_album_details_for_school(db_file: str, school_name: str):
     return cur.execute(query)
 
 
+def get_school_list(db_file:str):
+    from gi.repository import Gtk
+
+    school_list = []
+    # Create a connection to the database
+    conn = create_connection(db_file)
+
+    all_schools = get_schools(conn)
+    for school in all_schools:
+        school_list.append(school[0])
+
+    conn.close()
+    return school_list
+
+
+def get_school_list_model(db_file:str):
+    from gi.repository import Gtk
+
+    school_list_store = Gtk.ListStore(str)
+    # Create a connection to the database
+    conn = create_connection(db_file)
+
+    all_schools = get_schools(conn)
+    for school in all_schools:
+        school_list_store.append(school)
+
+    conn.close()
+    return school_list_store
+
+
 # This is the main entry method that takes the sqlite data base file and returns the final tree model
-def get_tree_model(db_file: str):
+def get_tree_model(db_file: str, school_selection: str):
 
     from gi.repository import Gtk
 
@@ -54,6 +83,8 @@ def get_tree_model(db_file: str):
 
     for row in all_rows:
         school_name = '%s' % row[0]
+        if school_selection != school_name:
+            continue
         if school_name not in added_schools.keys():
             # add this school as a parent to the tree
             school_parent = treestore.append(None, [school_name])
@@ -73,7 +104,7 @@ def get_tree_model(db_file: str):
         if current_child not in added_schools[school_name][current_grade][current_class].keys():
             treestore.append(class_parent, [current_child])
             added_schools[school_name][current_grade][current_class][current_child] = {}
-
+    conn.close()
     return treestore
 
 
