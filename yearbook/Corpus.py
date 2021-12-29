@@ -1,3 +1,17 @@
+def get_portrait_images_for_child(drive_dir, school_name, child):
+    import os
+    images_per_child = []
+
+    try:
+        selfie_dir = os.path.join(drive_dir, school_name, "Selfies", child)
+        images_per_child = [os.path.join(selfie_dir, image) for image in os.listdir(selfie_dir)
+                            if image.endswith("jpg")]
+    except:
+        pass
+
+    return images_per_child
+
+
 class Corpus:
 
     def __init__(self, school_name: str, image_map: {}, events_to_images: {}, child_to_images: {}, corpus_dir: str):

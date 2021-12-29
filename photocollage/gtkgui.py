@@ -34,6 +34,7 @@ from photocollage.dialogs.SettingsDialog import SettingsDialog
 
 from data.readers.default import corpus_processor
 from util.utils import get_unique_list_insertion_order
+from yearbook.Corpus import get_portrait_images_for_child
 from yearbook.Yearbook import create_yearbook_from_db, Yearbook
 from yearbook.Yearbook import Page
 
@@ -185,6 +186,7 @@ class MainWindow(Gtk.Window):
         self.btn_choose_images = Gtk.Button(label=_("Add images..."))
         self.img_preview = ImagePreviewArea(self)
         self.images_flow_box = Gtk.FlowBox()
+        self.portraits_flow_box = Gtk.FlowBox()
         self.btn_settings = Gtk.Button()
         self.btn_new_layout = Gtk.Button(label=_("Regenerate"))
         self.btn_redo = Gtk.Button()
@@ -224,7 +226,7 @@ class MainWindow(Gtk.Window):
 
         class Options:
             def __init__(self):
-                self.border_w = 0.02
+                self.border_w = 0.01
                 self.border_c = "white"
                 self.out_w = 2550
                 self.out_h = 3300
@@ -329,12 +331,22 @@ class MainWindow(Gtk.Window):
         self.btn_redo.set_sensitive(False)
 
         # --------------------------------------------
-        #  GTK Flow Box to view other candidate images
+        #  Child portraits/selfie viewer
         # --------------------------------------------
         box = Gtk.Box(spacing=10)
         _scrolledWindow = Gtk.ScrolledWindow()
         box_window.pack_start(box, True, True, 0)
-        self.images_flow_box.set_size_request(600, 200)
+        _scrolledWindow.add(self.portraits_flow_box)
+        self.portraits_flow_box.set_size_request(100, 300)
+
+        box.pack_start(_scrolledWindow, True, True, 0)
+
+        # --------------------------------------------
+        #  GTK Flow Box to view other candidate images
+        # --------------------------------------------
+        _scrolledWindow = Gtk.ScrolledWindow()
+        box_window.pack_start(box, True, True, 0)
+        self.images_flow_box.set_size_request(600, 300)
         _scrolledWindow.add(self.images_flow_box)
         box.pack_start(_scrolledWindow, True, True, 0)
 
@@ -419,6 +431,8 @@ class MainWindow(Gtk.Window):
                 new_tree_iter = model.get_iter_from_string(
                     levels[0] + ":" + levels[1] + ":" + levels[2] + ":" + levels[3])
                 self.child_name = model[new_tree_iter][0]
+
+                self.update_child_portrait_images(self.school_name, self.child_name)
             except IndexError:
                 self.child_name = None
 
@@ -438,6 +452,28 @@ class MainWindow(Gtk.Window):
             # Update the tool buttons
             self.update_tool_buttons()
             self.update_page_buttons()
+
+    def update_child_portrait_images(self, school_name, child_name):
+        print("Updating the child portrait view...%s" % child_name)
+        flowbox = self.portraits_flow_box
+        flowbox.set_valign(Gtk.Align.START)
+        flowbox.set_max_children_per_line(2)
+        # Need to remove all previously added images
+        [flowbox.remove(child) for child in flowbox.get_children()]
+
+        child_portraits = get_portrait_images_for_child(self.google_drive_dir, school_name, child_name)
+        print(child_portraits)
+        for img in child_portraits:
+            pixbuf = get_orientation_fixed_pixbuf(img)
+            try:
+                image = Gtk.Image.new_from_pixbuf(pixbuf)
+                flowbox.add(image)
+            except OSError:
+                # raise BadPhoto(name)
+                print("Skipping a selfie: %s" % img)
+                continue
+
+        self.show_all()
 
     def update_flow_box_with_images(self, page: Page):
         if not page.personalized:
@@ -459,11 +495,9 @@ class MainWindow(Gtk.Window):
             # Lets not add the image to the viewer if it's on the page.
             # TODO: This need to account for all previous pages and be smarter than what it currently is
             if page.personalized and img in [photo.filename for photo in page.photo_list]:
-                print("Skip displaying this image...")
                 continue
 
             pixbuf = get_orientation_fixed_pixbuf(img)
-
             try:
                 image = Gtk.Image.new_from_pixbuf(pixbuf)
                 img_box = Gtk.EventBox()
@@ -476,8 +510,6 @@ class MainWindow(Gtk.Window):
                 print("Skipping a photo: %s" % img)
                 continue
 
-        # scrolled.add(flowbox)
-        # self.add(scrolled)
         self.show_all()
 
     def invoke_add_image(self, widget, event, img_name):
