@@ -397,9 +397,7 @@ class MainWindow(Gtk.Window):
         # Add that yearbook to the cache
         self.yearbook_cache[str_loc] = yearbook
         self.current_yearbook = yearbook
-
-        # Reset the page index for the time being as a hack
-        self.current_page_index = 0
+        self.current_page_index = max(0, self.current_page_index)
 
     def set_current_corpus(self):
         if self.school_name in self.corpus_cache:
@@ -445,9 +443,8 @@ class MainWindow(Gtk.Window):
             # TODO:: This doesn't remember the exact page you were browsing, but should be fine for now.
             self.set_current_corpus()
             self.set_current_yearbook(model.get_string_from_iter(treeiter))
+            _current_page = self.select_page_at_index(index=max(0, self.current_page_index))
 
-            # Reset page to first
-            _current_page = self.select_page_at_index(index=0)
             if _current_page.history:
                 self.render_preview(_current_page)
             # Update the tool buttons
