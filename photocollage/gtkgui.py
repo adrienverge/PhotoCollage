@@ -513,8 +513,6 @@ class MainWindow(Gtk.Window):
         self.show_all()
 
     def invoke_add_image(self, widget, event, img_name):
-        print("clicked image ")
-        print(widget)
         if event.type == Gdk.EventType._2BUTTON_PRESS:
             print("double click, %s", img_name)
             self.update_photolist(self.current_yearbook.pages[self.current_page_index], [img_name])
@@ -582,7 +580,7 @@ class MainWindow(Gtk.Window):
             print("Working on: (%s, %s, %s)" % (page.image, page.event_name, page.number))
             images = ranker.rank(self.school_name, self.grade_name, self.class_room, self.child_name, page.event_name)
 
-        _pinned_photos = page.get_pinned_photos()
+        _pinned_photos = page.get_all_pinned_photos()
         _pinned_photos.extend(images[:max_count])
 
         return get_unique_list_insertion_order(_pinned_photos)
@@ -694,7 +692,6 @@ class MainWindow(Gtk.Window):
 
     def publish_book(self, button):
         from PIL import Image
-        print("Publishing....")
         output_dir = self.yearbook_parameters['output_dir']
 
         pil_images = [Image.open(os.path.join(get_jpg_path(output_dir, self.school_name, self.grade_name,
@@ -731,7 +728,7 @@ class MainWindow(Gtk.Window):
 
         self.render_preview(current_page)
         self.update_flow_box_with_images(current_page)
-        print("NextClick - Number of images pinned %s" % str(len(current_page.get_pinned_photos())))
+        print("NextClick - Number of images pinned %s" % str(len(current_page.get_all_pinned_photos())))
 
     def select_prev_page(self, button):
         self.current_page_index -= 1
@@ -739,7 +736,7 @@ class MainWindow(Gtk.Window):
         current_page = self.current_yearbook.pages[self.current_page_index]
         self.render_preview(current_page)
         self.update_flow_box_with_images(current_page)
-        print("PrevClick - Number of images pinned %s" % str(len(current_page.get_pinned_photos())))
+        print("PrevClick - Number of images pinned %s" % str(len(current_page.get_all_pinned_photos())))
 
     def set_settings(self, button):
         dialog = SettingsDialog(self)
@@ -874,14 +871,19 @@ class ImagePreviewArea(Gtk.DrawingArea):
         context.line_to(x + 4, y - 4)
         context.stroke()
 
-    def paint_image_pin_button(self, context, cell):
+    def paint_image_pin_button(self, context, cell, pinned: bool):
         x0, y0 = self.get_image_offset()
 
         x = x0 + cell.x + cell.w - 30
         y = y0 + cell.y + 12
 
         context.arc(x, y, 8, 0, 6.2832)
-        context.set_source_rgb(0.0, 0.8, 0.0)
+        if pinned:
+            print("This picture is pinned")
+            context.set_source_rgb(0.0, 0.0, 0.8)
+        else:
+            print("This picture is not pinned")
+            context.set_source_rgb(0.0, 0.8, 0.0)
         context.fill()
         context.arc(x, y, 8, 0, 6.2832)
         context.set_source_rgb(0.0, 0.0, 0.0)
@@ -906,11 +908,18 @@ class ImagePreviewArea(Gtk.DrawingArea):
                     if self.parent.current_page_index is not None:
                         _current_page = self.parent.current_yearbook.pages[self.parent.current_page_index]
                         if cell.photo.filename not in _current_page.get_parent_pinned_photos():
-                            # Allow deleting only when the image is pinned by any parent.
+                            # Allow deleting only when the image is not pinned by any parent.
                             self.paint_image_delete_button(context, cell)
 
-                    # So far we can allow pinning at all levels. At a leaf node, pinning has no effect
-                    self.paint_image_pin_button(context, cell)
+                    # If image is pinned at same level
+                    if cell.photo.filename in _current_page.pinned_photos:
+                        self.paint_image_pin_button(context, cell, pinned=True)
+                    elif cell.photo.filename in _current_page.get_parent_pinned_photos():
+                        # Do not show any pinning options
+                        pass
+                    else:
+                        self.paint_image_pin_button(context, cell, pinned=False)
+
             elif self.mode == self.SWAPPING_OR_MOVING:
                 self.paint_image_border(context, self.swap_origin.cell, (3, 3))
                 cell = self.collage.page.get_cell_at_position(self.x, self.y)
@@ -948,6 +957,7 @@ class ImagePreviewArea(Gtk.DrawingArea):
             dist_pinned = (cell.x + cell.w - 30 - x) ** 2 + (cell.y + 12 - y) ** 2
             if dist_delete <= 8 * 8:
                 self.collage.photolist.remove(cell.photo)
+                current_page.remove_pinned_photo(cell.photo)
                 if self.collage.photolist:
                     self.collage.make_page(self.parent.opts)
                     self.parent.render_from_new_collage(current_page, self.collage)
@@ -957,8 +967,12 @@ class ImagePreviewArea(Gtk.DrawingArea):
                     current_page.history_index = len(current_page.history)
                     self.parent.update_tool_buttons()
             elif dist_pinned <= 8 * 8:
-                print("This photo in the page needs to be pinned")
-                current_page.pin_photo(cell.photo)
+                if cell.photo.filename in current_page.pinned_photos:
+                    # Then we need to unpin
+                    current_page.remove_pinned_photo(cell.photo)
+                else:
+                    current_page.pin_photo(cell.photo)
+
             # Otherwise, the user wants to swap this image with another
             else:
                 self.swap_origin.x, self.swap_origin.y = x, y
