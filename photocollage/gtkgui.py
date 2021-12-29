@@ -29,7 +29,6 @@ from data.pickle.utils import store_pickled_yearbook, get_pickle_path, get_jpg_p
 from data.rankers import RankerFactory
 from photocollage import APP_NAME, artwork, collage, render
 from photocollage.render import PIL_SUPPORTED_EXTS as EXTS
-from photocollage.dialogs.ConfigSelectorDialog import ConfigSelectorDialog
 from photocollage.dialogs.SettingsDialog import SettingsDialog
 
 from data.readers.default import corpus_processor
