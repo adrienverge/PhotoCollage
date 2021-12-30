@@ -369,8 +369,10 @@ class MainWindow(Gtk.Window):
                 from yearbook.Yearbook import create_yearbook_from_pickle
                 yearbook = create_yearbook_from_pickle(pickle_filename)
                 print("Successfully loaded a yearbook from pickle file")
+                # If we are loading for the first time, then we should be at page 0 and update the images for page 0
+                self.update_flow_box_with_images(yearbook.pages[0])
 
-            if yearbook is None:
+        if yearbook is None:
                 print("First attempt to access a yearbook for this tree node...")
                 yearbook = create_yearbook_from_db(self.yearbook_parameters["db_file_path"], self.school_name)
                 str_loc_list = str_loc.split(":")
@@ -857,10 +859,8 @@ class ImagePreviewArea(Gtk.DrawingArea):
 
         context.arc(x, y, 8, 0, 6.2832)
         if pinned:
-            print("This picture is pinned")
             context.set_source_rgb(0.0, 0.0, 0.8)
         else:
-            print("This picture is not pinned")
             context.set_source_rgb(0.0, 0.8, 0.0)
         context.fill()
         context.arc(x, y, 8, 0, 6.2832)
@@ -936,6 +936,8 @@ class ImagePreviewArea(Gtk.DrawingArea):
             if dist_delete <= 8 * 8:
                 self.collage.photolist.remove(cell.photo)
                 current_page.remove_pinned_photo(cell.photo)
+                current_page.remove_from_photolist(cell.photo)
+
                 if self.collage.photolist:
                     self.collage.make_page(self.parent.opts)
                     self.parent.render_from_new_collage(current_page, self.collage)
@@ -944,6 +946,11 @@ class ImagePreviewArea(Gtk.DrawingArea):
                     self.mode = self.INSENSITIVE
                     current_page.history_index = len(current_page.history)
                     self.parent.update_tool_buttons()
+
+                # Let's update the flow images to have this image show up in the bottom
+                print ("Should update flow box with new images")
+                self.parent.update_flow_box_with_images(current_page)
+
             elif dist_pinned <= 8 * 8:
                 if cell.photo.filename in current_page.pinned_photos:
                     # Then we need to unpin
