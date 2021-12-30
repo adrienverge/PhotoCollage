@@ -1,4 +1,3 @@
-from data.processors.facedetection.MultiCNNFaceRecognizer import MultiCNNFaceRecognizer
 from yearbook.page.Page import Page
 
 import csv
@@ -74,8 +73,6 @@ class Yearbook:
         self.pages = pages
         self.school = school
         self.email = email
-        self.multiCNNFaceRecognizer = MultiCNNFaceRecognizer()
-        self.similarityModel = ""  # blank for now, but we probably end up adding the ResNet50 model here
 
     def get_drive_folders(self):
         return {page.drive_folder for page in self.pages if page.personalized}

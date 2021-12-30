@@ -217,7 +217,8 @@ class MainWindow(Gtk.Window):
         self.current_page_index = 0
         self.set_current_corpus()
 
-        self.treeView = Gtk.TreeView(get_tree_model(self.yearbook_parameters['db_file_path'], self.school_combo.get_active_text()))
+        self.treeView = Gtk.TreeView(
+            get_tree_model(self.yearbook_parameters['db_file_path'], self.school_combo.get_active_text()))
         tv_column = Gtk.TreeViewColumn('Roster')
         self.treeView.append_column(tv_column)
         self.treeView.expand_all()
@@ -348,7 +349,8 @@ class MainWindow(Gtk.Window):
         box.pack_start(_scrolledWindow, True, True, 0)
 
     def on_school_combo_changed(self, combo):
-        self.treeView.set_model(get_tree_model(self.yearbook_parameters['db_file_path'], self.school_combo.get_active_text()))
+        self.treeView.set_model(
+            get_tree_model(self.yearbook_parameters['db_file_path'], self.school_combo.get_active_text()))
         self.treeView.expand_all()
 
     def set_current_yearbook(self, str_loc: str):
@@ -373,28 +375,28 @@ class MainWindow(Gtk.Window):
                 self.update_flow_box_with_images(yearbook.pages[0])
 
         if yearbook is None:
-                print("First attempt to access a yearbook for this tree node...")
-                yearbook = create_yearbook_from_db(self.yearbook_parameters["db_file_path"], self.school_name)
-                str_loc_list = str_loc.split(":")
-                for page_index in range(len(yearbook.pages)):
-                    current_page = yearbook.pages[page_index]
+            print("First attempt to access a yearbook for this tree node...")
+            yearbook = create_yearbook_from_db(self.yearbook_parameters["db_file_path"], self.school_name)
+            str_loc_list = str_loc.split(":")
+            for page_index in range(len(yearbook.pages)):
+                current_page = yearbook.pages[page_index]
 
-                    # Find the parent nodes selected and retrieve their pages
-                    parent_iter_locs = [":".join(str_loc_list[:i+1]) for i in range(len(str_loc_list)-1)]
-                    parent_yearbooks = [self.yearbook_cache[parent_str] for parent_str in parent_iter_locs
-                                            if parent_str in self.yearbook_cache]
-                    current_page.parent_pages = [yearbook.pages[page_index] for yearbook in parent_yearbooks]
+                # Find the parent nodes selected and retrieve their pages
+                parent_iter_locs = [":".join(str_loc_list[:i + 1]) for i in range(len(str_loc_list) - 1)]
+                parent_yearbooks = [self.yearbook_cache[parent_str] for parent_str in parent_iter_locs
+                                    if parent_str in self.yearbook_cache]
+                current_page.parent_pages = [yearbook.pages[page_index] for yearbook in parent_yearbooks]
 
-                    # TODO: Add intelligence here since we should be able to refine the images to pick
-                    # based on page information
-                    all_page_images = self.choose_images_for_page(current_page, max_count=100)
+                # TODO: Add intelligence here since we should be able to refine the images to pick
+                # based on page information
+                all_page_images = self.choose_images_for_page(current_page, max_count=100)
 
-                    # Need to use a small set of these images to create the initial collage
-                    self.update_photolist(current_page, all_page_images[:12], display=True)
-                    print("Finished updating the photo list for page, %s", current_page.event_name)
+                # Need to use a small set of these images to create the initial collage
+                self.update_photolist(current_page, all_page_images[:12], display=True)
+                print("Finished updating the photo list for page, %s", current_page.event_name)
 
-                store_pickled_yearbook(yearbook, pickle_filename)
-                print("Saved yearbook here: ", pickle_filename)
+            store_pickled_yearbook(yearbook, pickle_filename)
+            print("Saved yearbook here: ", pickle_filename)
 
         # Add that yearbook to the cache
         self.yearbook_cache[str_loc] = yearbook
@@ -948,7 +950,7 @@ class ImagePreviewArea(Gtk.DrawingArea):
                     self.parent.update_tool_buttons()
 
                 # Let's update the flow images to have this image show up in the bottom
-                print ("Should update flow box with new images")
+                print("Should update flow box with new images")
                 self.parent.update_flow_box_with_images(current_page)
 
             elif dist_pinned <= 8 * 8:

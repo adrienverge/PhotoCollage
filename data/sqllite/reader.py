@@ -85,6 +85,7 @@ def get_tree_model(db_file: str, school_selection: str):
         school_name = '%s' % row[0]
         if school_selection != school_name:
             continue
+
         if school_name not in added_schools.keys():
             # add this school as a parent to the tree
             school_parent = treestore.append(None, [school_name])
