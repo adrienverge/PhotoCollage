@@ -53,6 +53,13 @@ class Page:
         except KeyError:
             pass
 
+    def remove_from_photolist(self, photo: Photo):
+        try:
+            photo_to_remove: Photo = next(x for x in self.photo_list if x.filename == photo.filename)
+            self.photo_list.remove(photo_to_remove)
+        except KeyError:
+            pass
+
     def get_parent_pinned_photos(self) -> [str]:
         _flat_list = [filename for parent_page in self.parent_pages for filename in
                       parent_page.get_all_pinned_photos()]
