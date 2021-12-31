@@ -4,6 +4,8 @@ This class will contain methods and interfaces that will operate on a processed 
 from yearbook.Corpus import Corpus
 from abc import ABC, abstractmethod
 
+from yearbook.Yearbook import Yearbook
+
 
 class ImageRanker(ABC):
 
@@ -12,7 +14,7 @@ class ImageRanker(ABC):
         self.corpus = corpus
 
     @abstractmethod
-    def rank(self, school: str, grade: str, classroom: str, child: str, event_name: str) -> [str]:
+    def rank(self, yearbook: Yearbook, event_name: str) -> [str]:
         pass
 
     @abstractmethod
@@ -29,7 +31,7 @@ class SchoolRanker(ImageRanker):
         super(SchoolRanker, self).__init__(corpus)
         self.school_name = school_name
 
-    def rank(self, school: str, grade: str, classroom: str, child: str, event_name: str) -> [str]:
+    def rank(self, yearbook: Yearbook, event_name: str) -> [str]:
         # Return a list of images that are applicable to the school level
         return self.corpus.get_filenames_for_event_images(event_name)
 
@@ -41,7 +43,7 @@ class GradeRanker(ImageRanker):
     def __init__(self, corpus: Corpus):
         self.corpus = corpus
 
-    def rank(self, school: str, grade: str, classroom: str, child: str, event_name: str) -> [str]:
+    def rank(self, yearbook: Yearbook, event_name: str) -> [str]:
         # Return a list of images that are applicable to the grade level
         return self.corpus.get_filenames_for_event_images(event_name)
 
@@ -53,7 +55,7 @@ class ClassroomRanker(ImageRanker):
     def __init__(self, corpus: Corpus):
         self.corpus = corpus
 
-    def rank(self, school: str, grade: str, classroom: str, child: str, event_name: str) -> [str]:
+    def rank(self, yearbook: Yearbook, event_name: str) -> [str]:
         # Return a list of images that are applicable to the classroom level
         return self.corpus.get_filenames_for_event_images(event_name)
 
@@ -65,9 +67,9 @@ class ChildRanker(ImageRanker):
     def __init__(self, corpus: Corpus):
         self.corpus = corpus
 
-    def rank(self, school: str, grade: str, classroom: str, child: str, event_name: str) -> [str]:
+    def rank(self, yearbook: Yearbook, event_name: str) -> [str]:
         # Return a list of images that are applicable to the child
-        return self.corpus.get_filenames_child_images_for_event(child, event_name)
+        return self.corpus.get_filenames_child_images_for_event(yearbook.child, event_name)
 
     def whoamI(self):
         print("ChildRanker")

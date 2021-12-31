@@ -93,7 +93,7 @@ class BadPhoto(Exception):
         self.photoname = photoname
 
 
-def build_photolist(filelist):
+def build_photolist(filelist: [str]) -> [Photo]:
     ret = []
 
     for name in filelist:
