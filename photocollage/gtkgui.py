@@ -242,8 +242,7 @@ class MainWindow(Gtk.Window):
         self.make_window()
 
     def get_yearbook_string(self, column, cell, model, iter, data):
-        cell.set_property('text', self.treeModel.get_value(iter, 0).__repr__())
-        return
+        cell.set_property('text', model.get_value(iter, 0).__repr__())
 
     def make_window(self):
         self.set_border_width(10)
@@ -353,6 +352,11 @@ class MainWindow(Gtk.Window):
         _scrolledWindow.add(self.images_flow_box)
         box.pack_start(_scrolledWindow, True, True, 0)
 
+    def print_row(self, store, treepath, treeiter):
+        print("\t" * (treepath.get_depth() - 1), store[treeiter][:], sep="")
+        print(store[treeiter][:])
+        return store[treeiter]
+
     '''
     When the combo select box changes, we have to do the following
     1) Update the corpus that's selected for processing based on the new school
@@ -364,9 +368,12 @@ class MainWindow(Gtk.Window):
         self.school_name = self.school_combo.get_active_text()
         self.set_current_corpus()
         if self.school_name in self.tree_model_cache:
-            self.treeModel = self.tree_model_cache[self.school_name]
+            _tree_model = self.tree_model_cache[self.school_name]
         else:
-            self.treeModel = get_tree_model(self.yearbook_parameters, self.school_combo.get_active_text())
+            _tree_model = get_tree_model(self.yearbook_parameters, self.school_combo.get_active_text())
+
+        self.treeView.set_model(_tree_model)
+        self.treeModel = _tree_model # Not sure if we need to maintain this reference
         self.treeView.expand_all()
 
     def set_current_corpus(self):
