@@ -30,16 +30,15 @@ class Page:
         self.data = {"imagePath": orig_image_loc, "extension": os.path.splitext(orig_image_loc)[1]}
         self.history = []
         self.history_index = 0
-        self.final_image: PIL.Image = None
         self.photo_list: [Photo] = []
         self.pinned_photos: {str} = set()
         self.parent_pages: [Page] = []
 
+    def __getstate__(self): return self.__dict__
+    def __setstate__(self, d): self.__dict__.update(d)
+
     def print_image_name(self):
         print("Name:: " + self.image)
-
-    def update_final_image(self, canvas: PIL.Image):
-        self.final_image = canvas
 
     def pin_photo(self, photo: Photo):
         # find the photo in the list of photos, it's always going to be in there

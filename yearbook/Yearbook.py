@@ -30,9 +30,9 @@ def create_yearbook(dir_params: {}, school_name: str, grade: str, classroom: str
 
 def create_yearbook_from_pickle(pickle_file_path):
     pickle_file = open(pickle_file_path, 'rb')
-    yearbook = pickle.load(pickle_file)
+    yearbook: PickleYearbook = pickle.load(pickle_file)
     pickle_file.close()
-    return yearbook
+    return Yearbook(pickle_yearbook=yearbook)
 
 
 def create_yearbook_from_db(dir_params: {}, school_name: str, grade: str, classroom: str, child: str):
@@ -54,51 +54,58 @@ def create_yearbook_from_db(dir_params: {}, school_name: str, grade: str, classr
 
     print("Pages in yearbook %s" % str(len(pages)))
 
-    return Yearbook(pages, school_name, grade, classroom, child)
+    return Yearbook(PickleYearbook(pages, school_name, grade, classroom, child))
 
 
-class Yearbook(GObject.GObject):
-    school = GObject.property(type=str)
-    grade = GObject.property(type=str)
-    classroom = GObject.property(type=str)
-    child = GObject.property(type=str)
+def store_pickled_yearbook(yearbook, filename: str):
+    from pathlib import Path
+    import pickle
+    import os
 
+    path1 = Path(filename)
+    # Create the parent directories if they don't exist
+    os.makedirs(path1.parent, exist_ok=True)
+
+    # Important to open the file in binary mode
+    with open(filename, 'wb') as f:
+        pickle.dump(yearbook.pickle_yearbook, f)
+
+
+class PickleYearbook:
     def __init__(self, pages: [Page], school: str):
         self.__init__(pages, school, None, None, None, None)
 
     def __init__(self, pages: [Page], school: str, grade: str, classroom: str, child: str):
-        GObject.GObject.__init__(self)
         self.pages = pages
-        self.school = school
-        self.grade = grade
-        self.classroom = classroom
-        self.child = child
-        self.parent = None
+        self.school: str = school
+        self.grade: str = grade
+        self.classroom: str = classroom
+        self.child: str = child
+
+
+class Yearbook(GObject.GObject):
+
+    def __init__(self, pickle_yearbook: PickleYearbook):
+        GObject.GObject.__init__(self)
+        self.pickle_yearbook = pickle_yearbook
+        self.pages = self.pickle_yearbook.pages
+        self.school = self.pickle_yearbook.school
+        self.grade = self.pickle_yearbook.grade
+        self.classroom= self.pickle_yearbook.classroom
+        self.child = self.pickle_yearbook.child
 
     def __repr__(self):
-        if self.child is None:
-            if self.classroom is None:
-                if self.grade is None:
-                    return self.school
+        if self.pickle_yearbook.child is None:
+            if self.pickle_yearbook.classroom is None:
+                if self.pickle_yearbook.grade is None:
+                    return self.pickle_yearbook.school
                 else:
-                    return self.grade
+                    return self.pickle_yearbook.grade
             else:
-                return self.classroom
+                return self.pickle_yearbook.classroom
         else:
-            return self.child
-
-    def store_pickled_yearbook(self, filename: str):
-        from pathlib import Path
-        import pickle
-        import os
-
-        path1 = Path(filename)
-        # Create the parent directories if they don't exist
-        os.makedirs(path1.parent, exist_ok=True)
-
-        # Important to open the file in binary mode
-        with open(filename, 'wb') as f:
-            pickle.dump(self, f)
+            return self.pickle_yearbook.child
 
     def print_yearbook_parents(self):
-        print("%s :-> %s :-> %s :-> %s" % (self.school, self.grade, self.classroom, self.child))
+        print("%s :-> %s :-> %s :-> %s" % (self.pickle_yearbook.school, self.pickle_yearbook.grade,
+                                           self.pickle_yearbook.classroom, self.pickle_yearbook.child))
