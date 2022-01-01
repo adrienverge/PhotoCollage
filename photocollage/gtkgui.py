@@ -403,7 +403,7 @@ class MainWindow(Gtk.Window):
         # Need to remove all previously added images
         [flowbox.remove(child) for child in flowbox.get_children()]
 
-        child_portraits = get_portrait_images_for_child(self.output_base_dir, self.current_yearbook.school,
+        child_portraits = get_portrait_images_for_child(self.corpus_base_dir, self.current_yearbook.school,
                                                         self.current_yearbook.child)
         for img in child_portraits:
             pixbuf = get_orientation_fixed_pixbuf(img)
@@ -541,8 +541,10 @@ class MainWindow(Gtk.Window):
             page_collage: UserCollage = yearbook_page.history[yearbook_page.history_index]
         except IndexError:
             print("This is the first time render of this page...")
-            page_collage = UserCollage(render.build_photolist(self.choose_images_for_page(yearbook_page)))
+            first_photo_list = render.build_photolist(self.choose_images_for_page(yearbook_page))
+            page_collage = UserCollage(first_photo_list)
             page_collage.make_page(self.opts)
+            yearbook_page.photo_list = first_photo_list
 
         # If the desired ratio changed in the meantime (e.g. from landscape to
         # portrait), it needs to be re-updated
@@ -899,7 +901,8 @@ class ImagePreviewArea(Gtk.DrawingArea):
             dist_pinned = (cell.x + cell.w - 30 - x) ** 2 + (cell.y + 12 - y) ** 2
             if dist_delete <= 8 * 8:
                 self.collage.photolist.remove(cell.photo)
-                current_page.remove_pinned_photo(cell.photo)
+                if cell.photo.filename in current_page.pinned_photos:
+                    current_page.remove_pinned_photo(cell.photo)
                 current_page.remove_from_photolist(cell.photo)
 
                 if self.collage.photolist:
