@@ -2,7 +2,6 @@ from data.pickle.utils import get_pickle_path
 from yearbook.page.Page import Page
 from gi.repository import GObject
 
-import csv
 import pickle
 
 """
@@ -57,23 +56,7 @@ def create_yearbook_from_db(dir_params: {}, school_name: str, grade: str, classr
     return Yearbook(PickleYearbook(pages, school_name, grade, classroom, child))
 
 
-def store_pickled_yearbook(yearbook, filename: str):
-    from pathlib import Path
-    import pickle
-    import os
-
-    path1 = Path(filename)
-    # Create the parent directories if they don't exist
-    os.makedirs(path1.parent, exist_ok=True)
-
-    # Important to open the file in binary mode
-    with open(filename, 'wb') as f:
-        pickle.dump(yearbook.pickle_yearbook, f)
-
-
 class PickleYearbook:
-    def __init__(self, pages: [Page], school: str):
-        self.__init__(pages, school, None, None, None, None)
 
     def __init__(self, pages: [Page], school: str, grade: str, classroom: str, child: str):
         self.pages = pages
@@ -109,3 +92,4 @@ class Yearbook(GObject.GObject):
     def print_yearbook_parents(self):
         print("%s :-> %s :-> %s :-> %s" % (self.pickle_yearbook.school, self.pickle_yearbook.grade,
                                            self.pickle_yearbook.classroom, self.pickle_yearbook.child))
+

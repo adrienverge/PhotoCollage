@@ -36,7 +36,7 @@ from photocollage.dialogs.SettingsDialog import SettingsDialog
 from data.readers.default import corpus_processor
 from util.utils import get_unique_list_insertion_order
 from yearbook.Corpus import get_portrait_images_for_child
-from yearbook.Yearbook import create_yearbook_from_db, Yearbook, store_pickled_yearbook
+from yearbook.Yearbook import Yearbook
 from yearbook.Yearbook import Page
 
 from images.utils import get_orientation_fixed_pixbuf
@@ -521,15 +521,22 @@ class MainWindow(Gtk.Window):
     def render_and_pickle_yearbook(self, store: Gtk.TreeStore, treepath: Gtk.TreePath, treeiter: Gtk.TreeIter):
         _yearbook = store[treeiter][0]
         self.current_yearbook = _yearbook
-        print("operating on current yearbook : %s" % _yearbook.print_yearbook_parents())
+
+        output_dir = self.yearbook_parameters['output_dir']
+        pickle_path = os.path.join(get_pickle_path(output_dir, self.current_yearbook.school, self.current_yearbook.grade,
+                                      self.current_yearbook.classroom, self.current_yearbook.child), "file.pickle")
+        print("operating on current yearbook : %s" % pickle_path)
+        if os.path.exists(pickle_path):
+            print("will be loaded from pickle file...")
+            return
+
+        print("*********First creation of this yearbook********")
         for page in self.current_yearbook.pages:
             self.render_preview(page)
-
-        print("Finished rendering pages for the yearbook")
-        self.pickle_book(None)
+        self.publish_and_pickle(None)
+        print("********Finished rendering pages for the yearbook********")
 
     def render_preview(self, yearbook_page: Page):
-
         try:
             page_collage: UserCollage = yearbook_page.history[yearbook_page.history_index]
         except IndexError:
@@ -610,8 +617,8 @@ class MainWindow(Gtk.Window):
         self.render_preview(page)
 
     def publish_and_pickle(self, button):
-        self.pickle_book(button)
         self.publish_pdf(button)
+        self.pickle_book(button)
 
     def pickle_book(self, button):
         from pathlib import Path
