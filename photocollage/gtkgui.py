@@ -25,17 +25,18 @@ import urllib
 import cairo
 import gi
 
-from data.pickle.utils import store_pickled_yearbook, get_pickle_path, get_jpg_path, get_pdf_path
+from data.pickle.utils import get_pickle_path, get_jpg_path, get_pdf_path
 from data.rankers import RankerFactory
 from data.sqllite.reader import get_tree_model
 from photocollage import APP_NAME, artwork, collage, render
+from photocollage.collage import Photo
 from photocollage.render import PIL_SUPPORTED_EXTS as EXTS
 from photocollage.dialogs.SettingsDialog import SettingsDialog
 
 from data.readers.default import corpus_processor
 from util.utils import get_unique_list_insertion_order
 from yearbook.Corpus import get_portrait_images_for_child
-from yearbook.Yearbook import create_yearbook_from_db, Yearbook
+from yearbook.Yearbook import Yearbook
 from yearbook.Yearbook import Page
 
 from images.utils import get_orientation_fixed_pixbuf
@@ -138,9 +139,9 @@ class UserCollage:
 
     """
 
-    def __init__(self, photolist):
-        self.photolist = photolist
-        self.page = None
+    def __init__(self, photolist: [Photo]):
+        self.photolist: [Photo] = photolist
+        self.page: collage.Page = None
 
     def make_page(self, opts):
         # Define the output image height / width ratio
@@ -176,21 +177,20 @@ class MainWindow(Gtk.Window):
     def __init__(self):
         super().__init__(title=_("Yearbook Creator"))
         import getpass
-        self.google_drive_dir = os.path.join('/Users', getpass.getuser(), 'GoogleDrive')
-        self.school_name = "Rilee4thGrade"
-        self.grade_name = "Grade4"
-        self.class_room = "4A"
-        self.child_name = "Rilee"
 
+        self.corpus_base_dir = os.path.join('/Users', getpass.getuser(), 'GoogleDrive')
+        self.output_base_dir = os.path.join(self.corpus_base_dir, 'YearbookCreatorOut')
         self.yearbook_parameters = {'max_count': 12,
-                                    'db_file_path': os.path.join(self.google_drive_dir, 'RY.db'),
-                                    'output_dir': os.path.join(self.google_drive_dir, getpass.getuser())}
+                                    'db_file_path': os.path.join(self.output_base_dir, 'RY.db'),
+                                    'output_dir': os.path.join(self.output_base_dir, getpass.getuser()),
+                                    'corpus_base_dir': self.corpus_base_dir}
 
-        self.yearbook_cache = {}
         self.corpus_cache = {}
+        self.tree_model_cache = {}
 
         self.current_yearbook: Yearbook = None
         self.corpus = None
+
         from data.sqllite.reader import get_tree_model, get_school_list
         self.school_combo = Gtk.ComboBoxText.new()
         school_list = get_school_list(self.yearbook_parameters['db_file_path'])
@@ -198,6 +198,9 @@ class MainWindow(Gtk.Window):
             self.school_combo.append_text(school)
 
         self.school_combo.set_active(0)
+        self.school_name = self.school_combo.get_active_text()
+        self.set_current_corpus()
+        self.current_page_index = 0
 
         self.img_preview = ImagePreviewArea(self)
         self.images_flow_box = Gtk.FlowBox()
@@ -213,11 +216,10 @@ class MainWindow(Gtk.Window):
         self.btn_next_page = Gtk.Button(label=_("Next page..."))
         self.btn_publish_book = Gtk.Button(label=_("Publish"))
 
-        # TODO: Make this yearbook specific
-        self.current_page_index = 0
-        self.set_current_corpus()
-
-        self.treeView = Gtk.TreeView(get_tree_model(self.yearbook_parameters['db_file_path'], self.school_combo.get_active_text()))
+        # on initialization
+        self.treeModel: Gtk.TreeStore = get_tree_model(self.yearbook_parameters, self.school_combo.get_active_text())
+        self.tree_model_cache[self.school_combo.get_active_text()] = self.treeModel
+        self.treeView = Gtk.TreeView(self.treeModel)
         tv_column = Gtk.TreeViewColumn('Roster')
         self.treeView.append_column(tv_column)
         self.treeView.expand_all()
@@ -226,6 +228,7 @@ class MainWindow(Gtk.Window):
 
         cell = Gtk.CellRendererText()
         tv_column.pack_start(cell, True)
+        tv_column.set_cell_data_func(cell, self.get_yearbook_string)
         tv_column.add_attribute(cell, 'text', 0)
 
         class Options:
@@ -236,8 +239,11 @@ class MainWindow(Gtk.Window):
                 self.out_h = 3300
 
         self.opts = Options()
-
         self.make_window()
+
+    def get_yearbook_string(self, column, cell, model, iter, data):
+        cell.set_property('text', self.treeModel.get_value(iter, 0).__repr__())
+        return
 
     def make_window(self):
         self.set_border_width(10)
@@ -287,7 +293,7 @@ class MainWindow(Gtk.Window):
         self.btn_next_page.connect("clicked", self.select_next_page)
 
         box.pack_start(self.btn_publish_book, True, True, 0)
-        self.btn_publish_book.connect("clicked", self.publish_book)
+        self.btn_publish_book.connect("clicked", self.publish_and_pickle)
         box.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
 
         self.btn_settings.set_image(Gtk.Image.new_from_stock(
@@ -347,59 +353,21 @@ class MainWindow(Gtk.Window):
         _scrolledWindow.add(self.images_flow_box)
         box.pack_start(_scrolledWindow, True, True, 0)
 
+    '''
+    When the combo select box changes, we have to do the following
+    1) Update the corpus that's selected for processing based on the new school
+    2) Update the set of yearbooks, so update the yearbook tree model 
+    '''
+
     def on_school_combo_changed(self, combo):
-        self.treeView.set_model(get_tree_model(self.yearbook_parameters['db_file_path'], self.school_combo.get_active_text()))
-        self.treeView.expand_all()
 
-    def set_current_yearbook(self, str_loc: str):
-        yearbook = None
-
-        if str_loc in self.yearbook_cache:
-            print("Retrieving yearbook from the cache...")
-            yearbook = self.yearbook_cache[str_loc]
+        self.school_name = self.school_combo.get_active_text()
+        self.set_current_corpus()
+        if self.school_name in self.tree_model_cache:
+            self.treeModel = self.tree_model_cache[self.school_name]
         else:
-            # We need to create the yearbook and everything else associated with it and add it to the cache
-
-            pickle_filename = os.path.join(get_pickle_path(self.yearbook_parameters["output_dir"], self.school_name,
-                                                           self.grade_name, self.class_room, self.child_name),
-                                           "file.pickle")
-
-            if os.path.exists(pickle_filename):
-                print("Pickle file exists and we can load the yearbook from there")
-                from yearbook.Yearbook import create_yearbook_from_pickle
-                yearbook = create_yearbook_from_pickle(pickle_filename)
-                print("Successfully loaded a yearbook from pickle file")
-                # If we are loading for the first time, then we should be at page 0 and update the images for page 0
-                self.update_flow_box_with_images(yearbook.pages[0])
-
-        if yearbook is None:
-                print("First attempt to access a yearbook for this tree node...")
-                yearbook = create_yearbook_from_db(self.yearbook_parameters["db_file_path"], self.school_name)
-                str_loc_list = str_loc.split(":")
-                for page_index in range(len(yearbook.pages)):
-                    current_page = yearbook.pages[page_index]
-
-                    # Find the parent nodes selected and retrieve their pages
-                    parent_iter_locs = [":".join(str_loc_list[:i+1]) for i in range(len(str_loc_list)-1)]
-                    parent_yearbooks = [self.yearbook_cache[parent_str] for parent_str in parent_iter_locs
-                                            if parent_str in self.yearbook_cache]
-                    current_page.parent_pages = [yearbook.pages[page_index] for yearbook in parent_yearbooks]
-
-                    # TODO: Add intelligence here since we should be able to refine the images to pick
-                    # based on page information
-                    all_page_images = self.choose_images_for_page(current_page, max_count=100)
-
-                    # Need to use a small set of these images to create the initial collage
-                    self.update_photolist(current_page, all_page_images[:12], display=True)
-                    print("Finished updating the photo list for page, %s", current_page.event_name)
-
-                store_pickled_yearbook(yearbook, pickle_filename)
-                print("Saved yearbook here: ", pickle_filename)
-
-        # Add that yearbook to the cache
-        self.yearbook_cache[str_loc] = yearbook
-        self.current_yearbook = yearbook
-        self.current_page_index = max(0, self.current_page_index)
+            self.treeModel = get_tree_model(self.yearbook_parameters, self.school_combo.get_active_text())
+        self.treeView.expand_all()
 
     def set_current_corpus(self):
         if self.school_name in self.corpus_cache:
@@ -408,61 +376,35 @@ class MainWindow(Gtk.Window):
             self.corpus = corpus_processor(self.school_name)
             self.corpus_cache[self.school_name] = self.corpus
 
+    '''
+    On a tree selection change, we have to 
+    1) Update the yearbook reference
+    2) Update the page displayed on that current yearbook
+    3) Update the tool bar buttons
+    4) Update other UI elements
+    '''
+
     def on_tree_selection_changed(self, selection):
         model, treeiter = selection.get_selected()
         if treeiter is not None:
-            levels = model.get_string_from_iter(treeiter).split(':')
-            str_loc = levels[0]
-            new_tree_iter = model.get_iter_from_string(str_loc)
-            self.school_name = model[new_tree_iter][0]
+            self.current_yearbook: Yearbook = model[treeiter][0]
+            self.current_yearbook.print_yearbook_parents()
 
-            try:
-                new_tree_iter = model.get_iter_from_string(levels[0] + ":" + levels[1])
-                self.grade_name = model[new_tree_iter][0]
-            except IndexError:
-                self.grade_name = None
-
-            try:
-                new_tree_iter = model.get_iter_from_string(levels[0] + ":" + levels[1] + ":" + levels[2])
-                self.class_room = model[new_tree_iter][0]
-            except IndexError:
-                self.class_room = None
-
-            try:
-                new_tree_iter = model.get_iter_from_string(
-                    levels[0] + ":" + levels[1] + ":" + levels[2] + ":" + levels[3])
-                self.child_name = model[new_tree_iter][0]
-
-                self.update_child_portrait_images(self.school_name, self.child_name)
-            except IndexError:
-                self.child_name = None
-
-            print("You belong to: ", self.school_name)
-            print("You belong to: ", self.grade_name)
-            print("You belong to: ", self.class_room)
-            print("You are: ", self.child_name)
-
-            # TODO:: This doesn't remember the exact page you were browsing, but should be fine for now.
-            self.set_current_corpus()
-            self.set_current_yearbook(model.get_string_from_iter(treeiter))
             _current_page = self.select_page_at_index(index=max(0, self.current_page_index))
 
-            if _current_page.history:
-                self.render_preview(_current_page)
-            # Update the tool buttons
-            self.update_tool_buttons()
-            self.update_page_buttons()
+        # Update the tool buttons
+        self.update_ui_elements(self.current_yearbook.pages[self.current_page_index])
+        self.update_child_portrait_images()
 
-    def update_child_portrait_images(self, school_name, child_name):
-        print("Updating the child portrait view...%s" % child_name)
+    def update_child_portrait_images(self):
         flowbox = self.portraits_flow_box
         flowbox.set_valign(Gtk.Align.START)
         flowbox.set_max_children_per_line(2)
         # Need to remove all previously added images
         [flowbox.remove(child) for child in flowbox.get_children()]
 
-        child_portraits = get_portrait_images_for_child(self.google_drive_dir, school_name, child_name)
-        print(child_portraits)
+        child_portraits = get_portrait_images_for_child(self.output_base_dir, self.current_yearbook.school,
+                                                        self.current_yearbook.child)
         for img in child_portraits:
             pixbuf = get_orientation_fixed_pixbuf(img)
             try:
@@ -520,8 +462,8 @@ class MainWindow(Gtk.Window):
         else:
             print("single click")
 
-    def update_photolist(self, page, new_images, display: bool = True):
-        photolist = []
+    def update_photolist(self, page, new_images: [str], display: bool = True):
+        photolist: [Photo] = []
         try:
             if page.history_index < len(page.history):
                 photolist = copy.copy(
@@ -548,37 +490,20 @@ class MainWindow(Gtk.Window):
         self.current_page_index = index
         return self.current_yearbook.pages[index]
 
-    def choose_images_for_page(self, page: Page, max_count=12):
+    def choose_images_for_page(self, page: Page, max_count=12) -> [str]:
         if not page.personalized:
             print("Load image as is, %s, %s" % (page.event_name, page.image))
             images = [page.image]
         else:
             # Let's find the right ranker to delegate to
-            ranker = RankerFactory.create_ranker(self.corpus, self.school_name, self.grade_name,
-                                                 self.class_room, self.child_name)
+            ranker = RankerFactory.create_ranker(self.corpus, self.current_yearbook)
 
             print("Working on: (%s, %s, %s)" % (page.image, page.event_name, page.number))
-            images = ranker.rank(self.school_name, self.grade_name, self.class_room, self.child_name, page.event_name)
+            images = ranker.rank(self.current_yearbook, page.event_name)
 
         _pinned_photos = page.get_all_pinned_photos()
         _pinned_photos.extend(images[:max_count])
-
         return get_unique_list_insertion_order(_pinned_photos)
-
-    def choose_images(self, button):
-        dialog = PreviewFileChooserDialog(title=_("Choose images"),
-                                          parent=button.get_toplevel(),
-                                          action=Gtk.FileChooserAction.OPEN,
-                                          select_multiple=True,
-                                          modal=True)
-
-        if dialog.run() == Gtk.ResponseType.OK:
-            files = dialog.get_filenames()
-            dialog.destroy()
-            self.update_photolist(self.current_yearbook.pages[self.current_page_index], files)
-            self.update_flow_box_with_images(self.current_yearbook.pages[self.current_page_index])
-        else:
-            dialog.destroy()
 
     def on_drag(self, widget, drag_context, x, y, data, info, time):
         if info == MainWindow.TARGET_TYPE_TEXT:
@@ -593,13 +518,31 @@ class MainWindow(Gtk.Window):
         self.update_photolist(self.current_yearbook.pages[self.current_page_index], files)
         self.update_flow_box_with_images(self.current_yearbook.pages[self.current_page_index])
 
+    def render_and_pickle_yearbook(self, store: Gtk.TreeStore, treepath: Gtk.TreePath, treeiter: Gtk.TreeIter):
+        _yearbook = store[treeiter][0]
+        self.current_yearbook = _yearbook
+
+        output_dir = self.yearbook_parameters['output_dir']
+        pickle_path = os.path.join(get_pickle_path(output_dir, self.current_yearbook.school, self.current_yearbook.grade,
+                                      self.current_yearbook.classroom, self.current_yearbook.child), "file.pickle")
+        print("operating on current yearbook : %s" % pickle_path)
+        if os.path.exists(pickle_path):
+            print("will be loaded from pickle file...")
+            return
+
+        print("*********First creation of this yearbook********")
+        for page in self.current_yearbook.pages:
+            self.render_preview(page)
+        self.publish_and_pickle(None)
+        print("********Finished rendering pages for the yearbook********")
+
     def render_preview(self, yearbook_page: Page):
         try:
             page_collage: UserCollage = yearbook_page.history[yearbook_page.history_index]
         except IndexError:
-            page_images = self.choose_images_for_page(yearbook_page)
-            self.update_photolist(yearbook_page, page_images)
-            self.update_flow_box_with_images(yearbook_page)
+            print("This is the first time render of this page...")
+            page_collage = UserCollage(render.build_photolist(self.choose_images_for_page(yearbook_page)))
+            page_collage.make_page(self.opts)
 
         # If the desired ratio changed in the meantime (e.g. from landscape to
         # portrait), it needs to be re-updated
@@ -608,6 +551,7 @@ class MainWindow(Gtk.Window):
 
         w = self.img_preview.get_allocation().width
         h = self.img_preview.get_allocation().height
+
         page_collage.page.scale_to_fit(w, h)
 
         # Display a "please wait" dialog and do the job.
@@ -628,8 +572,10 @@ class MainWindow(Gtk.Window):
             dialog.run()
             dialog.destroy()
 
-        out_file = os.path.join(get_jpg_path(self.yearbook_parameters['output_dir'], self.school_name, self.grade_name,
-                                             self.class_room, self.child_name), str(yearbook_page.number) + ".jpg")
+        out_file = os.path.join(get_jpg_path(self.yearbook_parameters['output_dir'],
+                                             self.current_yearbook.school, self.current_yearbook.grade,
+                                             self.current_yearbook.classroom, self.current_yearbook.child),
+                                str(yearbook_page.number) + ".jpg")
 
         t = render.RenderingTask(
             yearbook_page,
@@ -670,52 +616,70 @@ class MainWindow(Gtk.Window):
         self.update_tool_buttons()
         self.render_preview(page)
 
-    def publish_book(self, button):
+    def publish_and_pickle(self, button):
+        self.publish_pdf(button)
+        self.pickle_book(button)
+
+    def pickle_book(self, button):
+        from pathlib import Path
+        import pickle
+        import os
+
+        output_dir = self.yearbook_parameters['output_dir']
+        pickle_path = get_pickle_path(output_dir, self.current_yearbook.school, self.current_yearbook.grade,
+                                      self.current_yearbook.classroom, self.current_yearbook.child)
+        pickle_filename = os.path.join(pickle_path, "file.pickle")
+        path1 = Path(pickle_filename)
+        # Create the parent directories if they don't exist
+        os.makedirs(path1.parent, exist_ok=True)
+
+        # Important to open the file in binary mode
+        with open(pickle_filename, 'wb') as f:
+            pickle.dump(self.current_yearbook.pickle_yearbook, f)
+
+        print("Saved pickled yearbook here: ", pickle_filename)
+
+    def publish_pdf(self, button):
         from PIL import Image
         output_dir = self.yearbook_parameters['output_dir']
 
-        pil_images = [Image.open(os.path.join(get_jpg_path(output_dir, self.school_name, self.grade_name,
-                                                           self.class_room, self.child_name),
-                                              str(page.number) + ".jpg")) for page in self.current_yearbook.pages]
+        pil_images = [
+            Image.open(os.path.join(get_jpg_path(output_dir, self.current_yearbook.school, self.current_yearbook.grade,
+                                                 self.current_yearbook.classroom, self.current_yearbook.child),
+                                    str(page.number) + ".jpg")) for page in self.current_yearbook.pages]
 
-        print("Will look for images starting with ", pil_images[0])
-        pdf_path = os.path.join(get_pdf_path(output_dir, self.school_name, self.grade_name,
-                                             self.class_room, self.child_name), "yearbook.pdf")
+        pdf_path = os.path.join(get_pdf_path(output_dir, self.current_yearbook.school, self.current_yearbook.grade,
+                                             self.current_yearbook.classroom, self.current_yearbook.child),
+                                "yearbook.pdf")
         pil_images[0].save(pdf_path, save_all=True,
                            append_images=pil_images[1:])
         print("Finished creating PDF version... ", pdf_path)
 
-        pickle_path = get_pickle_path(output_dir, school_name=self.school_name, grade=self.grade_name,
-                                      classroom=self.class_room, child_name=self.child_name)
-        pickle_filename = os.path.join(pickle_path, "file.pickle")
-
-        store_pickled_yearbook(self.current_yearbook, pickle_filename)
-        print("Saved pickled yearbook here: ", pickle_filename)
-
     def select_next_page(self, button):
         old_page: Page = self.current_yearbook.pages[self.current_page_index]
-        used_images = [photo.filename for photo in old_page.history[old_page.history_index].photolist]
+        # used_images = [photo.filename for photo in old_page.history[old_page.history_index].photolist]
 
-        self.current_page_index += 1
-        self.update_page_buttons()
+        if self.current_page_index == len(self.current_yearbook.pages):
+            # We cannot increment it, as we were on the last page
+            pass
+        else:
+            # Increment to the next page
+            self.current_page_index += 1
+
         current_page = self.current_yearbook.pages[self.current_page_index]
-        if not current_page.history:
-            max_count = self.yearbook_parameters['max_count']
-            new_page_images = self.choose_images_for_page(current_page)
-            remaining_images = [x for x in new_page_images if x not in used_images][:max_count]
-            self.update_photolist(current_page, remaining_images)
-            print("Updating with new images here, maybe")
 
-        self.render_preview(current_page)
-        self.update_flow_box_with_images(current_page)
+        self.update_ui_elements(current_page)
         print("NextClick - Number of images pinned %s" % str(len(current_page.get_all_pinned_photos())))
+
+    def update_ui_elements(self, current_page):
+        self.render_preview(current_page)
+        self.update_page_buttons()
+        self.update_flow_box_with_images(current_page)
 
     def select_prev_page(self, button):
         self.current_page_index -= 1
-        self.update_page_buttons()
         current_page = self.current_yearbook.pages[self.current_page_index]
-        self.render_preview(current_page)
-        self.update_flow_box_with_images(current_page)
+        self.update_ui_elements(current_page)
         print("PrevClick - Number of images pinned %s" % str(len(current_page.get_all_pinned_photos())))
 
     def set_settings(self, button):
@@ -948,7 +912,6 @@ class ImagePreviewArea(Gtk.DrawingArea):
                     self.parent.update_tool_buttons()
 
                 # Let's update the flow images to have this image show up in the bottom
-                print ("Should update flow box with new images")
                 self.parent.update_flow_box_with_images(current_page)
 
             elif dist_pinned <= 8 * 8:
@@ -1077,5 +1040,6 @@ def main():
     # If arguments are given, treat them as input images
     # if len(sys.argv) > 1:
     #    win.update_photolist(sys.argv[1:])
+    win.treeModel.foreach(win.render_and_pickle_yearbook)
 
     Gtk.main()

@@ -93,7 +93,7 @@ class BadPhoto(Exception):
         self.photoname = photoname
 
 
-def build_photolist(filelist):
+def build_photolist(filelist: [str]) -> [Photo]:
     ret = []
 
     for name in filelist:
@@ -308,10 +308,6 @@ class RenderingTask(Thread):
 
                 self.draw_borders(canvas)
 
-            # Need to call a method to update the final image
-            self.yearbook_page.update_final_image(canvas)
-
-            print("Finished setting the final image ...")
             if self.output_file:
                 print("Saving image at ...", self.output_file)
                 canvas.save(self.output_file, quality=95)
