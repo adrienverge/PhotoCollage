@@ -398,7 +398,7 @@ class MainWindow(Gtk.Window):
         model, treeiter = selection.get_selected()
         if treeiter is not None:
             self.current_yearbook: Yearbook = model[treeiter][0]
-            self.current_yearbook.print_yearbook_parents()
+            self.current_yearbook.print_yearbook_info()
 
             _current_page = self.select_page_at_index(index=max(0, self.current_page_index))
 
@@ -547,14 +547,16 @@ class MainWindow(Gtk.Window):
         print("********Finished rendering pages for the yearbook********")
 
     def render_preview(self, yearbook_page: Page):
-        try:
-            page_collage: UserCollage = yearbook_page.history[yearbook_page.history_index]
-        except IndexError:
-            print("This is the first time render of this page...")
+
+        if yearbook_page.has_parent_pins_changed() or len(yearbook_page.history) == 0:
+            # Parents pins have changed, can't load from history
+            print("Can't load from history")
             first_photo_list = render.build_photolist(self.choose_images_for_page(yearbook_page))
             page_collage = UserCollage(first_photo_list)
             page_collage.make_page(self.opts)
             yearbook_page.photo_list = first_photo_list
+        else:
+            page_collage: UserCollage = yearbook_page.history[yearbook_page.history_index]
 
         # If the desired ratio changed in the meantime (e.g. from landscape to
         # portrait), it needs to be re-updated

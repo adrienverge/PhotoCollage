@@ -74,3 +74,12 @@ class Page:
         # Keep the pictures that come from the parent at the top and append pictures from this page
         parent_pinned_pictures.extend(self.pinned_photos)
         return parent_pinned_pictures
+
+    def has_parent_pins_changed(self):
+        import functools
+
+        parent_pins = self.get_parent_pinned_photos()
+
+        # if any of the parent_pins are missing from the photolist
+        # then we return false
+        return functools.reduce(lambda a, b: a or b, [photo.filename in parent_pins for photo in self.photo_list], False)

@@ -89,7 +89,7 @@ class Yearbook(GObject.GObject):
         else:
             return self.pickle_yearbook.child
 
-    def print_yearbook_parents(self):
+    def print_yearbook_info(self):
         print("%s :-> %s :-> %s :-> %s" % (self.pickle_yearbook.school, self.pickle_yearbook.grade,
                                            self.pickle_yearbook.classroom, self.pickle_yearbook.child))
 
