@@ -369,10 +369,13 @@ class MainWindow(Gtk.Window):
         self.set_current_corpus()
         if self.school_name in self.tree_model_cache:
             _tree_model = self.tree_model_cache[self.school_name]
+            self.treeView.set_model(_tree_model)
         else:
             _tree_model = get_tree_model(self.yearbook_parameters, self.school_combo.get_active_text())
+            self.treeView.set_model(_tree_model)
+            self.treeModel.foreach(self.render_and_pickle_yearbook)
+            self.treeView.set_cursor(0)
 
-        self.treeView.set_model(_tree_model)
         self.treeModel = _tree_model # Not sure if we need to maintain this reference
         self.treeView.expand_all()
 
@@ -1053,3 +1056,5 @@ def main():
     win.treeModel.foreach(win.render_and_pickle_yearbook)
 
     Gtk.main()
+    win.treeView.set_cursor(0)
+
