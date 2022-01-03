@@ -202,7 +202,8 @@ class MainWindow(Gtk.Window):
         self.set_current_corpus()
         self.current_page_index = 0
 
-        self.img_preview = ImagePreviewArea(self)
+        self.img_preview_left = ImagePreviewArea(self)
+        self.img_preview_right = ImagePreviewArea(self)
         self.images_flow_box = Gtk.FlowBox()
         self.portraits_flow_box = Gtk.FlowBox()
         self.btn_settings = Gtk.Button()
@@ -243,6 +244,11 @@ class MainWindow(Gtk.Window):
 
     def get_yearbook_string(self, column, cell, model, iter, data):
         cell.set_property('text', model.get_value(iter, 0).__repr__())
+
+    def print_row(self, store, treepath, treeiter):
+        print("\t" * (treepath.get_depth() - 1), store[treeiter][:], sep="")
+        print(store[treeiter][:])
+        return store[treeiter]
 
     def make_window(self):
         self.set_border_width(10)
@@ -317,17 +323,24 @@ class MainWindow(Gtk.Window):
 
         # box = Gtk.Box(spacing=10)
         # box_window.pack_start(box, True, True, 0)
-
-        self.img_preview.set_size_request(600, 400)
-        self.img_preview.connect("drag-data-received", self.on_drag)
-        self.img_preview.drag_dest_set(Gtk.DestDefaults.ALL, [],
-                                       Gdk.DragAction.COPY)
         targets = Gtk.TargetList.new([])
         targets.add_text_targets(MainWindow.TARGET_TYPE_TEXT)
         targets.add_uri_targets(MainWindow.TARGET_TYPE_URI)
-        self.img_preview.drag_dest_set_target_list(targets)
 
-        box.pack_start(self.img_preview, True, True, 0)
+        self.img_preview_left.set_size_request(600, 400)
+        self.img_preview_left.connect("drag-data-received", self.on_drag)
+        self.img_preview_left.drag_dest_set(Gtk.DestDefaults.ALL, [],
+                                            Gdk.DragAction.COPY)
+        self.img_preview_left.drag_dest_set_target_list(targets)
+
+        box.pack_start(self.img_preview_left, True, True, 0)
+
+        self.img_preview_right.set_size_request(600, 400)
+        self.img_preview_right.connect("drag-data-received", self.on_drag)
+        self.img_preview_right.drag_dest_set(Gtk.DestDefaults.ALL, [],
+                                        Gdk.DragAction.COPY)
+        self.img_preview_right.drag_dest_set_target_list(targets)
+        box.pack_start(self.img_preview_right, True, True, 0)
 
         self.btn_undo.set_sensitive(False)
         self.btn_redo.set_sensitive(False)
@@ -352,11 +365,6 @@ class MainWindow(Gtk.Window):
         _scrolledWindow.add(self.images_flow_box)
         box.pack_start(_scrolledWindow, True, True, 0)
 
-    def print_row(self, store, treepath, treeiter):
-        print("\t" * (treepath.get_depth() - 1), store[treeiter][:], sep="")
-        print(store[treeiter][:])
-        return store[treeiter]
-
     '''
     When the combo select box changes, we have to do the following
     1) Update the corpus that's selected for processing based on the new school
@@ -376,7 +384,7 @@ class MainWindow(Gtk.Window):
             self.treeModel.foreach(self.render_and_pickle_yearbook)
             self.treeView.set_cursor(0)
 
-        self.treeModel = _tree_model # Not sure if we need to maintain this reference
+        self.treeModel = _tree_model  # Not sure if we need to maintain this reference
         self.treeView.expand_all()
 
     def set_current_corpus(self):
@@ -533,8 +541,9 @@ class MainWindow(Gtk.Window):
         self.current_yearbook = _yearbook
 
         output_dir = self.yearbook_parameters['output_dir']
-        pickle_path = os.path.join(get_pickle_path(output_dir, self.current_yearbook.school, self.current_yearbook.grade,
-                                      self.current_yearbook.classroom, self.current_yearbook.child), "file.pickle")
+        pickle_path = os.path.join(
+            get_pickle_path(output_dir, self.current_yearbook.school, self.current_yearbook.grade,
+                            self.current_yearbook.classroom, self.current_yearbook.child), "file.pickle")
         print("operating on current yearbook : %s" % pickle_path)
         if os.path.exists(pickle_path):
             print("will be loaded from pickle file...")
@@ -547,6 +556,11 @@ class MainWindow(Gtk.Window):
         print("********Finished rendering pages for the yearbook********")
 
     def render_preview(self, yearbook_page: Page):
+
+        if self.current_page_index % 2 == 0:
+            img_preview_area = self.img_preview_right
+        else:
+            img_preview_area = self.img_preview_left
 
         if yearbook_page.has_parent_pins_changed() or len(yearbook_page.history) == 0:
             # Parents pins have changed, can't load from history
@@ -563,8 +577,9 @@ class MainWindow(Gtk.Window):
         page_collage.page.target_ratio = 1.0 * self.opts.out_h / self.opts.out_w
         page_collage.page.adjust_cols_heights()
 
-        w = self.img_preview.get_allocation().width
-        h = self.img_preview.get_allocation().height
+        # TODO:: Might be worth pulling these out and passing it in from the calling agent
+        w = img_preview_area.get_allocation().width
+        h = img_preview_area.get_allocation().height
 
         page_collage.page.scale_to_fit(w, h)
 
@@ -572,11 +587,11 @@ class MainWindow(Gtk.Window):
         comp_dialog = ComputingDialog(self)
 
         def on_update(img, fraction_complete):
-            self.img_preview.set_collage(img, page_collage)
+            img_preview_area.set_collage(img, page_collage)
             comp_dialog.update(fraction_complete)
 
         def on_complete(img, out_file):
-            self.img_preview.set_collage(img, page_collage)
+            img_preview_area.set_collage(img, page_collage)
             comp_dialog.destroy()
 
         def on_fail(exception):
@@ -1059,4 +1074,3 @@ def main():
 
     Gtk.main()
     win.treeView.set_cursor(0)
-
