@@ -256,7 +256,11 @@ class ImagePreviewArea(Gtk.DrawingArea):
                     self.paint_image_border(context, cell)
 
                     if self.parent.left_index is not None:
-                        _current_page = self.parent.current_yearbook.pages[self.parent.left_index]
+                        if widget.name == "LeftPage":
+                            _current_page = self.parent.current_yearbook.pages[self.parent.left_index]
+                        else:
+                            _current_page = self.parent.current_yearbook.pages[self.parent.right_index]
+
                         if cell.photo.filename not in _current_page.get_parent_pinned_photos():
                             # Allow deleting only when the image is not pinned by any parent.
                             self.paint_image_delete_button(context, cell)
