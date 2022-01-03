@@ -315,7 +315,6 @@ class RenderingTask(Thread):
             if self.on_complete:
                 self.on_complete(canvas, self.output_file)
 
-
         except Exception as e:
             if self.on_fail:
                 self.on_fail(e)

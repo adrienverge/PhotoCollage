@@ -373,8 +373,8 @@ class MainWindow(Gtk.Window):
         else:
             _tree_model = get_tree_model(self.yearbook_parameters, self.school_combo.get_active_text())
             self.treeView.set_model(_tree_model)
-            self.treeModel.foreach(self.render_and_pickle_yearbook)
             self.treeView.set_cursor(0)
+            _tree_model.foreach(self.render_and_pickle_yearbook)
 
         self.treeModel = _tree_model # Not sure if we need to maintain this reference
         self.treeView.expand_all()
