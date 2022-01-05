@@ -548,9 +548,9 @@ class MainWindow(Gtk.Window):
 
     def render_preview(self, yearbook_page: Page):
 
-        if yearbook_page.has_parent_pins_changed() or len(yearbook_page.history) == 0:
+        if len(yearbook_page.history) == 0 or yearbook_page.has_parent_pins_changed():
             # Parents pins have changed, can't load from history
-            print("Can't load from history")
+            print("re-render")
             first_photo_list = render.build_photolist(self.choose_images_for_page(yearbook_page))
             page_collage = UserCollage(first_photo_list)
             page_collage.make_page(self.opts)

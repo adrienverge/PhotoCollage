@@ -1,5 +1,4 @@
 import os
-import PIL.Image
 
 from photocollage.collage import Photo
 from util.utils import get_unique_list_insertion_order
