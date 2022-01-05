@@ -83,7 +83,7 @@ class SettingsDialog(Gtk.Dialog):
         vbox.pack_start(box, False, False, 0)
         label = Gtk.Label(_("Thickness:"), xalign=0)
         box.pack_start(label, False, False, 0)
-        self.etr_border = Gtk.Entry(text=str(100.0 * parent.opts.border_w))
+        self.etr_border = Gtk.Entry(text=str(50.0 * parent.opts.border_w))
         self.etr_border.connect("changed", self.validate_float)
         self.etr_border.last_valid_text = self.etr_border.get_text()
         self.etr_border.set_width_chars(4)

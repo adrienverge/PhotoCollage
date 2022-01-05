@@ -515,12 +515,12 @@ class MainWindow(Gtk.Window):
 
         box.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
 
-        self.btn_undo.connect("clicked", self.select_prev_layout)
-        box.pack_start(self.btn_undo, False, False, 0)
-        box.pack_start(self.lbl_history_index, False, False, 0)
+        # self.btn_undo.connect("clicked", self.select_prev_layout)
+        # box.pack_start(self.btn_undo, False, False, 0)
+        # box.pack_start(self.lbl_history_index, False, False, 0)
 
         self.btn_redo.connect("clicked", self.select_next_layout)
-        box.pack_start(self.btn_redo, False, False, 0)
+        # box.pack_start(self.btn_redo, False, False, 0)
 
         self.btn_regen_left.connect("clicked",
                                     self.regenerate_layout)
@@ -798,7 +798,7 @@ class MainWindow(Gtk.Window):
 
         if len(yearbook_page.history) == 0 or yearbook_page.has_parent_pins_changed():
             # Parents pins have changed, can't load from history
-            print("re-render")
+            print("re-render %s " % yearbook_page.has_parent_pins_changed())
             first_photo_list = render.build_photolist(self.choose_images_for_page(yearbook_page))
             page_collage = UserCollage(first_photo_list)
             page_collage.make_page(self.opts)
@@ -967,6 +967,7 @@ class MainWindow(Gtk.Window):
         self.render_left_page(left_page)
         self.render_right_page(right_page)
         self.update_flow_box_with_images(left_page)
+        self.update_label_text()
 
     def set_settings(self, button):
         dialog = SettingsDialog(self)
@@ -985,17 +986,12 @@ class MainWindow(Gtk.Window):
         else:
             dialog.destroy()
 
-    def update_page_buttons(self):
-        # TODO:: Need to fix this as a bug fix, since it's not related to the page of the yearbook
-        # but it's referring to the page of ANY previous yearbook
-        self.btn_prev_page.set_sensitive(self.left_index > 0)
-        self.btn_next_page.set_sensitive(self.left_index < len(self.current_yearbook.pages) - 1)
-
+    def update_label_text(self):
         if self.left_index < 0:
             # reset the index
             self.left_index = 0
-            self.lbl_event_name.set_label("")
-            self.lbl_page_number.set_label("")
+            self.lbl_event_name.set_label(self.current_yearbook.pages[self.left_index].event_nam)
+            self.lbl_page_number.set_label(str(self.current_yearbook.pages[self.left_index].number))
         else:
             self.lbl_event_name.set_label(self.current_yearbook.pages[self.left_index].event_name)
             self.lbl_page_number.set_label(str(self.current_yearbook.pages[self.left_index].number))

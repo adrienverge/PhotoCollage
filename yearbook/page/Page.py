@@ -76,9 +76,12 @@ class Page:
 
     def has_parent_pins_changed(self):
         import functools
-
         parent_pins = self.get_parent_pinned_photos()
+        if len(parent_pins) == 0:
+            return False
 
-        # if any of the parent_pins are missing from the photolist
-        # then we return false
-        return functools.reduce(lambda a, b: a or b, [photo.filename in parent_pins for photo in self.photo_list], False)
+        photos_on_page = [photo.filename for photo in self.photo_list]
+  
+        # if any of the parent_pins are missing from this page
+        # then we return True
+        return functools.reduce(lambda a, b: a or b, [filename not in photos_on_page for filename in parent_pins], False)
