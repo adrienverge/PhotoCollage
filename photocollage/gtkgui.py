@@ -464,8 +464,8 @@ class MainWindow(Gtk.Window):
         self.lbl_history_index = Gtk.Label(" ")
         self.btn_undo = Gtk.Button()
         self.btn_prev_page = Gtk.Button(label=_("Prev page..."))
-        self.lbl_event_name = Gtk.Label(" ")
-        self.lbl_page_number = Gtk.Label(" ")
+        self.lbl_right_page = Gtk.Label(" ")
+        self.lbl_left_page = Gtk.Label(" ")
         self.btn_next_page = Gtk.Button(label=_("Next page..."))
         self.btn_publish_book = Gtk.Button(label=_("Publish"))
 
@@ -538,8 +538,8 @@ class MainWindow(Gtk.Window):
         self.btn_prev_page.set_sensitive(False)
         self.btn_prev_page.connect("clicked", self.select_prev_page)
 
-        box.pack_start(self.lbl_page_number, False, False, 0)
-        box.pack_start(self.lbl_event_name, False, False, 0)
+        box.pack_start(self.lbl_left_page, False, False, 0)
+        box.pack_start(self.lbl_right_page, False, False, 0)
         box.pack_start(self.btn_next_page, True, True, 0)
         self.btn_next_page.connect("clicked", self.select_next_page)
 
@@ -591,6 +591,10 @@ class MainWindow(Gtk.Window):
         _scrolledWindow.set_size_request(100, 300)
         box.pack_start(_scrolledWindow, True, True, 0)
         box_window.pack_start(box, True, True, 0)
+
+        separator = Gtk.SeparatorToolItem()
+        separator.set_size_request(1, 300)
+        box.pack_start(separator, True, True, 0)
 
         # --------------------------------------------
         #  GTK Flow Box to view other candidate images
@@ -944,31 +948,23 @@ class MainWindow(Gtk.Window):
     def select_next_page(self, button):
         # Increment to the next left page
         self.left_index += 2
-
-        # If we go out of bounds, then go to the last odd page in the yearbook
-        if self.right_index > len(self.current_yearbook.pages):
-            self.left_index = len(self.current_yearbook) - 1
-            self.btn_next_page.set_sensitive(False)
-
         self.update_ui_elements()
-        self.btn_prev_page.set_sensitive(True)
         print("NextClick - ")
 
     def select_prev_page(self, button):
         self.left_index -= 2
-        if self.left_index <= 1:
-            # Reset left index to cover page
-            self.left_index = 0
-
         self.update_ui_elements()
         print("PrevClick - ")
 
     def update_ui_elements(self):
         print("left index %s, right index %s" % (self.left_index, self.right_index))
 
+        if self.left_index < 0:
+            self.left_index = 0
+
         # Reset the prev and next buttons
         self.btn_prev_page.set_sensitive(self.left_index > 0)
-        self.btn_next_page.set_sensitive(self.right_index < len(self.current_yearbook.pages))
+        self.btn_next_page.set_sensitive(self.right_index < len(self.current_yearbook.pages)-1)
 
         left_page = self.current_yearbook.pages[self.left_index]
         right_page = self.current_yearbook.pages[self.right_index]
@@ -998,11 +994,12 @@ class MainWindow(Gtk.Window):
         if self.left_index < 0:
             # reset the index
             self.left_index = 0
-            self.lbl_event_name.set_label(self.current_yearbook.pages[self.left_index].event_nam)
-            self.lbl_page_number.set_label(str(self.current_yearbook.pages[self.left_index].number))
-        else:
-            self.lbl_event_name.set_label(self.current_yearbook.pages[self.left_index].event_name)
-            self.lbl_page_number.set_label(str(self.current_yearbook.pages[self.left_index].number))
+
+        _left = self.current_yearbook.pages[self.left_index]
+        _right = self.current_yearbook.pages[self.right_index]
+
+        self.lbl_left_page.set_label(str(_left.number) + ":" + _left.event_name)
+        self.lbl_right_page.set_label(str(_right.number) + ":" + _right.event_name)
 
     def update_tool_buttons(self):
         if self.current_yearbook is None:
