@@ -708,8 +708,13 @@ class MainWindow(Gtk.Window):
             print("double click, %s", img_name)
             self.update_photolist(self.current_yearbook.pages[self.left_index], [img_name])
             self.update_flow_box_with_images(self.current_yearbook.pages[self.left_index])
+        elif event.type == Gdk.EventType.BUTTON_PRESS and event.button == 3:
+            print("Right clicked")
+            self.update_photolist(self.current_yearbook.pages[self.right_index], [img_name])
+            self.update_flow_box_with_images(self.current_yearbook.pages[self.right_index])
         else:
-            print("single click")
+            print("Image clicked %s " % event.button)
+            print(event.button == 3)
 
     def update_photolist(self, page, new_images: [str], display: bool = True):
         photolist: [Photo] = []
