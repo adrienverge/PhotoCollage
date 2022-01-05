@@ -460,7 +460,7 @@ class MainWindow(Gtk.Window):
         self.btn_redo = Gtk.Button()
         self.lbl_history_index = Gtk.Label(" ")
         self.btn_undo = Gtk.Button()
-        self.btn_previous_page = Gtk.Button(label=_("Prev page..."))
+        self.btn_prev_page = Gtk.Button(label=_("Prev page..."))
         self.lbl_event_name = Gtk.Label(" ")
         self.lbl_page_number = Gtk.Label(" ")
         self.btn_next_page = Gtk.Button(label=_("Next page..."))
@@ -531,8 +531,9 @@ class MainWindow(Gtk.Window):
 
         box.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
 
-        box.pack_start(self.btn_previous_page, False, False, 0)
-        self.btn_previous_page.connect("clicked", self.select_prev_page)
+        box.pack_start(self.btn_prev_page, False, False, 0)
+        self.btn_prev_page.set_sensitive(False)
+        self.btn_prev_page.connect("clicked", self.select_prev_page)
 
         box.pack_start(self.lbl_page_number, False, False, 0)
         box.pack_start(self.lbl_event_name, False, False, 0)
@@ -783,10 +784,6 @@ class MainWindow(Gtk.Window):
         for page in self.current_yearbook.pages:
             self.render_preview(page, self.img_preview_left)
 
-        for page_num in range(0, len(self.current_yearbook.pages)):
-            self.left_index = page_num*2 + 1
-            self.right_index = page_num*2+ 2
-
         self.publish_and_pickle(None)
         print("********Finished rendering pages for the yearbook********")
 
@@ -799,9 +796,9 @@ class MainWindow(Gtk.Window):
     def render_preview(self, yearbook_page: Page, img_preview_area: ImagePreviewArea):
         print("---Displaying %s " % yearbook_page.event_name)
 
-        if yearbook_page.has_parent_pins_changed() or len(yearbook_page.history) == 0:
+        if len(yearbook_page.history) == 0 or yearbook_page.has_parent_pins_changed():
             # Parents pins have changed, can't load from history
-            print("Can't load from history")
+            print("re-render")
             first_photo_list = render.build_photolist(self.choose_images_for_page(yearbook_page))
             page_collage = UserCollage(first_photo_list)
             page_collage.make_page(self.opts)
@@ -943,22 +940,27 @@ class MainWindow(Gtk.Window):
         # If we go out of bounds, then go to the last odd page in the yearbook
         if self.right_index > len(self.current_yearbook.pages):
             self.left_index = len(self.current_yearbook) - 1
+            self.btn_next_page.set_sensitive(False)
 
         self.update_ui_elements()
-
+        self.btn_prev_page.set_sensitive(True)
         print("NextClick - ")
 
     def select_prev_page(self, button):
         self.left_index -= 2
-        if self.left_index < 1:
+        if self.left_index <= 1:
             # Reset left index to cover page
-            self.left_index = 1
+            self.left_index = 0
 
         self.update_ui_elements()
         print("PrevClick - ")
 
     def update_ui_elements(self):
         print("left index %s, right index %s" % (self.left_index, self.right_index))
+
+        # Reset the prev and next buttons
+        self.btn_prev_page.set_sensitive(self.left_index > 0)
+        self.btn_next_page.set_sensitive(self.right_index < len(self.current_yearbook.pages))
 
         left_page = self.current_yearbook.pages[self.left_index]
         right_page = self.current_yearbook.pages[self.right_index]
@@ -986,10 +988,12 @@ class MainWindow(Gtk.Window):
     def update_page_buttons(self):
         # TODO:: Need to fix this as a bug fix, since it's not related to the page of the yearbook
         # but it's referring to the page of ANY previous yearbook
-        self.btn_previous_page.set_sensitive(self.left_index > 0)
+        self.btn_prev_page.set_sensitive(self.left_index > 0)
         self.btn_next_page.set_sensitive(self.left_index < len(self.current_yearbook.pages) - 1)
 
         if self.left_index < 0:
+            # reset the index
+            self.left_index = 0
             self.lbl_event_name.set_label("")
             self.lbl_page_number.set_label("")
         else:
@@ -1000,15 +1004,19 @@ class MainWindow(Gtk.Window):
         if self.current_yearbook is None:
             return
 
-        page = self.current_yearbook.pages[self.left_index]
-        self.btn_undo.set_sensitive(page.history_index > 0)
-        self.btn_redo.set_sensitive(page.history_index < len(page.history) - 1)
-        if page.history_index < len(page.history):
-            self.lbl_history_index.set_label(str(page.history_index + 1))
+        left_page = self.current_yearbook.pages[self.left_index]
+        right_page = self.current_yearbook.pages[self.right_index]
+
+        self.btn_undo.set_sensitive(left_page.history_index > 0)
+        self.btn_redo.set_sensitive(left_page.history_index < len(left_page.history) - 1)
+        if left_page.history_index < len(left_page.history):
+            self.lbl_history_index.set_label(str(left_page.history_index + 1))
         else:
             self.lbl_history_index.set_label(" ")
         self.btn_regen_left.set_sensitive(
-            page.history_index < len(page.history))
+            left_page.history_index < len(left_page.history))
+        self.btn_regen_right.set_sensitive(
+            right_page.history_index < len(right_page.history))
 
 
 class ComputingDialog(Gtk.Dialog):
