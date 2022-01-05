@@ -265,14 +265,17 @@ class ImagePreviewArea(Gtk.DrawingArea):
                             # Allow deleting only when the image is not pinned by any parent.
                             self.paint_image_delete_button(context, cell)
 
-                    # If image is pinned at same level
-                    if cell.photo.filename in _current_page.pinned_photos:
-                        self.paint_image_pin_button(context, cell, pinned=True)
-                    elif cell.photo.filename in _current_page.get_parent_pinned_photos():
-                        # Do not show any pinning options
-                        pass
-                    else:
-                        self.paint_image_pin_button(context, cell, pinned=False)
+                    if self.parent.current_yearbook.child is None:
+                        # only then we bother with pinning icons
+                        # If image is pinned at same level
+                        if cell.photo.filename in _current_page.pinned_photos:
+                            self.paint_image_pin_button(context, cell, pinned=True)
+                        elif cell.photo.filename in _current_page.get_parent_pinned_photos():
+                            # Do not show any pinning options
+                            pass
+                        else:
+                            self.paint_image_pin_button(context, cell, pinned=False)
+
 
             elif self.mode == self.SWAPPING_OR_MOVING:
                 self.paint_image_border(context, self.swap_origin.cell, (3, 3))
