@@ -21,7 +21,7 @@ def read_page_json(json_file_loc):
 
 class Page:
 
-    def __init__(self, number: int, event: str, personalized: bool, orig_image_loc: str):
+    def __init__(self, number: int, event: str, personalized: bool, orig_image_loc: str, tags: str = None):
         self.number = number
         self.event_name = event
         self.personalized = personalized
@@ -32,6 +32,7 @@ class Page:
         self.photo_list: [Photo] = []
         self.pinned_photos: {str} = set()
         self.parent_pages: [Page] = []
+        self.tags: str = tags
 
     def __getstate__(self): return self.__dict__
     def __setstate__(self, d): self.__dict__.update(d)

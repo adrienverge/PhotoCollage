@@ -14,24 +14,26 @@ def get_portrait_images_for_child(drive_dir, school_name, child):
 
 class Corpus:
 
-    def __init__(self, school_name: str, image_map: {}, events_to_images: {}, child_to_images: {}, corpus_dir: str):
+    def __init__(self, school_name: str, image_map: {}, events_to_images: {}, child_to_images: {}, image_tags: {},
+                 corpus_dir: str):
         self.school_name = school_name
         self.image_map = image_map
         self.events_to_images = events_to_images
         self.child_to_images = child_to_images
+        self.image_tags = image_tags
         self.corpus_dir = corpus_dir
 
     def get_children(self):
         return self.child_to_images.keys()
 
-    def get_events(self):
+    def __get_events(self):
         return self.events_to_images.keys()
 
-    def is_image_from_event(self, image, event):
+    def __is_image_from_event(self, image, event):
         # Doesn't check for missing events for now
         return image in self.events_to_images[event]
 
-    def get_images_for_event(self, event):
+    def __get_images_for_event(self, event):
         # Doesn't check for missing events for now
         return self.events_to_images[event]
 
@@ -53,7 +55,7 @@ class Corpus:
 
     def get_filenames_child_images_for_event(self, child, event):
         import os
-        child_images_per_event = self.get_child_images_for_event_with_scores(child, event)
+        child_images_per_event = self.__get_child_images_for_event_with_scores(child, event)
 
         # TODO: Figure out what should the fallback be in cases where there are no images of this child
         # in this event. For now we're returning everything from that event
@@ -63,7 +65,7 @@ class Corpus:
 
         return [os.path.join(self.corpus_dir, event, a_tuple[0]) for a_tuple in child_images_per_event]
 
-    def get_child_images_for_event_with_scores(self, child, event):
+    def __get_child_images_for_event_with_scores(self, child, event):
 
         child_images_per_event = []
         try:
@@ -79,4 +81,10 @@ class Corpus:
 
     def get_images_with_face_count(self, face_count: int):
 
-        return {k:v for k,v in self.image_map.items() if len(v.faces) == face_count}
+        return {k: v for k, v in self.image_map.items() if len(v.faces) == face_count}
+
+    def get_image_tags(self, img_full_path: str) -> str:
+        if img_full_path in self.image_tags:
+            return self.image_tags[img_full_path]
+        else:
+            return "Unknown"

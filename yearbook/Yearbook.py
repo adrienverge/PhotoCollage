@@ -47,8 +47,7 @@ def create_yearbook_from_db(dir_params: {}, school_name: str, grade: str, classr
             personalized = True
 
         page = Page(int(row[3]), str(row[1]).strip(), personalized,
-                    os.path.join(corpus_base_dir, school_name, row[4]))
-        print(row)
+                    os.path.join(corpus_base_dir, school_name, row[4]), str(row[5]))
         pages.append(page)
 
     print("Pages in yearbook %s" % str(len(pages)))

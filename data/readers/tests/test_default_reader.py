@@ -65,6 +65,16 @@ class TestDefaultReader(unittest.TestCase):
         corpus = corpus_processor(school_name='Appleseed_2018_2019')
         print(corpus.get_filenames_for_event_images('Portraits'))
 
+    def test_monticello_corpus_with_tags(self):
+        corpus = corpus_processor(school_name='Monticello_Preschool_2021_2022')
+        assert len(corpus.image_tags) >= 2161
+        image_tags = corpus.image_tags['/Users/ashah/GoogleDrive/MonticelloPreschool2021_2022Master_PNGFiles' \
+                                       '/Halloween/IMG_5352.png']
+        assert "Halloween" in image_tags
+        assert len(image_tags.split(",")) == 2
+
+        print(corpus.events_to_images.keys())
+
 
 if __name__ == '__main__':
     unittest.main()

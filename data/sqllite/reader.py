@@ -29,7 +29,7 @@ def get_schools(conn):
 
 def get_all_rows(conn):
     cur = conn.cursor()
-    query = "SELECT Distinct s.name, grade, class, r.name, p.album FROM roster r, schools s, pages p " \
+    query = "SELECT Distinct s.name, grade, class, r.name, p.album, p.tags FROM roster r, schools s, pages p " \
             "where r.school = s.[School ID] and p.album=s.[Album Id] order by 1,2,3,4"
     return cur.execute(query)
 
@@ -37,14 +37,13 @@ def get_all_rows(conn):
 def get_album_details_for_school(db_file: str, school_name: str):
     conn = create_connection(db_file)
     cur = conn.cursor()
-    query = 'Select a.id, a.name, a.type, a.page_number, a.image from pages a, schools s ' \
+    query = 'Select a.id, a.name, a.type, a.page_number, a.image, a.tags from pages a, schools s ' \
             'where a.album = s.[Album Id] and s.name = "%s" ' % school_name
 
     return cur.execute(query)
 
 
 def get_school_list(db_file: str):
-    from gi.repository import Gtk
 
     school_list = []
     # Create a connection to the database
@@ -85,6 +84,7 @@ def get_tree_model(dir_params: {}, school_selection: str) -> Gtk.TreeStore:
     added_schools = {}
 
     for row in all_rows:
+        print(row)
         school_name = '%s' % row[0]
         if school_selection != school_name:
             continue
