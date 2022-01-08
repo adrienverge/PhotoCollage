@@ -84,7 +84,6 @@ def get_tree_model(dir_params: {}, school_selection: str) -> Gtk.TreeStore:
     added_schools = {}
 
     for row in all_rows:
-        print(row)
         school_name = '%s' % row[0]
         if school_selection != school_name:
             continue

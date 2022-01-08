@@ -76,6 +76,15 @@ class Yearbook(GObject.GObject):
         self.classroom= self.pickle_yearbook.classroom
         self.child = self.pickle_yearbook.child
 
+    def get_prev_page(self, current_page: Page):
+        current_page_idx = current_page.number - 1
+        if current_page_idx == 0:
+            prev_page_idx = 0
+        else:
+            prev_page_idx = current_page_idx - 1
+
+        return self.pages[prev_page_idx]
+
     def __repr__(self):
         if self.pickle_yearbook.child is None:
             if self.pickle_yearbook.classroom is None:
