@@ -46,6 +46,7 @@ class TestSchoolRanker(unittest.TestCase):
         images = self.get_images_for_page(page6)
         print(page6.tags)
         [print(img) for img in images]
+        assert len(images) == 20
 
     def test_ranker_first_day_of_school_1(self):
         first_day_of_school_1 = self.yearbook.pages[13]

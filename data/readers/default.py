@@ -1,6 +1,4 @@
 from yearbook.Corpus import Corpus
-from yearbook.Photograph import Photograph
-
 from util.utils import get_box_from_points_arr
 
 
@@ -36,7 +34,7 @@ def corpus_processor(school_name: str, corpus_file: str = None, default_tags=Non
 
                     # Event name is also another tag
                     tags = values[2].strip().split(",")
-
+                    tags = [tag.strip() for tag in tags]
                     tags.extend(default_tags)
                     image_to_tag_map[img_name] = tags
 
@@ -50,6 +48,7 @@ def corpus_processor(school_name: str, corpus_file: str = None, default_tags=Non
                     face_to_image = {face[0]: [(img_name, face[1], face[2])] for face in faces}
 
                     for face in face_to_image:
+                        face = face.strip()
                         if face in tag_to_image_map:
                             tag_to_image_map[face].append(img_name)
                         else:

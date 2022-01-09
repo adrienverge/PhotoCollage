@@ -24,6 +24,7 @@ import urllib
 
 import cairo
 import gi
+from gi.repository.Gtk import TreeStore
 
 from data.pickle.utils import get_pickle_path, get_jpg_path, get_pdf_path
 from data.rankers import RankerFactory
@@ -415,7 +416,12 @@ class UserCollage:
         return UserCollage(copy.copy(self.photolist))
 
 
+def get_yearbook_string(column, cell, model, iter, data):
+    cell.set_property('text', model.get_value(iter, 0).__repr__())
+
+
 class MainWindow(Gtk.Window):
+    treeModel: TreeStore
     TARGET_TYPE_TEXT = 1
     TARGET_TYPE_URI = 2
 
@@ -443,6 +449,7 @@ class MainWindow(Gtk.Window):
         from data.sqllite.reader import get_tree_model, get_school_list
         self.school_combo = Gtk.ComboBoxText.new()
         school_list = get_school_list(self.yearbook_parameters['db_file_path'])
+        print(school_list)
         for school in school_list:
             self.school_combo.append_text(school)
 
@@ -473,13 +480,13 @@ class MainWindow(Gtk.Window):
         self.treeView = Gtk.TreeView(self.treeModel)
         tv_column = Gtk.TreeViewColumn('Roster')
         self.treeView.append_column(tv_column)
-        self.treeView.expand_all()
+        # self.treeView.expand_all()
 
         self.school_combo.connect("changed", self.on_school_combo_changed)
 
         cell = Gtk.CellRendererText()
         tv_column.pack_start(cell, True)
-        tv_column.set_cell_data_func(cell, self.get_yearbook_string)
+        tv_column.set_cell_data_func(cell, get_yearbook_string)
         tv_column.add_attribute(cell, 'text', 0)
 
         class Options:
@@ -491,9 +498,6 @@ class MainWindow(Gtk.Window):
 
         self.opts = Options()
         self.make_window()
-
-    def get_yearbook_string(self, column, cell, model, iter, data):
-        cell.set_property('text', model.get_value(iter, 0).__repr__())
 
     def make_window(self):
         self.set_border_width(10)
@@ -608,6 +612,8 @@ class MainWindow(Gtk.Window):
             _tree_model = self.tree_model_cache[self.school_name]
             self.treeView.set_model(_tree_model)
         else:
+
+            print(self.corpus.tags_to_images.keys())
             _tree_model = get_tree_model(self.yearbook_parameters, self.school_combo.get_active_text())
             self.treeView.set_model(_tree_model)
             self.treeView.set_cursor(0)
@@ -780,6 +786,7 @@ class MainWindow(Gtk.Window):
             return
 
         print("*********First creation of this yearbook********")
+        self.current_yearbook.print_yearbook_info()
         for page in self.current_yearbook.pages:
             self.render_preview(page, self.img_preview_left)
 
@@ -797,15 +804,6 @@ class MainWindow(Gtk.Window):
 
         if len(yearbook_page.history) == 0:
             page_images = self.choose_images_for_page(yearbook_page)
-            if page_images is None or len(page_images) == 0:
-                # We need to find the parent yearbook and get that page here
-
-                model, treeiter = self.treeView.get_selection().get_selected()
-                parent_book: Yearbook = model.iter_parent(treeiter)
-                print("Parent book -> %s" % parent_book.__repr__())
-                parent_page: Page = parent_book.pages[yearbook_page.number-1]
-                page_images = parent_page.photos_on_page
-
             first_photo_list = render.build_photolist(page_images)
             page_collage = UserCollage(first_photo_list)
             page_collage.make_page(self.opts)

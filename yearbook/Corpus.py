@@ -34,17 +34,17 @@ class Corpus:
             return "Unknown"
 
     def get_intersection_images(self, tags_list: [str]) -> [str]:
+
         # Get the images that have this given tags
         all_images = [self.tags_to_images[tag] for tag in tags_list if tag in self.tags_to_images]
 
         # Now all_images is [[img0, img1] [img3, img4] [img5] [img5] [img6]]
         # We need to return an intersection of the lists
         import functools
-
-        final_images = functools.reduce(lambda x, y: intersection(x, y), all_images)
-
-        if final_images is None or len(final_images) == 0:
-            print("Need to figure out what we can do in this case")
+        try:
+            final_images = functools.reduce(lambda x, y: intersection(x, y), all_images)
+        except TypeError:
+            final_images = []
 
         return final_images
 

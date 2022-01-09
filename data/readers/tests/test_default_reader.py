@@ -13,17 +13,31 @@ class TestDefaultReader(unittest.TestCase):
     def test_monticello_corpus_with_tags(self):
         print(len(self.corpus.image_to_tags))
         assert len(self.corpus.image_to_tags) >= 2099
-        image_tags = self.corpus.image_to_tags['/Users/ashah/GoogleDrive/Monticello_Preschool_2021_2022/Halloween/IMG_5811.png']
+        image_tags = self.corpus.image_to_tags[
+            '/Users/ashah/GoogleDrive/Monticello_Preschool_2021_2022/Halloween/IMG_5811.png']
         assert "Halloween" in image_tags
-        assert len(image_tags) == 2
+        print(image_tags)
+        assert len(image_tags) == 3
 
     def test_monticello_corpus_images_for_event(self):
         images = self.corpus.tags_to_images['Portraits']
         assert len(images) >= 328
-        assert images.index('/Users/ashah/GoogleDrive/Monticello_Preschool_2021_2022/Adventureland/Portraits/Ethan Tang_2.png') >= 1
+        assert images.index(
+            '/Users/ashah/GoogleDrive/Monticello_Preschool_2021_2022/Adventureland/Portraits/Ethan Tang_2.png') >= 1
+
+    def test_longer_lists(self):
+        tags_list = ["Sunshine",
+                     "Portraits",
+                     "Monticello_Preschool_2021_2022",
+                     "PreK",
+                     "Adventureland",
+                     "Aarish Mathur"]
+
+        assert len(self.corpus.get_intersection_images(tags_list)) == 0
 
     def test_get_images(self):
-        sunshine_portraits = self.corpus.get_intersection_images(["Portraits", "Sunshine"])
+        sunshine_portraits = self.corpus.get_intersection_images(["Monticello_Preschool_2021_2022",
+                                                                  "PreK", "Portraits", "Sunshine"])
         adventure_portraits = self.corpus.get_intersection_images(["Portraits", "Adventureland"])
         assert len(sunshine_portraits) >= 50
         assert len(adventure_portraits) >= 50
