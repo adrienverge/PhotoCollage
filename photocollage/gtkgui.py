@@ -24,6 +24,7 @@ import urllib
 
 import cairo
 import gi
+from gi.repository.Gtk import TreeStore
 
 from data.pickle.utils import get_pickle_path, get_jpg_path, get_pdf_path
 from data.rankers import RankerFactory
@@ -34,8 +35,6 @@ from photocollage.render import PIL_SUPPORTED_EXTS as EXTS
 from photocollage.dialogs.SettingsDialog import SettingsDialog
 
 from data.readers.default import corpus_processor
-from util.utils import get_unique_list_insertion_order
-from yearbook.Corpus import get_portrait_images_for_child
 from yearbook.Yearbook import Yearbook
 from yearbook.Yearbook import Page
 
@@ -417,7 +416,12 @@ class UserCollage:
         return UserCollage(copy.copy(self.photolist))
 
 
+def get_yearbook_string(column, cell, model, iter, data):
+    cell.set_property('text', model.get_value(iter, 0).__repr__())
+
+
 class MainWindow(Gtk.Window):
+    treeModel: TreeStore
     TARGET_TYPE_TEXT = 1
     TARGET_TYPE_URI = 2
 
@@ -445,6 +449,7 @@ class MainWindow(Gtk.Window):
         from data.sqllite.reader import get_tree_model, get_school_list
         self.school_combo = Gtk.ComboBoxText.new()
         school_list = get_school_list(self.yearbook_parameters['db_file_path'])
+        print(school_list)
         for school in school_list:
             self.school_combo.append_text(school)
 
@@ -475,13 +480,13 @@ class MainWindow(Gtk.Window):
         self.treeView = Gtk.TreeView(self.treeModel)
         tv_column = Gtk.TreeViewColumn('Roster')
         self.treeView.append_column(tv_column)
-        self.treeView.expand_all()
+        # self.treeView.expand_all()
 
         self.school_combo.connect("changed", self.on_school_combo_changed)
 
         cell = Gtk.CellRendererText()
         tv_column.pack_start(cell, True)
-        tv_column.set_cell_data_func(cell, self.get_yearbook_string)
+        tv_column.set_cell_data_func(cell, get_yearbook_string)
         tv_column.add_attribute(cell, 'text', 0)
 
         class Options:
@@ -493,9 +498,6 @@ class MainWindow(Gtk.Window):
 
         self.opts = Options()
         self.make_window()
-
-    def get_yearbook_string(self, column, cell, model, iter, data):
-        cell.set_property('text', model.get_value(iter, 0).__repr__())
 
     def make_window(self):
         self.set_border_width(10)
@@ -515,16 +517,7 @@ class MainWindow(Gtk.Window):
         # -----------------------
         #  Tools pan
         # -----------------------
-
         box.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
-
-        # self.btn_undo.connect("clicked", self.select_prev_layout)
-        # box.pack_start(self.btn_undo, False, False, 0)
-        # box.pack_start(self.lbl_history_index, False, False, 0)
-
-        self.btn_redo.connect("clicked", self.select_next_layout)
-        # box.pack_start(self.btn_redo, False, False, 0)
-
         self.btn_regen_left.connect("clicked",
                                     self.regenerate_layout)
         box.pack_start(self.btn_regen_left, False, False, 0)
@@ -619,6 +612,8 @@ class MainWindow(Gtk.Window):
             _tree_model = self.tree_model_cache[self.school_name]
             self.treeView.set_model(_tree_model)
         else:
+
+            print(self.corpus.tags_to_images.keys())
             _tree_model = get_tree_model(self.yearbook_parameters, self.school_combo.get_active_text())
             self.treeView.set_model(_tree_model)
             self.treeView.set_cursor(0)
@@ -649,18 +644,21 @@ class MainWindow(Gtk.Window):
             self.current_yearbook.print_yearbook_info()
 
         # Update the tool buttons
+        self.set_current_corpus()
         self.update_ui_elements()
-        self.update_child_portrait_images()
+        self.update_child_portrait_images(self.current_yearbook)
 
-    def update_child_portrait_images(self):
+    def update_child_portrait_images(self, yearbook: Yearbook):
         flowbox = self.portraits_flow_box
         flowbox.set_valign(Gtk.Align.START)
-        flowbox.set_max_children_per_line(2)
+        flowbox.set_max_children_per_line(3)
         # Need to remove all previously added images
         [flowbox.remove(child) for child in flowbox.get_children()]
 
-        child_portraits = get_portrait_images_for_child(self.corpus_base_dir, self.current_yearbook.school,
-                                                        self.current_yearbook.child)
+        print("Looking for pictures of %s" % yearbook.child)
+        tag_list = ["Portraits", yearbook.grade, yearbook.classroom, yearbook.child]
+        child_portraits = self.corpus.get_intersection_images(tag_list)[:3]
+
         for img in child_portraits:
             pixbuf = get_orientation_fixed_pixbuf(img)
             try:
@@ -676,9 +674,13 @@ class MainWindow(Gtk.Window):
     def update_flow_box_with_images(self, page: Page):
         if not page.personalized:
             print("Load image as is, %s, %s" % (page.event_name, page.image))
-            event_images = [page.image]
+            candidate_images = [page.image]
         else:
-            event_images = self.corpus.get_filenames_for_event_images(page.event_name)
+            tags = []
+            tags.extend(page.tags.split(","))
+            tags.append(page.event_name)
+
+            candidate_images = self.corpus.get_intersection_images(tags)
 
         flowbox = self.images_flow_box
         flowbox.set_valign(Gtk.Align.START)
@@ -688,7 +690,7 @@ class MainWindow(Gtk.Window):
         # Need to remove all previously added images
         [flowbox.remove(child) for child in flowbox.get_children()]
 
-        for img in event_images:
+        for img in candidate_images:
 
             # Lets not add the image to the viewer if it's on the page.
             # TODO: This need to account for all previous pages and be smarter than what it currently is
@@ -752,19 +754,10 @@ class MainWindow(Gtk.Window):
         return self.current_yearbook.pages[index]
 
     def choose_images_for_page(self, page: Page, max_count=12) -> [str]:
-        if not page.personalized:
-            print("Load image as is, %s, %s" % (page.event_name, page.image))
-            images = [page.image]
-        else:
-            # Let's find the right ranker to delegate to
-            ranker = RankerFactory.create_ranker(self.corpus, self.current_yearbook)
-
-            print("Working on: (%s, %s, %s)" % (page.image, page.event_name, page.number))
-            images = ranker.rank(self.current_yearbook, page.event_name)
-
-        _pinned_photos = page.get_all_pinned_photos()
-        _pinned_photos.extend(images[:max_count])
-        return get_unique_list_insertion_order(_pinned_photos)
+        # Let's find the right ranker to delegate to
+        ranker = RankerFactory.create_ranker(self.corpus, self.current_yearbook)
+        print("Working on: (%s, %s, %s) with tags %s" % (page.image, page.event_name, page.number, page.tags))
+        return ranker.get_candidate_images(self.current_yearbook, page, max_count)
 
     def on_drag(self, widget, drag_context, x, y, data, info, time):
         if info == MainWindow.TARGET_TYPE_TEXT:
@@ -793,6 +786,7 @@ class MainWindow(Gtk.Window):
             return
 
         print("*********First creation of this yearbook********")
+        self.current_yearbook.print_yearbook_info()
         for page in self.current_yearbook.pages:
             self.render_preview(page, self.img_preview_left)
 
@@ -808,15 +802,17 @@ class MainWindow(Gtk.Window):
     def render_preview(self, yearbook_page: Page, img_preview_area: ImagePreviewArea):
         print("---Displaying %s " % yearbook_page.event_name)
 
-        if len(yearbook_page.history) == 0 or yearbook_page.has_parent_pins_changed():
-            # Parents pins have changed, can't load from history
-            print("re-render %s " % yearbook_page.has_parent_pins_changed())
-            first_photo_list = render.build_photolist(self.choose_images_for_page(yearbook_page))
+        if len(yearbook_page.history) == 0:
+            page_images = self.choose_images_for_page(yearbook_page)
+            first_photo_list = render.build_photolist(page_images)
             page_collage = UserCollage(first_photo_list)
             page_collage.make_page(self.opts)
             yearbook_page.photo_list = first_photo_list
             yearbook_page.history.append(page_collage)
             yearbook_page.history_index = len(yearbook_page.history) - 1
+        elif yearbook_page.has_parent_pins_changed():
+            new_images = yearbook_page.get_parent_pins_not_on_page()
+            self.update_photolist(new_images)
         else:
             page_collage: UserCollage = yearbook_page.history[yearbook_page.history_index]
 
@@ -892,14 +888,6 @@ class MainWindow(Gtk.Window):
 
     def select_prev_layout(self, button, page):
         page.history_index -= 1
-        self.update_tool_buttons()
-        if page.number % 2 == 0:
-            self.render_preview(page, self.img_preview_right)
-        else:
-            self.render_preview(page, self.img_preview_left)
-
-    def select_next_layout(self, button, page):
-        page.history_index += 1
         self.update_tool_buttons()
         if page.number % 2 == 0:
             self.render_preview(page, self.img_preview_right)

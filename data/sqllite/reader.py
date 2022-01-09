@@ -29,7 +29,7 @@ def get_schools(conn):
 
 def get_all_rows(conn):
     cur = conn.cursor()
-    query = "SELECT Distinct s.name, grade, class, r.name, p.album FROM roster r, schools s, pages p " \
+    query = "SELECT Distinct s.name, grade, class, r.name, p.album, p.tags FROM roster r, schools s, pages p " \
             "where r.school = s.[School ID] and p.album=s.[Album Id] order by 1,2,3,4"
     return cur.execute(query)
 
@@ -37,14 +37,13 @@ def get_all_rows(conn):
 def get_album_details_for_school(db_file: str, school_name: str):
     conn = create_connection(db_file)
     cur = conn.cursor()
-    query = 'Select a.id, a.name, a.type, a.page_number, a.image from pages a, schools s ' \
+    query = 'Select a.id, a.name, a.type, a.page_number, a.image, a.tags from pages a, schools s ' \
             'where a.album = s.[Album Id] and s.name = "%s" ' % school_name
 
     return cur.execute(query)
 
 
 def get_school_list(db_file: str):
-    from gi.repository import Gtk
 
     school_list = []
     # Create a connection to the database
@@ -52,7 +51,8 @@ def get_school_list(db_file: str):
 
     all_schools = get_schools(conn)
     for school in all_schools:
-        school_list.append(school[0])
+        if 'Monti' in school[0]:
+            school_list.append(school[0])
 
     conn.close()
     return school_list
@@ -85,21 +85,22 @@ def get_tree_model(dir_params: {}, school_selection: str) -> Gtk.TreeStore:
     added_schools = {}
 
     for row in all_rows:
-        school_name = '%s' % row[0]
+        school_name = ('%s' % row[0]).strip()
         if school_selection != school_name:
             continue
 
         if school_name not in added_schools.keys():
             # add this school as a parent to the tree
             # Create the school level yearbook here
-            school_yearbook = create_yearbook(dir_params, school_name, grade=None, classroom=None, child=None)
+            school_yearbook: Yearbook = create_yearbook(dir_params, school_name, grade=None, classroom=None, child=None)
             school_parent = treestore.append(None, [school_yearbook])
             added_schools[school_name] = {}
 
-        current_grade = '%s' % row[1]
+        current_grade = ('%s' % row[1]).strip()
         if current_grade not in added_schools[school_name].keys():
             # Create the grade level yearbook here
-            grade_yearbook = create_yearbook(dir_params, school_name, grade=current_grade, classroom=None, child=None)
+            grade_yearbook = create_yearbook(dir_params, school_name, grade=current_grade, classroom=None, child=None,
+                                             parent_book=school_yearbook.pickle_yearbook)
 
             # Set the parent pages for this yearbook
             [grade_page.parent_pages.append(school_page) for grade_page, school_page in
@@ -108,10 +109,10 @@ def get_tree_model(dir_params: {}, school_selection: str) -> Gtk.TreeStore:
             grade_parent = treestore.append(school_parent, [grade_yearbook])
             added_schools[school_name][current_grade] = {}
 
-        current_class = '%s' % row[2]
+        current_class = ('%s' % row[2]).strip()
         if current_class not in added_schools[school_name][current_grade].keys():
             class_yearbook = create_yearbook(dir_params, school_name, grade=current_grade, classroom=current_class,
-                                             child=None)
+                                             child=None, parent_book=grade_yearbook.pickle_yearbook)
 
             # Set the parent pages for this yearbook
             [class_page.parent_pages.append(grade_page) for class_page, grade_page in
@@ -120,10 +121,12 @@ def get_tree_model(dir_params: {}, school_selection: str) -> Gtk.TreeStore:
             class_parent = treestore.append(grade_parent, [class_yearbook])
             added_schools[school_name][current_grade][current_class] = {}
 
-        current_child = '%s' % row[3]
+        current_child = ('%s' % row[3]).strip()
         if current_child not in added_schools[school_name][current_grade][current_class].keys():
             child_yearbook = create_yearbook(dir_params, school_name, grade=current_grade, classroom=current_class,
-                                             child=current_child)
+                                             child=current_child,
+                                             parent_book=class_yearbook.pickle_yearbook)
+
             treestore.append(class_parent, [child_yearbook])
             added_schools[school_name][current_grade][current_class][current_child] = {}
 

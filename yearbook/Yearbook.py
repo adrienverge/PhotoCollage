@@ -12,7 +12,7 @@ Also holds a reference to the face recognition model and probably the image simi
 """
 
 
-def create_yearbook(dir_params: {}, school_name: str, grade: str, classroom: str, child: str):
+def create_yearbook(dir_params: {}, school_name: str, grade: str, classroom: str, child: str, parent_book=None):
     import os
 
     # first lets check for pickle file
@@ -24,7 +24,7 @@ def create_yearbook(dir_params: {}, school_name: str, grade: str, classroom: str
         return create_yearbook_from_pickle(pickle_filename)
     else:
         # Create the yearbook from DB
-        return create_yearbook_from_db(dir_params, school_name, grade, classroom, child)
+        return create_yearbook_from_db(dir_params, school_name, grade, classroom, child, parent_book)
 
 
 def create_yearbook_from_pickle(pickle_file_path):
@@ -34,7 +34,7 @@ def create_yearbook_from_pickle(pickle_file_path):
     return Yearbook(pickle_yearbook=yearbook)
 
 
-def create_yearbook_from_db(dir_params: {}, school_name: str, grade: str, classroom: str, child: str):
+def create_yearbook_from_db(dir_params: {}, school_name: str, grade: str, classroom: str, child: str, parent_book=None):
     import os
     pages: [Page] = []
     from data.sqllite.reader import get_album_details_for_school
@@ -47,23 +47,37 @@ def create_yearbook_from_db(dir_params: {}, school_name: str, grade: str, classr
             personalized = True
 
         page = Page(int(row[3]), str(row[1]).strip(), personalized,
-                    os.path.join(corpus_base_dir, school_name, row[4]))
-        print(row)
+                    os.path.join(corpus_base_dir, school_name, row[4]), str(row[5]))
         pages.append(page)
 
-    print("Pages in yearbook %s" % str(len(pages)))
-
-    return Yearbook(PickleYearbook(pages, school_name, grade, classroom, child))
+    return Yearbook(PickleYearbook(pages, school_name, grade, classroom, child, parent_book))
 
 
 class PickleYearbook:
 
-    def __init__(self, pages: [Page], school: str, grade: str, classroom: str, child: str):
+    def __init__(self, pages: [Page], school: str, grade: str, classroom: str, child: str, parent_book):
         self.pages = pages
         self.school: str = school
         self.grade: str = grade
         self.classroom: str = classroom
         self.child: str = child
+        self.parent_book: PickleYearbook = parent_book
+
+    def __repr__(self):
+        if self.child is None:
+            if self.classroom is None:
+                if self.grade is None:
+                    return self.school
+                else:
+                    return self.grade
+            else:
+                return self.classroom
+        else:
+            return self.child
+
+    def print_yearbook_info(self):
+        print("%s :-> %s :-> %s :-> %s" % (self.school, self.grade,
+                                           self.classroom, self.child))
 
 
 class Yearbook(GObject.GObject):
@@ -74,8 +88,18 @@ class Yearbook(GObject.GObject):
         self.pages = self.pickle_yearbook.pages
         self.school = self.pickle_yearbook.school
         self.grade = self.pickle_yearbook.grade
-        self.classroom= self.pickle_yearbook.classroom
+        self.classroom = self.pickle_yearbook.classroom
         self.child = self.pickle_yearbook.child
+        self.parent_yearbook = self.pickle_yearbook.parent_book
+
+    def get_prev_page(self, current_page: Page):
+        current_page_idx = current_page.number - 1
+        if current_page_idx == 0:
+            prev_page_idx = 0
+        else:
+            prev_page_idx = current_page_idx - 1
+
+        return self.pages[prev_page_idx]
 
     def __repr__(self):
         if self.pickle_yearbook.child is None:
