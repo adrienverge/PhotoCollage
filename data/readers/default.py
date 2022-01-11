@@ -16,12 +16,12 @@ def corpus_processor(school_name: str, corpus_file: str = None, default_tags=Non
     if corpus_file is None:
         corpus_file = os.path.join('/Users', getpass.getuser(), 'GoogleDrive', 'ProcessedCorpus', school_name + "_full.out")
         if os.path.exists(corpus_file):
+            base_dir = os.path.join('/Users', getpass.getuser(), 'GoogleDrive', school_name)
             # read the corpus file
             with open(corpus_file, 'r') as reader:
                 for line in reader.readlines():
                     values = line.split("\t")
-                    img_name = values[0]
-
+                    img_name = os.path.join(base_dir, values[0].strip())
                     # faces is given as child_name:score:bounding_box_dimensions
                     # Bounding box dimensions are provided in this format,
                     # left=938.17993, top=651.6867, right=1033.7305, bottom=777.44586
