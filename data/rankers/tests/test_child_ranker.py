@@ -14,18 +14,18 @@ class TestChildRanker(unittest.TestCase):
         super(TestChildRanker, self).__init__(*args, **kwargs)
         self.corpus = corpus_processor(school_name='Monticello_Preschool_2021_2022')
         self.output_base_dir = os.path.join('/Users', getpass.getuser(), 'GoogleDrive', 'YearbookCreatorOut')
-        self.yearbook_parameters = {'max_count': 12,
+        self.yearbook_parameters = {'max_count': 6,
                                     'db_file_path': os.path.join(self.output_base_dir, 'RY.db'),
                                     'output_dir': os.path.join(self.output_base_dir, getpass.getuser()),
                                     'corpus_base_dir': os.path.join('/Users', getpass.getuser(), 'GoogleDrive',
                                                                     'Monticello_Preschool_2021_2022')}
-        # parent_yearbook: Yearbook = create_yearbook(self.yearbook_parameters, school_name='Monticello_Preschool_2021_2022',
-        #                                  grade='PreK', classroom='Sunshine', child=None, parent_book=None)
-        # self.yearbook = create_yearbook(self.yearbook_parameters, school_name='Monticello_Preschool_2021_2022',
-        #                                grade='PreK', classroom='Sunshine', child='Sophie Wu',
-        #                                parent_book=parent_yearbook.pickle_yearbook)
+        parent_yearbook: Yearbook = create_yearbook(self.yearbook_parameters, school_name='Monticello_Preschool_2021_2022',
+                                          grade='PreK', classroom='Sunshine', child=None, parent_book=None)
+        self.yearbook = create_yearbook(self.yearbook_parameters, school_name='Monticello_Preschool_2021_2022',
+                                        grade='PreK', classroom='Sunshine', child='Sophie Wu',
+                                        parent_book=parent_yearbook.pickle_yearbook)
 
-    def get_images_for_page(self, page: Page, max_count: int = 20):
+    def get_images_for_page(self, page: Page, max_count: int = 6):
         ranker = RankerFactory.create_ranker(self.corpus, self.yearbook)
         images = ranker.get_candidate_images(self.yearbook, page, max_count)
         return images
