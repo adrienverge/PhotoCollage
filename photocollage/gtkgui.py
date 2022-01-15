@@ -753,7 +753,7 @@ class MainWindow(Gtk.Window):
         self.left_index = index
         return self.current_yearbook.pages[index]
 
-    def choose_images_for_page(self, page: Page, max_count=12) -> [str]:
+    def choose_images_for_page(self, page: Page, max_count=6) -> [str]:
         # Let's find the right ranker to delegate to
         ranker = RankerFactory.create_ranker(self.corpus, self.current_yearbook)
         print("Working on: (%s, %s, %s) with tags %s" % (page.image, page.event_name, page.number, page.tags))
