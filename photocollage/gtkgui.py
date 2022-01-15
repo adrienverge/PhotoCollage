@@ -655,19 +655,21 @@ class MainWindow(Gtk.Window):
         # Need to remove all previously added images
         [flowbox.remove(child) for child in flowbox.get_children()]
 
-        print("Looking for pictures of %s" % yearbook.child)
-        tag_list = ["Portraits", yearbook.grade, yearbook.classroom, yearbook.child]
-        child_portraits = self.corpus.get_intersection_images(tag_list)[:3]
+        if yearbook.child is not None:
+            print("Looking for pictures of %s" % yearbook.child)
 
-        for img in child_portraits:
-            pixbuf = get_orientation_fixed_pixbuf(img)
-            try:
-                image = Gtk.Image.new_from_pixbuf(pixbuf)
-                flowbox.add(image)
-            except OSError:
-                # raise BadPhoto(name)
-                print("Skipping a selfie: %s" % img)
-                continue
+            tag_list = ["Portraits", yearbook.grade, yearbook.classroom, yearbook.child]
+            child_portraits = self.corpus.get_intersection_images(tag_list)[:3]
+
+            for img in child_portraits:
+                pixbuf = get_orientation_fixed_pixbuf(img)
+                try:
+                    image = Gtk.Image.new_from_pixbuf(pixbuf)
+                    flowbox.add(image)
+                except OSError:
+                    # raise BadPhoto(name)
+                    print("Skipping a selfie: %s" % img)
+                    continue
 
         self.show_all()
 
