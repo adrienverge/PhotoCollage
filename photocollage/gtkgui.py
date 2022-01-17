@@ -35,6 +35,7 @@ from photocollage.render import PIL_SUPPORTED_EXTS as EXTS
 from photocollage.dialogs.SettingsDialog import SettingsDialog
 
 from data.readers.default import corpus_processor
+from util.utils import get_unique_list_insertion_order
 from yearbook.Yearbook import Yearbook
 from yearbook.Yearbook import Page
 
@@ -254,11 +255,11 @@ class ImagePreviewArea(Gtk.DrawingArea):
                 if cell:
                     self.paint_image_border(context, cell)
 
-                    if self.parent.left_index is not None:
+                    if self.parent.curr_page_index is not None:
                         if widget.name == "LeftPage":
-                            _current_page = self.parent.current_yearbook.pages[self.parent.left_index]
+                            _current_page = self.parent.current_yearbook.pages[self.parent.prev_page_index]
                         else:
-                            _current_page = self.parent.current_yearbook.pages[self.parent.right_index]
+                            _current_page = self.parent.current_yearbook.pages[self.parent.curr_page_index]
 
                         if cell.photo.filename not in _current_page.get_parent_pinned_photos():
                             # Allow deleting only when the image is not pinned by any parent.
@@ -274,7 +275,6 @@ class ImagePreviewArea(Gtk.DrawingArea):
                             pass
                         else:
                             self.paint_image_pin_button(context, cell, pinned=False)
-
 
             elif self.mode == self.SWAPPING_OR_MOVING:
                 self.paint_image_border(context, self.swap_origin.cell, (3, 3))
@@ -303,9 +303,9 @@ class ImagePreviewArea(Gtk.DrawingArea):
             return
 
         if widget.name == "LeftPage":
-            current_page = self.parent.current_yearbook.pages[self.parent.left_index]
+            current_page = self.parent.current_yearbook.pages[self.parent.prev_page_index]
         else:
-            current_page = self.parent.current_yearbook.pages[self.parent.right_index]
+            current_page = self.parent.current_yearbook.pages[self.parent.curr_page_index]
 
         if self.mode == self.FLYING:
             x, y = self.get_pos_in_image(event.x, event.y)
@@ -352,9 +352,9 @@ class ImagePreviewArea(Gtk.DrawingArea):
             return
 
         if widget.name == "LeftPage":
-            current_page = self.parent.current_yearbook.pages[self.parent.left_index]
+            current_page = self.parent.current_yearbook.pages[self.parent.prev_page_index]
         else:
-            current_page = self.parent.current_yearbook.pages[self.parent.right_index]
+            current_page = self.parent.current_yearbook.pages[self.parent.curr_page_index]
 
         if self.mode == self.SWAPPING_OR_MOVING:
             self.swap_dest.x, self.swap_dest.y = \
@@ -426,8 +426,12 @@ class MainWindow(Gtk.Window):
     TARGET_TYPE_URI = 2
 
     @property
-    def right_index(self):
-        return self.left_index + 1
+    def next_page_index(self):
+        return self.curr_page_index + 1
+
+    @property
+    def prev_page_index(self):
+        return self.curr_page_index -1
 
     def __init__(self):
         super().__init__(title=_("Yearbook Creator"))
@@ -449,14 +453,13 @@ class MainWindow(Gtk.Window):
         from data.sqllite.reader import get_tree_model, get_school_list
         self.school_combo = Gtk.ComboBoxText.new()
         school_list = get_school_list(self.yearbook_parameters['db_file_path'])
-        print(school_list)
         for school in school_list:
             self.school_combo.append_text(school)
 
         self.school_combo.set_active(0)
         self.school_name = self.school_combo.get_active_text()
         self.set_current_corpus()
-        self.left_index = 0
+        self.curr_page_index = 0
 
         self.img_preview_left = ImagePreviewArea(self, "LeftPage")
         self.img_preview_right = ImagePreviewArea(self, "RightPage")
@@ -522,7 +525,7 @@ class MainWindow(Gtk.Window):
                                     self.regenerate_layout)
         box.pack_start(self.btn_regen_left, False, False, 0)
         self.btn_regen_right.connect("clicked",
-                            self.regenerate_layout)
+                                     self.regenerate_layout)
         box.pack_start(self.btn_regen_right, False, False, 0)
 
         box.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
@@ -566,7 +569,7 @@ class MainWindow(Gtk.Window):
 
         self.img_preview_right.connect("drag-data-received", self.on_drag)
         self.img_preview_right.drag_dest_set(Gtk.DestDefaults.ALL, [],
-                                        Gdk.DragAction.COPY)
+                                             Gdk.DragAction.COPY)
         self.img_preview_right.drag_dest_set_target_list(targets)
         box.pack_end(self.img_preview_right, True, True, 0)
         box.set_size_request(1200, 500)
@@ -717,12 +720,12 @@ class MainWindow(Gtk.Window):
     def invoke_add_image(self, widget, event, img_name):
         if event.type == Gdk.EventType._2BUTTON_PRESS:
             print("double click, %s", img_name)
-            self.update_photolist(self.current_yearbook.pages[self.left_index], [img_name])
-            self.update_flow_box_with_images(self.current_yearbook.pages[self.left_index])
+            self.update_photolist(self.current_yearbook.pages[self.prev_page_index], [img_name])
+            self.update_flow_box_with_images(self.current_yearbook.pages[self.prev_page_index])
         elif event.type == Gdk.EventType.BUTTON_PRESS and event.button == 3:
             print("Right clicked")
-            self.update_photolist(self.current_yearbook.pages[self.right_index], [img_name])
-            self.update_flow_box_with_images(self.current_yearbook.pages[self.right_index])
+            self.update_photolist(self.current_yearbook.pages[self.curr_page_index], [img_name])
+            self.update_flow_box_with_images(self.current_yearbook.pages[self.curr_page_index])
         else:
             print("Image clicked %s " % event.button)
             print(event.button == 3)
@@ -736,6 +739,7 @@ class MainWindow(Gtk.Window):
             photolist.extend(render.build_photolist(new_images))
 
             if len(photolist) > 0:
+                print("photos list now should be %s " % str(len(photolist)))
                 new_collage = UserCollage(photolist)
                 new_collage.make_page(self.opts)
                 if display:
@@ -750,10 +754,6 @@ class MainWindow(Gtk.Window):
             dialog.destroy()
 
         page.photo_list = photolist
-
-    def select_page_at_index(self, index: int):
-        self.left_index = index
-        return self.current_yearbook.pages[index]
 
     def choose_images_for_page(self, page: Page, max_count=6) -> [str]:
         # Let's find the right ranker to delegate to
@@ -771,8 +771,8 @@ class MainWindow(Gtk.Window):
         for i in range(len(files)):
             if files[i].startswith("file://"):
                 files[i] = urllib.parse.unquote(files[i][7:])
-        self.update_photolist(self.current_yearbook.pages[self.left_index], files)
-        self.update_flow_box_with_images(self.current_yearbook.pages[self.left_index])
+        self.update_photolist(self.current_yearbook.pages[self.curr_page_index], files)
+        self.update_flow_box_with_images(self.current_yearbook.pages[self.curr_page_index])
 
     def render_and_pickle_yearbook(self, store: Gtk.TreeStore, treepath: Gtk.TreePath, treeiter: Gtk.TreeIter):
         _yearbook = store[treeiter][0]
@@ -813,8 +813,16 @@ class MainWindow(Gtk.Window):
             yearbook_page.history.append(page_collage)
             yearbook_page.history_index = len(yearbook_page.history) - 1
         elif yearbook_page.has_parent_pins_changed():
-            new_images = yearbook_page.get_parent_pins_not_on_page()
-            self.update_photolist(new_images)
+            new_images = yearbook_page.get_filenames_parent_pins_not_on_page()
+            existing_images = yearbook_page.photos_on_page
+            new_images.extend(existing_images)
+            unique_images = get_unique_list_insertion_order(new_images)
+            first_photo_list = render.build_photolist(unique_images)
+            page_collage = UserCollage(first_photo_list)
+            page_collage.make_page(self.opts)
+            yearbook_page.photo_list = first_photo_list
+            yearbook_page.history.append(page_collage)
+            yearbook_page.history_index = len(yearbook_page.history) - 1
         else:
             page_collage: UserCollage = yearbook_page.history[yearbook_page.history_index]
 
@@ -874,27 +882,19 @@ class MainWindow(Gtk.Window):
         page.history_index = len(page.history) - 1
         self.update_tool_buttons()
         if page.number % 2 == 0:
-            self.render_preview(page, self.img_preview_right)
-        else:
             self.render_preview(page, self.img_preview_left)
+        else:
+            self.render_preview(page, self.img_preview_right)
 
     def regenerate_layout(self, button):
         if button.get_label().endswith("Right"):
-            page = self.current_yearbook.pages[self.right_index]
+            page = self.current_yearbook.pages[self.curr_page_index]
         else:
-            page = self.current_yearbook.pages[self.left_index]
+            page = self.current_yearbook.pages[self.prev_page_index]
 
         new_collage = page.history[page.history_index].duplicate()
         new_collage.make_page(self.opts)
         self.render_from_new_collage(page, new_collage)
-
-    def select_prev_layout(self, button, page):
-        page.history_index -= 1
-        self.update_tool_buttons()
-        if page.number % 2 == 0:
-            self.render_preview(page, self.img_preview_right)
-        else:
-            self.render_preview(page, self.img_preview_left)
 
     def publish_and_pickle(self, button):
         self.publish_pdf(button)
@@ -937,29 +937,31 @@ class MainWindow(Gtk.Window):
 
     def select_next_page(self, button):
         # Increment to the next left page
-        self.left_index += 2
+        self.curr_page_index += 2
         self.update_ui_elements()
         print("NextClick - ")
 
     def select_prev_page(self, button):
-        self.left_index -= 2
+        self.curr_page_index -= 2
         self.update_ui_elements()
         print("PrevClick - ")
 
     def update_ui_elements(self):
-        print("left index %s, right index %s" % (self.left_index, self.right_index))
-
-        if self.left_index < 0:
-            self.left_index = 0
+        print("current index %s, next page index %s" % (self.curr_page_index, self.next_page_index))
 
         # Reset the prev and next buttons
-        self.btn_prev_page.set_sensitive(self.left_index > 0)
-        self.btn_next_page.set_sensitive(self.right_index < len(self.current_yearbook.pages)-1)
+        self.btn_prev_page.set_sensitive(self.curr_page_index > 0)
+        self.btn_next_page.set_sensitive(self.next_page_index < len(self.current_yearbook.pages) - 1)
 
-        left_page = self.current_yearbook.pages[self.left_index]
-        right_page = self.current_yearbook.pages[self.right_index]
-        self.render_left_page(left_page)
+        try:
+            left_page = self.current_yearbook.pages[self.curr_page_index-1]
+            self.render_left_page(left_page)
+        except IndexError:
+            print("Error index out of range")
+
+        right_page = self.current_yearbook.pages[self.curr_page_index]
         self.render_right_page(right_page)
+
         self.update_flow_box_with_images(left_page)
         self.update_label_text()
 
@@ -971,7 +973,7 @@ class MainWindow(Gtk.Window):
             dialog.destroy()
 
             if self.current_yearbook:
-                page = self.current_yearbook.pages[self.left_index]
+                page = self.current_yearbook.pages[self.curr_page_index]
                 if page.history:
                     if page.number % 2 == 0:
                         self.render_preview(page, self.img_preview_right)
@@ -981,22 +983,22 @@ class MainWindow(Gtk.Window):
             dialog.destroy()
 
     def update_label_text(self):
-        if self.left_index < 0:
-            # reset the index
-            self.left_index = 0
 
-        _left = self.current_yearbook.pages[self.left_index]
-        _right = self.current_yearbook.pages[self.right_index]
+        try:
+            _left = self.current_yearbook.pages[self.curr_page_index-1]
+            self.lbl_left_page.set_label(str(_left.number) + ":" + _left.event_name)
+        except IndexError:
+            self.lbl_left_page.set_label(str("-1"))
 
-        self.lbl_left_page.set_label(str(_left.number) + ":" + _left.event_name)
+        _right = self.current_yearbook.pages[self.curr_page_index]
         self.lbl_right_page.set_label(str(_right.number) + ":" + _right.event_name)
 
     def update_tool_buttons(self):
         if self.current_yearbook is None:
             return
 
-        left_page = self.current_yearbook.pages[self.left_index]
-        right_page = self.current_yearbook.pages[self.right_index]
+        left_page = self.current_yearbook.pages[self.curr_page_index]
+        right_page = self.current_yearbook.pages[self.next_page_index]
 
         self.btn_undo.set_sensitive(left_page.history_index > 0)
         self.btn_redo.set_sensitive(left_page.history_index < len(left_page.history) - 1)
