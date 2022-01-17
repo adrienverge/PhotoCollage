@@ -75,6 +75,11 @@ class Page:
         parent_pinned_pictures.extend(self.pinned_photos)
         return parent_pinned_pictures
 
+    def get_filenames_parent_pins_not_on_page(self) -> [str]:
+        parent_pins = self.get_parent_pinned_photos()
+        photos_on_page = [photo.filename for photo in self.photo_list]
+        return [filename for filename in parent_pins if filename not in photos_on_page]
+
     def get_parent_pins_not_on_page(self) -> [bool]:
         parent_pins = self.get_parent_pinned_photos()
         if len(parent_pins) == 0:
