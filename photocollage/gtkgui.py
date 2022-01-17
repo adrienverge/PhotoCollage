@@ -702,8 +702,8 @@ class MainWindow(Gtk.Window):
             if page.personalized and img in [photo.filename for photo in page.photo_list]:
                 continue
 
-            pixbuf = get_orientation_fixed_pixbuf(img)
             try:
+                pixbuf = get_orientation_fixed_pixbuf(img)
                 image = Gtk.Image.new_from_pixbuf(pixbuf)
                 img_box = Gtk.EventBox()
                 img_box.add(image)
