@@ -7,6 +7,7 @@ from util.utils import get_unique_list_insertion_order
 from yearbook.Corpus import Corpus
 from yearbook.Yearbook import Yearbook
 from yearbook.page.Page import Page
+from yearbook.Yearbook import get_tag_list_for_page
 
 
 def get_parent_page_images(yearbook: Yearbook, current_page:Page):
@@ -26,7 +27,7 @@ class ImageRanker(ABC):
     def rank(self, yearbook: Yearbook, current_page: Page) -> [str]:
         pass
 
-    def get_candidate_images(self, yearbook: Yearbook, current_page: Page, max_count: int = 12) -> [str]:
+    def get_candidate_images(self, yearbook: Yearbook, current_page: Page, max_count: int = 6) -> [str]:
         if not current_page.personalized:
             print("Load image as is, %s, %s" % (current_page.event_name, current_page.image))
             return [current_page.image]
@@ -78,16 +79,20 @@ class SchoolRanker(ImageRanker):
 
     def rank(self, yearbook: Yearbook, current_page: Page) -> [str]:
         # Return a list of images that are applicable to the grade level
-        tag_list = []
-        tag_list.extend(current_page.tags.split(","))
-        tag_list.append(current_page.event_name)
-        tag_list.append(yearbook.school)
-
+        tag_list = get_tag_list_for_page(yearbook, current_page)
         # Return a list of images that are applicable to the school and page tags
         # This can never be None as all images are eligible for school level pages
-        images = self.corpus.get_intersection_images(tag_list)
+        images = self.corpus.get_images_with_tags_strict(tag_list)
         if images is None or len(images) == 0:
-            images = get_parent_page_images(yearbook, current_page)
+            try:
+                images = get_parent_page_images(yearbook, current_page)
+            except AttributeError:
+                images = []
+
+        # If we still don't have images then let's get all the options from all classes
+        if images is None or len(images) == 0:
+            print("Parent has no pictures")
+            images = self.corpus.get_images_with_tags(tag_list)
 
         return images
 
@@ -101,16 +106,9 @@ class GradeRanker(ImageRanker):
 
     def rank(self, yearbook: Yearbook, current_page: Page) -> [str]:
         # Return a list of images that are applicable to the grade level
-        tag_list = []
-
-        # Original page tags are a string, we need to split to make it a list
-        tag_list.extend(current_page.tags.split(","))
-        tag_list.append(current_page.event_name)
-        tag_list.append(yearbook.school)
-        tag_list.append(yearbook.grade)
-
+        tag_list = get_tag_list_for_page(yearbook, current_page)
         # Return a list of images that are applicable to the grade
-        images = self.corpus.get_intersection_images(tag_list)
+        images = self.corpus.get_images_with_tags_strict(tag_list)
 
         if images is None or len(images) == 0:
             images = get_parent_page_images(yearbook, current_page)
@@ -126,15 +124,9 @@ class ClassroomRanker(ImageRanker):
         self.corpus = corpus
 
     def rank(self, yearbook: Yearbook, current_page: Page) -> [str]:
-        tag_list = []
-        tag_list.extend(current_page.tags.split(","))
-        tag_list.append(current_page.event_name)
-        tag_list.append(yearbook.school)
-        tag_list.append(yearbook.grade)
-        tag_list.append(yearbook.classroom)
-
+        tag_list = get_tag_list_for_page(yearbook, current_page)
         # Return a list of images that are applicable to the classroom
-        images = self.corpus.get_intersection_images(tag_list)
+        images = self.corpus.get_images_with_tags_strict(tag_list)
 
         if images is None or len(images) == 0:
             images = get_parent_page_images(yearbook, current_page)
@@ -150,17 +142,10 @@ class ChildRanker(ImageRanker):
         self.corpus = corpus
 
     def rank(self, yearbook: Yearbook, current_page: Page) -> [str]:
-        tag_list = []
-        tag_list.extend(current_page.tags.split(","))
-        tag_list.append(current_page.event_name)
-        tag_list.append(yearbook.school)
-        tag_list.append(yearbook.grade)
-        tag_list.append(yearbook.classroom)
-        tag_list.append(yearbook.child)
-
+        tag_list = get_tag_list_for_page(yearbook, current_page)
         # Return a list of images that are applicable to the child
         # There's a good possibility that this is None
-        images = self.corpus.get_intersection_images(tag_list)
+        images = self.corpus.get_images_with_tags_strict(tag_list)
         if images is None or len(images) == 0:
             images = get_parent_page_images(yearbook, current_page)
 

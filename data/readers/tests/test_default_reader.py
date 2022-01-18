@@ -25,6 +25,15 @@ class TestDefaultReader(unittest.TestCase):
         assert images.index(
             '/Users/ashah/GoogleDrive/Monticello_Preschool_2021_2022/Adventureland/Portraits/Ethan Tang_2.png') >= 1
 
+    def test_get_child_portraits(self):
+        tags_list = ["Portraits",
+                     "PreK",
+                     "Jungle",
+                     "Laura Sun"]
+        lauraImages = self.corpus.get_images_with_tags_strict(tags_list)
+        print(len(lauraImages))
+        [print(img) for img in lauraImages]
+
     def test_longer_lists(self):
         tags_list = ["Sunshine",
                      "Portraits",
@@ -33,12 +42,12 @@ class TestDefaultReader(unittest.TestCase):
                      "Adventureland",
                      "Aarish Mathur"]
 
-        assert len(self.corpus.get_intersection_images(tags_list)) == 0
+        assert len(self.corpus.get_images_with_tags_strict(tags_list)) == 0
 
     def test_get_images(self):
-        sunshine_portraits = self.corpus.get_intersection_images(["Monticello_Preschool_2021_2022",
+        sunshine_portraits = self.corpus.get_images_with_tags_strict(["Monticello_Preschool_2021_2022",
                                                                   "PreK", "Portraits", "Sunshine"])
-        adventure_portraits = self.corpus.get_intersection_images(["Portraits", "Adventureland"])
+        adventure_portraits = self.corpus.get_images_with_tags_strict(["Portraits", "Adventureland"])
         assert len(sunshine_portraits) >= 50
         assert len(adventure_portraits) >= 50
 
@@ -54,7 +63,7 @@ class TestDefaultReader(unittest.TestCase):
         assert len(self.corpus.get_portraits(classroom="Seaturtle", grade="PreK", child="Finn Yao")) == 7
 
         tag_list = ["Portraits", "PreK", "Seaturtle", "Finn Yao"]
-        child_portraits = self.corpus.get_intersection_images(tag_list)
+        child_portraits = self.corpus.get_images_with_tags_strict(tag_list)
         assert len(child_portraits) == 7
 
 

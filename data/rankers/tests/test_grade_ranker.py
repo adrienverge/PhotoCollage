@@ -38,7 +38,7 @@ class TestGradeRanker(unittest.TestCase):
         tag_list.append("PreK")
 
         # Return a list of images that are applicable to the grade
-        images = self.corpus.get_intersection_images(tag_list)
+        images = self.corpus.get_images_with_tags_strict(tag_list)
         [print(img) for img in images]
 
 
