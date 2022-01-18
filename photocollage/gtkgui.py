@@ -36,7 +36,7 @@ from photocollage.dialogs.SettingsDialog import SettingsDialog
 
 from data.readers.default import corpus_processor
 from util.utils import get_unique_list_insertion_order
-from yearbook.Yearbook import Yearbook
+from yearbook.Yearbook import Yearbook, get_tag_list_for_page
 from yearbook.Yearbook import Page
 
 from images.utils import get_orientation_fixed_pixbuf
@@ -662,11 +662,11 @@ class MainWindow(Gtk.Window):
             print("Looking for pictures of %s" % yearbook.child)
 
             tag_list = ["Portraits", yearbook.grade, yearbook.classroom, yearbook.child]
-            child_portraits = self.corpus.get_intersection_images(tag_list)[:3]
+            child_portraits = self.corpus.get_images_with_tags_strict(tag_list)[:3]
 
             for img in child_portraits:
-                pixbuf = get_orientation_fixed_pixbuf(img)
                 try:
+                    pixbuf = get_orientation_fixed_pixbuf(img)
                     image = Gtk.Image.new_from_pixbuf(pixbuf)
                     flowbox.add(image)
                 except OSError:
@@ -681,11 +681,11 @@ class MainWindow(Gtk.Window):
             print("Load image as is, %s, %s" % (page.event_name, page.image))
             candidate_images = [page.image]
         else:
-            tags = []
-            tags.extend(page.tags.split(","))
-            tags.append(page.event_name)
-
-            candidate_images = self.corpus.get_intersection_images(tags)
+            tags = get_tag_list_for_page(self.current_yearbook, page)
+            print("Requesting with tags: %s" % tags)
+            candidate_images = self.corpus.get_images_with_tags_strict(tags)
+            if len(candidate_images) == 0:
+                candidate_images = self.corpus.get_images_with_tags(tags)
 
         flowbox = self.images_flow_box
         flowbox.set_valign(Gtk.Align.START)
@@ -986,7 +986,11 @@ class MainWindow(Gtk.Window):
 
         try:
             _left = self.current_yearbook.pages[self.curr_page_index-1]
-            self.lbl_left_page.set_label(str(_left.number) + ":" + _left.event_name)
+            if _left.tags is None or _left.tags == "None":
+                _label_text = str(_left.number) + ":" + _left.event_name
+            else:
+                _label_text = str(_left.number) + ":" + _left.event_name + " " + _left.tags
+            self.lbl_left_page.set_label(_label_text)
         except IndexError:
             self.lbl_left_page.set_label(str("-1"))
 

@@ -117,3 +117,29 @@ class Yearbook(GObject.GObject):
         print("%s :-> %s :-> %s :-> %s" % (self.pickle_yearbook.school, self.pickle_yearbook.grade,
                                            self.pickle_yearbook.classroom, self.pickle_yearbook.child))
 
+
+def get_tag_list_for_page(yearbook: Yearbook, page: Page):
+    tags = []
+    if yearbook.school is not None:
+        tags.append(yearbook.school)
+
+    if yearbook.grade is not None:
+        tags.append(yearbook.grade)
+
+    if yearbook.classroom is not None:
+        tags.append(yearbook.classroom)
+
+    if yearbook.child is not None:
+        tags.append(yearbook.child)
+
+    if page.tags is not None or page.tags != 'None':
+        tags.extend(page.tags.split(","))
+
+    tags.append(page.event_name)
+
+    try:
+        tags.remove('None')
+    except ValueError:
+        pass
+
+    return tags
