@@ -92,7 +92,8 @@ class SchoolRanker(ImageRanker):
         # If we still don't have images then let's get all the options from all classes
         if images is None or len(images) == 0:
             print("Parent has no pictures")
-            images = self.corpus.get_images_with_tags(tag_list)
+            images = []
+            # images = self.corpus.get_images_with_tags(tag_list)
 
         return images
 

@@ -87,5 +87,15 @@ class TestGradeRanker(unittest.TestCase):
         assert page15.event_name == "Walkathon"
         print("Number of walkathon images %s" % str(len(images)))
 
+    def test_ranker_page_outdoor_play(self):
+        page21 = self.yearbook.pages[20]
+        images = self.get_images_for_page(page21, 500)
+        assert 1 == len(page21.tags.split(","))
+
+        assert page21.number == 21
+        assert page21.event_name == "OutdoorPlay"
+        print("Number of outdoor play images %s" % str(len(images)))
+        [print(img) for img in images]
+
     if __name__ == '__main__':
         unittest.main()

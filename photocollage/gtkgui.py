@@ -663,6 +663,8 @@ class MainWindow(Gtk.Window):
 
             tag_list = ["Portraits", yearbook.grade, yearbook.classroom, yearbook.child]
             child_portraits = self.corpus.get_images_with_tags_strict(tag_list)[:3]
+            if child_portraits is None or len(child_portraits) == 0:
+                child_portraits = self.corpus.get_images_with_tags(tag_list)[:5]
 
             for img in child_portraits:
                 try:
