@@ -19,10 +19,11 @@ class TestChildRanker(unittest.TestCase):
                                     'output_dir': os.path.join(self.output_base_dir, getpass.getuser()),
                                     'corpus_base_dir': os.path.join('/Users', getpass.getuser(), 'GoogleDrive',
                                                                     'Monticello_Preschool_2021_2022')}
-        parent_yearbook: Yearbook = create_yearbook(self.yearbook_parameters, school_name='Monticello_Preschool_2021_2022',
-                                          grade='PreK', classroom='Sunshine', child=None, parent_book=None)
+        parent_yearbook: Yearbook = create_yearbook(self.yearbook_parameters,
+                                                    school_name='Monticello_Preschool_2021_2022',
+                                                    classroom='Sunshine', child=None, parent_book=None)
         self.yearbook = create_yearbook(self.yearbook_parameters, school_name='Monticello_Preschool_2021_2022',
-                                        grade='PreK', classroom='Sunshine', child='Sophie Wu',
+                                        classroom='Sunshine', child='Sophie Wu',
                                         parent_book=parent_yearbook.pickle_yearbook)
 
     def get_images_for_page(self, page: Page, max_count: int = 6):
@@ -33,9 +34,9 @@ class TestChildRanker(unittest.TestCase):
     def test_portraits_jungle(self):
         parent_yearbook: Yearbook = create_yearbook(self.yearbook_parameters,
                                                     school_name='Monticello_Preschool_2021_2022',
-                                                    grade='PreK', classroom=None, child=None, parent_book=None)
+                                                    classroom=None, child=None, parent_book=None)
         self.yearbook = create_yearbook(self.yearbook_parameters, school_name='Monticello_Preschool_2021_2022',
-                                        grade='PreK', classroom='Sunshine', child='Sophie Wu',
+                                        classroom='Sunshine', child='Sophie Wu',
                                         parent_book=parent_yearbook.pickle_yearbook)
         parent_yearbook.print_yearbook_info()
         self.yearbook.print_yearbook_info()
@@ -54,11 +55,14 @@ class TestChildRanker(unittest.TestCase):
         page5 = self.yearbook.pages[4]
         images = self.get_images_for_page(page5)
         assert 1 == len(page5.tags.split(","))
-        assert 0 <= images.index(
+        try:
+            images.index(
             '/Users/ashah/GoogleDrive/Monticello_Preschool_2021_2022/Sunshine/Portraits/Sophie Wu_1.png')
+            assert False
+        except ValueError:
+            assert True
         assert page5.number == 5
         assert page5.event_name == "Portraits"
-        [print(img) for img in images]
 
     def test_ranker_first_day_of_school_1(self):
         first_day_of_school_1 = self.yearbook.pages[13]

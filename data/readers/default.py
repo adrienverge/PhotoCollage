@@ -6,7 +6,7 @@ def corpus_processor(school_name: str, corpus_file: str = None, default_tags=Non
 
     # Corpus files are stored in GoogleDrive/ProcessedCorpus
     if default_tags is None:
-        default_tags = ["PreK"]
+        default_tags = []
 
     import os
     import getpass

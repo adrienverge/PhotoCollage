@@ -20,7 +20,7 @@ class TestSchoolRanker(unittest.TestCase):
                                     'corpus_base_dir': os.path.join('/Users', getpass.getuser(), 'GoogleDrive',
                                                                     'Monticello_Preschool_2021_2022')}
         self.yearbook = create_yearbook(self.yearbook_parameters, school_name='Monticello_Preschool_2021_2022',
-                                        grade=None, classroom=None, child=None)
+                                        classroom=None, child=None)
 
     def get_images_for_page(self, page: Page, max_count: int = 2000):
         ranker = RankerFactory.create_ranker(self.corpus, self.yearbook)
@@ -87,7 +87,6 @@ class TestSchoolRanker(unittest.TestCase):
         assert page22.number == 22
         assert page22.event_name == "WinterSing"
         print("Number of WinterSing images %s" % str(len(images)))
-
 
     if __name__ == '__main__':
         unittest.main()

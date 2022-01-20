@@ -22,12 +22,12 @@ class YearbookTests(unittest.TestCase):
                                                                school_name)}
 
         school_yearbook: Yearbook = create_yearbook(yearbook_parameters, school_name=school_name,
-                                          grade=None, classroom=None, child=None)
+                                          classroom=None, child=None)
 
-        grade_yearbook: Yearbook = create_yearbook(yearbook_parameters, school_name=school_name,
-                                         grade='PreK', classroom=None, child=None, parent_book=school_yearbook.pickle_yearbook)
+        class_yearbook: Yearbook = create_yearbook(yearbook_parameters, school_name=school_name,
+                                         classroom="AdventureLand", child=None, parent_book=school_yearbook.pickle_yearbook)
 
-        assert grade_yearbook.pickle_yearbook.parent_book.__repr__() == school_yearbook.__repr__()
+        assert class_yearbook.pickle_yearbook.parent_book.__repr__() == school_yearbook.__repr__()
 
     if __name__ == '__main__':
         unittest.main()
