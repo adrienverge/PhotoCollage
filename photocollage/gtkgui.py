@@ -661,7 +661,7 @@ class MainWindow(Gtk.Window):
         if yearbook.child is not None:
             print("Looking for pictures of %s" % yearbook.child)
 
-            tag_list = ["Portraits", yearbook.grade, yearbook.classroom, yearbook.child]
+            tag_list = ["Portraits", yearbook.classroom, yearbook.child]
             child_portraits = self.corpus.get_images_with_tags_strict(tag_list)[:3]
             if child_portraits is None or len(child_portraits) == 0:
                 child_portraits = self.corpus.get_images_with_tags(tag_list)[:5]
@@ -782,7 +782,7 @@ class MainWindow(Gtk.Window):
 
         output_dir = self.yearbook_parameters['output_dir']
         pickle_path = os.path.join(
-            get_pickle_path(output_dir, self.current_yearbook.school, self.current_yearbook.grade,
+            get_pickle_path(output_dir, self.current_yearbook.school,
                             self.current_yearbook.classroom, self.current_yearbook.child), "file.pickle")
         print("operating on current yearbook : %s" % pickle_path)
         if os.path.exists(pickle_path):
@@ -858,7 +858,7 @@ class MainWindow(Gtk.Window):
             dialog.destroy()
 
         out_file = os.path.join(get_jpg_path(self.yearbook_parameters['output_dir'],
-                                             self.current_yearbook.school, self.current_yearbook.grade,
+                                             self.current_yearbook.school,
                                              self.current_yearbook.classroom, self.current_yearbook.child),
                                 str(yearbook_page.number) + ".jpg")
 
@@ -908,7 +908,7 @@ class MainWindow(Gtk.Window):
         import os
 
         output_dir = self.yearbook_parameters['output_dir']
-        pickle_path = get_pickle_path(output_dir, self.current_yearbook.school, self.current_yearbook.grade,
+        pickle_path = get_pickle_path(output_dir, self.current_yearbook.school,
                                       self.current_yearbook.classroom, self.current_yearbook.child)
         pickle_filename = os.path.join(pickle_path, "file.pickle")
         path1 = Path(pickle_filename)
@@ -926,11 +926,11 @@ class MainWindow(Gtk.Window):
         output_dir = self.yearbook_parameters['output_dir']
 
         pil_images = [
-            Image.open(os.path.join(get_jpg_path(output_dir, self.current_yearbook.school, self.current_yearbook.grade,
+            Image.open(os.path.join(get_jpg_path(output_dir, self.current_yearbook.school,
                                                  self.current_yearbook.classroom, self.current_yearbook.child),
                                     str(page.number) + ".jpg")) for page in self.current_yearbook.pages]
 
-        pdf_path = os.path.join(get_pdf_path(output_dir, self.current_yearbook.school, self.current_yearbook.grade,
+        pdf_path = os.path.join(get_pdf_path(output_dir, self.current_yearbook.school,
                                              self.current_yearbook.classroom, self.current_yearbook.child),
                                 "yearbook.pdf")
         pil_images[0].save(pdf_path, save_all=True,

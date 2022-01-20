@@ -43,8 +43,7 @@ class Corpus:
 
     def get_images_with_tags_strict(self, tags_list: [str]) -> [str]:
 
-        # For the time being, we're hacking this because of the PreK tag everywhere
-        tag_list_len = len(tags_list) + 1
+        tag_list_len = len(tags_list)
 
         # Get the images that have this given tags
         all_images = [self.tags_to_images[tag] for tag in tags_list if tag in self.tags_to_images]
@@ -61,10 +60,9 @@ class Corpus:
 
         return images_with_same_tags
 
-    def get_portraits(self, grade: str, classroom: str, child: str):
+    def get_portraits(self, classroom: str, child: str):
         portrait_images = [img for img in self.tags_to_images[child] if "Portraits" in self.image_to_tags[img]
-                           and classroom in self.image_to_tags[img]
-                           and grade in self.image_to_tags[img]]
+                           and classroom in self.image_to_tags[img]]
 
         if portrait_images is None or len(portrait_images) == 0:
             # Need a default image being returned here
