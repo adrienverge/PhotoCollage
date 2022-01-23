@@ -660,21 +660,20 @@ class MainWindow(Gtk.Window):
 
         if yearbook.child is not None:
             print("Looking for pictures of %s" % yearbook.child)
-
-            tag_list = ["Portraits", yearbook.classroom, yearbook.child]
-            child_portraits = self.corpus.get_images_with_tags_strict(tag_list)[:3]
-            if child_portraits is None or len(child_portraits) == 0:
-                child_portraits = self.corpus.get_images_with_tags(tag_list)[:5]
+            # construct path to selfies folder here for now
+            selfies_dir = os.path.join(self.corpus_base_dir, yearbook.school, "Selfies", yearbook.child)
+            child_portraits = os.listdir(selfies_dir)
 
             for img in child_portraits:
-                try:
-                    pixbuf = get_orientation_fixed_pixbuf(img)
-                    image = Gtk.Image.new_from_pixbuf(pixbuf)
-                    flowbox.add(image)
-                except OSError:
-                    # raise BadPhoto(name)
-                    print("Skipping a selfie: %s" % img)
-                    continue
+                if img.endswith("jpg") or img.endswith("png"):
+                    try:
+                        pixbuf = get_orientation_fixed_pixbuf(os.path.join(selfies_dir, img))
+                        image = Gtk.Image.new_from_pixbuf(pixbuf)
+                        flowbox.add(image)
+                    except OSError:
+                        # raise BadPhoto(name)
+                        print("Skipping a selfie: %s" % img)
+                        continue
 
         self.show_all()
 
