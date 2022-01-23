@@ -21,11 +21,24 @@ def intersection(lst1, lst2):
 
 class Corpus:
 
-    def __init__(self, school_name: str, image_to_tags: {}, tags_to_images: {}, corpus_dir: str):
+    def __init__(self, school_name: str, image_to_tags: {}, tags_to_images: {}, image_to_faces: {}, corpus_dir: str):
         self.school_name = school_name
         self.image_to_tags = image_to_tags
         self.tags_to_images = tags_to_images
+        self.image_to_faces = image_to_faces
         self.corpus_dir = corpus_dir
+
+    def get_images_for_child(self, tags_list: [str], child_name: str) -> [str]:
+        images = self.get_images_with_tags(tags_list)
+        child_imgs = []
+
+        # Only keep the ones that have a face detected in there
+        for img in images:
+            faces = self.image_to_faces[img]
+            if child_name in faces:
+                child_imgs.append(img)
+
+        return child_imgs
 
     def get_images_with_tags(self, tags_list: [str]) -> [str]:
         # Get the images that have this given tags

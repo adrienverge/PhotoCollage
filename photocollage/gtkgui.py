@@ -684,9 +684,12 @@ class MainWindow(Gtk.Window):
         else:
             tags = get_tag_list_for_page(self.current_yearbook, page)
             print("Requesting with tags: %s" % tags)
-            candidate_images = self.corpus.get_images_with_tags_strict(tags)
-            if len(candidate_images) == 0:
-                candidate_images = self.corpus.get_images_with_tags(tags)
+            if self.current_yearbook.child is None:
+                candidate_images = self.corpus.get_images_with_tags_strict(tags)
+                if len(candidate_images) == 0:
+                    candidate_images = self.corpus.get_images_with_tags(tags)
+            else:
+                candidate_images = self.corpus.get_images_for_child(tags, self.current_yearbook.child)
 
         flowbox = self.images_flow_box
         flowbox.set_valign(Gtk.Align.START)

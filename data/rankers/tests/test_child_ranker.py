@@ -23,7 +23,7 @@ class TestChildRanker(unittest.TestCase):
                                                     school_name='Monticello_Preschool_2021_2022',
                                                     classroom='Sunshine', child=None, parent_book=None)
         self.yearbook = create_yearbook(self.yearbook_parameters, school_name='Monticello_Preschool_2021_2022',
-                                        classroom='Sunshine', child='Sophie Wu',
+                                        classroom='Sunshine', child='Vyas Avli',
                                         parent_book=parent_yearbook.pickle_yearbook)
 
     def get_images_for_page(self, page: Page, max_count: int = 6):
@@ -34,9 +34,9 @@ class TestChildRanker(unittest.TestCase):
     def test_portraits_jungle(self):
         parent_yearbook: Yearbook = create_yearbook(self.yearbook_parameters,
                                                     school_name='Monticello_Preschool_2021_2022',
-                                                    classroom=None, child=None, parent_book=None)
+                                                    classroom='Jungle', child=None, parent_book=None)
         self.yearbook = create_yearbook(self.yearbook_parameters, school_name='Monticello_Preschool_2021_2022',
-                                        classroom='Sunshine', child='Sophie Wu',
+                                        classroom='Jungle', child='Vyas Avli',
                                         parent_book=parent_yearbook.pickle_yearbook)
         parent_yearbook.print_yearbook_info()
         self.yearbook.print_yearbook_info()
@@ -44,12 +44,6 @@ class TestChildRanker(unittest.TestCase):
         page6 = self.yearbook.pages[5]
         images = self.get_images_for_page(page6)
         [print(img) for img in images]
-
-        print(self.yearbook.pickle_yearbook)
-        print("Getting parent images for parent")
-        parent_images = self.get_images_for_page(self.yearbook.parent_yearbook.pages[5])
-        print("Getting parent images for parent - Done")
-        [print(img) for img in parent_images]
 
     def test_ranker_page_5(self):
         page5 = self.yearbook.pages[4]
