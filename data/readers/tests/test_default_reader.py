@@ -42,6 +42,14 @@ class TestDefaultReader(unittest.TestCase):
 
         assert len(self.corpus.get_images_with_tags_strict(tags_list)) == 0
 
+        tags_list = ['Monticello_Preschool_2021_2022', 'Ladybugs', 'Portraits', 'Aahana Namjoshi']
+        print("**********")
+        [print(img) for img in self.corpus.get_images_with_tags_strict(tags_list)]
+        print("**********")
+        [print(img) for img in self.corpus.get_images_for_child(tags_list, 'Aahana Namjoshi')]
+
+        print (self.corpus.image_to_tags["/Users/ashah/GoogleDrive/Monticello_Preschool_2021_2022/Ladybugs/Portraits/Aahana Namjoshi_4.png"])
+
     def test_get_images(self):
         sunshine_portraits = self.corpus.get_images_with_tags_strict([
             "Monticello_Preschool_2021_2022", "Portraits", "Sunshine"])

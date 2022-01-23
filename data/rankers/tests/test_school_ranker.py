@@ -31,9 +31,9 @@ class TestSchoolRanker(unittest.TestCase):
         page5 = self.yearbook.pages[4]
         images = self.get_images_for_page(page5)
 
-        print(len(images))
+        assert 0 <= images.index('/Users/ashah/GoogleDrive/Monticello_Preschool_2021_2022/Sunshine/Portraits/Madeline Chen_4.png')
+        # check page properties
         assert 1 == len(page5.tags.split(","))
-        # assert 0 <= images.index('/Users/ashah/GoogleDrive/Monticello_Preschool_2021_2022/Sunshine/Portraits/Madeline Chen_5.png')
         assert page5.number == 5
         assert page5.event_name == "Portraits"
 

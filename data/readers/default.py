@@ -12,6 +12,7 @@ def corpus_processor(school_name: str, corpus_file: str = None, default_tags=Non
     import getpass
     image_to_tag_map: dict[str, list[str]] = {}
     tag_to_image_map: dict[str, list[str]] = {}
+    image_to_face_map: dict[str, list[str]] = {}
 
     if corpus_file is None:
         corpus_file = os.path.join('/Users', getpass.getuser(), 'GoogleDrive', 'ProcessedCorpus', school_name + "_full.out")
@@ -54,9 +55,16 @@ def corpus_processor(school_name: str, corpus_file: str = None, default_tags=Non
                         else:
                             tag_to_image_map[face] = [img_name]
 
+                        # Need to add this face as a tag to the image
+                        if img_name in image_to_face_map:
+                            image_to_face_map[img_name].append(face)
+                        else:
+                            image_to_face_map[img_name] = [face]
+
     corpus_dir = os.path.join('/Users', getpass.getuser(), 'GoogleDrive', school_name)
 
     return Corpus(school_name=school_name,
                   image_to_tags=image_to_tag_map,
                   tags_to_images=tag_to_image_map,
+                  image_to_faces=image_to_face_map,
                   corpus_dir=corpus_dir)
