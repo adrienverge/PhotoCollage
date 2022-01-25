@@ -651,6 +651,10 @@ class MainWindow(Gtk.Window):
         self.update_ui_elements()
         self.update_child_portrait_images(self.current_yearbook)
 
+    def get_child_portrait_images(self, yearbook: Yearbook):
+        selfies_dir = os.path.join(self.corpus_base_dir, yearbook.school, "Selfies", yearbook.child)
+        return [os.path.join(selfies_dir, img) for img in os.listdir(selfies_dir)]
+
     def update_child_portrait_images(self, yearbook: Yearbook):
         flowbox = self.portraits_flow_box
         flowbox.set_valign(Gtk.Align.START)
@@ -660,14 +664,12 @@ class MainWindow(Gtk.Window):
 
         if yearbook.child is not None:
             print("Looking for pictures of %s" % yearbook.child)
-            # construct path to selfies folder here for now
-            selfies_dir = os.path.join(self.corpus_base_dir, yearbook.school, "Selfies", yearbook.child)
-            child_portraits = os.listdir(selfies_dir)
+            child_portraits = self.get_child_portrait_images(yearbook)
 
             for img in child_portraits:
                 if img.endswith("jpg") or img.endswith("png"):
                     try:
-                        pixbuf = get_orientation_fixed_pixbuf(os.path.join(selfies_dir, img))
+                        pixbuf = get_orientation_fixed_pixbuf(img)
                         image = Gtk.Image.new_from_pixbuf(pixbuf)
                         flowbox.add(image)
                     except OSError:
@@ -805,29 +807,36 @@ class MainWindow(Gtk.Window):
         self.render_preview(page, self.img_preview_right)
 
     def render_preview(self, yearbook_page: Page, img_preview_area: ImagePreviewArea):
-        print("---Displaying %s " % yearbook_page.event_name)
+        print("---Displaying %s %s" % (yearbook_page.event_name, yearbook_page.tags))
 
+        rebuild = False
+        page_images = []
         if len(yearbook_page.history) == 0:
             page_images = self.choose_images_for_page(yearbook_page)
+            rebuild = True
+        elif yearbook_page.has_parent_pins_changed():
+            rebuild = True
+            new_images = yearbook_page.get_filenames_parent_pins_not_on_page()
+            existing_images = yearbook_page.photos_on_page
+            new_images.extend(existing_images)
+            page_images = get_unique_list_insertion_order(new_images)
+        elif yearbook_page.did_parent_delete():
+            rebuild = True
+            print("LOOKS LIKE PARENT DELETED SOMETHING THAT'S ON THE PAGE")
+            existing_images = yearbook_page.photos_on_page
+            parent_deleted_set = yearbook_page.get_parent_deleted_photos()
+            # remove parent deleted images from existing set
+            page_images = [img for img in existing_images if img not in parent_deleted_set]
+        else:
+            page_collage: UserCollage = yearbook_page.history[yearbook_page.history_index]
+
+        if rebuild:
             first_photo_list = render.build_photolist(page_images)
             page_collage = UserCollage(first_photo_list)
             page_collage.make_page(self.opts)
             yearbook_page.photo_list = first_photo_list
             yearbook_page.history.append(page_collage)
             yearbook_page.history_index = len(yearbook_page.history) - 1
-        elif yearbook_page.has_parent_pins_changed():
-            new_images = yearbook_page.get_filenames_parent_pins_not_on_page()
-            existing_images = yearbook_page.photos_on_page
-            new_images.extend(existing_images)
-            unique_images = get_unique_list_insertion_order(new_images)
-            first_photo_list = render.build_photolist(unique_images)
-            page_collage = UserCollage(first_photo_list)
-            page_collage.make_page(self.opts)
-            yearbook_page.photo_list = first_photo_list
-            yearbook_page.history.append(page_collage)
-            yearbook_page.history_index = len(yearbook_page.history) - 1
-        else:
-            page_collage: UserCollage = yearbook_page.history[yearbook_page.history_index]
 
         # If the desired ratio changed in the meantime (e.g. from landscape to
         # portrait), it needs to be re-updated

@@ -53,7 +53,11 @@ class ImageRanker(ABC):
         _pinned_photos = current_page.get_all_pinned_photos()
         _pinned_photos.extend(novel_images[:max_count])
 
-        final_list = get_unique_list_insertion_order(_pinned_photos)
+        # Now let's remove all images that are deleted by the parent
+        _photos_to_remove = current_page.get_parent_deleted_photos()
+        _pinned_and_removed = [x for x in _pinned_photos if x not in _photos_to_remove]
+
+        final_list = get_unique_list_insertion_order(_pinned_and_removed)
 
         if final_list is None or len(final_list) == 0:
             print("LAST RESORT HACK FOR THE TIME BEING")
