@@ -31,6 +31,7 @@ class Page:
         self.history_index = 0
         self.photo_list: [Photo] = []
         self.pinned_photos: {str} = set()
+        self.deleted_photos: {str} = set()
         self.parent_pages: [Page] = []
         self.tags: str = tags
 
@@ -56,6 +57,10 @@ class Page:
         try:
             photo_to_remove: Photo = next(x for x in self.photo_list if x.filename == photo.filename)
             self.photo_list.remove(photo_to_remove)
+
+            # Keep track of the filename that was explicitly deleted
+            # This should not show up on any pages anymore.
+            self.deleted_photos.add(photo_to_remove.filename)
         except KeyError:
             pass
 
@@ -64,6 +69,13 @@ class Page:
                       parent_page.get_all_pinned_photos()]
 
         return get_unique_list_insertion_order(_flat_list)
+
+    def get_parent_deleted_photos(self) -> [str]:
+        _flat_list = [filename for parent_page in self.parent_pages for filename in
+                      parent_page.deleted_photos]
+
+        return get_unique_list_insertion_order(_flat_list)
+
 
     '''
     This method will return all pinned photos and keep track of 
@@ -93,6 +105,15 @@ class Page:
         # if any of the parent_pins are missing from this page
         # then we return True
         return functools.reduce(lambda a, b: a or b, self.get_parent_pins_not_on_page(), False)
+
+    def did_parent_delete(self):
+        parent_deleted_photos = self.get_parent_deleted_photos()
+        # check if any existing photo is part of the parent deleted set,
+        for photo in self.photo_list:
+            if photo.filename in parent_deleted_photos:
+                return True
+
+        return False
 
     @property
     def photos_on_page(self):
