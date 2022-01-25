@@ -961,7 +961,7 @@ class MainWindow(Gtk.Window):
             left_page = self.current_yearbook.pages[self.curr_page_index-1]
             self.render_left_page(left_page)
         except IndexError:
-            print("Error index out of range")
+            pass
 
         right_page = self.current_yearbook.pages[self.curr_page_index]
         self.render_right_page(right_page)
