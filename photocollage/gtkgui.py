@@ -682,12 +682,11 @@ class MainWindow(Gtk.Window):
             print("Load image as is, %s, %s" % (page.event_name, page.image))
             candidate_images = [page.image]
         else:
-            tags = get_tag_list_for_page(self.current_yearbook, page)
+            tags = get_unique_list_insertion_order(get_tag_list_for_page(self.current_yearbook, page))
             print("Requesting with tags: %s" % tags)
             if self.current_yearbook.child is None:
                 candidate_images = self.corpus.get_images_with_tags_strict(tags)
-                if len(candidate_images) == 0:
-                    candidate_images = self.corpus.get_images_with_tags(tags)
+
             else:
                 candidate_images = self.corpus.get_images_for_child(tags, self.current_yearbook.child)
 
