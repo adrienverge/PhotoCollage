@@ -954,13 +954,14 @@ class MainWindow(Gtk.Window):
 
         # Reset the prev and next buttons
         self.btn_prev_page.set_sensitive(self.curr_page_index > 0)
-        self.btn_next_page.set_sensitive(self.next_page_index < len(self.current_yearbook.pages) - 1)
+        if self.next_page_index > len(self.current_yearbook.pages):
+            self.curr_page_index = 0
 
         try:
             left_page = self.current_yearbook.pages[self.curr_page_index-1]
             self.render_left_page(left_page)
         except IndexError:
-            print("Error index out of range")
+            pass
 
         right_page = self.current_yearbook.pages[self.curr_page_index]
         self.render_right_page(right_page)
