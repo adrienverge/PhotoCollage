@@ -809,26 +809,27 @@ class MainWindow(Gtk.Window):
     def render_preview(self, yearbook_page: Page, img_preview_area: ImagePreviewArea):
         print("---Displaying %s %s" % (yearbook_page.event_name, yearbook_page.tags))
 
-        rebuild = False
+        rebuild = True
         page_images = []
         if len(yearbook_page.history) == 0:
-            page_images = self.choose_images_for_page(yearbook_page)
-            rebuild = True
+            if self.current_yearbook.parent_yearbook is None:
+                page_images = self.choose_images_for_page(yearbook_page)
+            else:
+                parent_page: Page = self.current_yearbook.parent_yearbook.pages[yearbook_page.number - 1]
+                page_images = parent_page.photos_on_page
         elif yearbook_page.has_parent_pins_changed():
-            rebuild = True
             new_images = yearbook_page.get_filenames_parent_pins_not_on_page()
             existing_images = yearbook_page.photos_on_page
             new_images.extend(existing_images)
             page_images = get_unique_list_insertion_order(new_images)
         elif yearbook_page.did_parent_delete():
-            rebuild = True
-            print("LOOKS LIKE PARENT DELETED SOMETHING THAT'S ON THE PAGE")
             existing_images = yearbook_page.photos_on_page
             parent_deleted_set = yearbook_page.get_parent_deleted_photos()
             # remove parent deleted images from existing set
             page_images = [img for img in existing_images if img not in parent_deleted_set]
         else:
             page_collage: UserCollage = yearbook_page.history[yearbook_page.history_index]
+            rebuild = False
 
         if rebuild:
             first_photo_list = render.build_photolist(page_images)
