@@ -21,6 +21,7 @@ import time
 import PIL.Image
 import PIL.ImageDraw
 import PIL.ImageFile
+from PIL import ImageOps
 
 from photocollage.collage import Photo
 from yearbook.page import Page
@@ -284,7 +285,7 @@ class RenderingTask(Thread):
                 if self.on_update:
                     self.on_update(canvas, 0.0)
                 last_update = time.time()
-
+                pinned_photos = self.yearbook_page.get_all_pinned_photos()
                 for col in self.page.cols:
                     for c in col.cells:
                         if self.canceled:  # someone clicked "abort"
@@ -294,6 +295,11 @@ class RenderingTask(Thread):
                             continue
 
                         img = self.resize_photo(c, use_cache=True)
+
+                        if c.photo.filename in pinned_photos:
+                            print("THIS NEEDS A DIFFERENT GRAYSCALE TREATMENT")
+                            img = ImageOps.grayscale(img)
+
                         paste_photo(canvas, c, img)
 
                         # Only needed for interactive rendering
