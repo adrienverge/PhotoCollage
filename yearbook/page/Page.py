@@ -72,7 +72,7 @@ class Page:
 
     def get_parent_deleted_photos(self) -> [str]:
         _flat_list = [filename for parent_page in self.parent_pages for filename in
-                      parent_page.deleted_photos]
+                      parent_page.get_all_deleted_photos()]
 
         return get_unique_list_insertion_order(_flat_list)
 
@@ -86,6 +86,12 @@ class Page:
         # Keep the pictures that come from the parent at the top and append pictures from this page
         parent_pinned_pictures.extend(self.pinned_photos)
         return parent_pinned_pictures
+
+    def get_all_deleted_photos(self) -> [str]:
+        parent_deleted_pictures = self.get_parent_deleted_photos()
+        # Keep the pictures that come from the parent at the top and append pictures from this page
+        parent_deleted_pictures.extend(self.deleted_photos)
+        return parent_deleted_pictures
 
     def get_filenames_parent_pins_not_on_page(self) -> [str]:
         parent_pins = self.get_parent_pinned_photos()
@@ -107,7 +113,7 @@ class Page:
         return functools.reduce(lambda a, b: a or b, self.get_parent_pins_not_on_page(), False)
 
     def did_parent_delete(self):
-        parent_deleted_photos = self.get_parent_deleted_photos()
+        parent_deleted_photos = self.get_all_deleted_photos()
         # check if any existing photo is part of the parent deleted set,
         for photo in self.photo_list:
             if photo.filename in parent_deleted_photos:
