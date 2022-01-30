@@ -811,6 +811,7 @@ class MainWindow(Gtk.Window):
 
         rebuild = False
         pin_changed = False
+        first_render = False
         page_images = []
         if len(yearbook_page.history) == 0:
             if self.current_yearbook.parent_yearbook is None:
@@ -818,6 +819,7 @@ class MainWindow(Gtk.Window):
             else:
                 parent_page: Page = self.current_yearbook.parent_yearbook.pages[yearbook_page.number - 1]
                 page_images = parent_page.photos_on_page
+            first_render = True
 
         if yearbook_page.has_parent_pins_changed():
             new_images = yearbook_page.get_filenames_parent_pins_not_on_page()
@@ -838,7 +840,7 @@ class MainWindow(Gtk.Window):
             page_images = [img for img in existing_images if img not in parent_deleted_set]
             rebuild = True
 
-        if rebuild:
+        if rebuild or first_render:
             first_photo_list = render.build_photolist(page_images)
             page_collage = UserCollage(first_photo_list)
             page_collage.make_page(self.opts)
