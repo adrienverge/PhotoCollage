@@ -431,7 +431,7 @@ class MainWindow(Gtk.Window):
 
     @property
     def prev_page_index(self):
-        return self.curr_page_index -1
+        return self.curr_page_index - 1
 
     def __init__(self):
         super().__init__(title=_("Yearbook Creator"))
@@ -809,7 +809,8 @@ class MainWindow(Gtk.Window):
     def render_preview(self, yearbook_page: Page, img_preview_area: ImagePreviewArea):
         print("---Displaying %s %s" % (yearbook_page.event_name, yearbook_page.tags))
 
-        rebuild = True
+        rebuild = False
+        pin_changed = False
         page_images = []
         if len(yearbook_page.history) == 0:
             if self.current_yearbook.parent_yearbook is None:
@@ -817,19 +818,25 @@ class MainWindow(Gtk.Window):
             else:
                 parent_page: Page = self.current_yearbook.parent_yearbook.pages[yearbook_page.number - 1]
                 page_images = parent_page.photos_on_page
-        elif yearbook_page.has_parent_pins_changed():
+
+        if yearbook_page.has_parent_pins_changed():
             new_images = yearbook_page.get_filenames_parent_pins_not_on_page()
             existing_images = yearbook_page.photos_on_page
             new_images.extend(existing_images)
             page_images = get_unique_list_insertion_order(new_images)
-        elif yearbook_page.did_parent_delete():
-            existing_images = yearbook_page.photos_on_page
+            pin_changed = True
+            rebuild = True
+
+        if yearbook_page.did_parent_delete():
+            if pin_changed:
+                existing_images = page_images
+            else:
+                existing_images = yearbook_page.photos_on_page
+
             parent_deleted_set = yearbook_page.get_parent_deleted_photos()
             # remove parent deleted images from existing set
             page_images = [img for img in existing_images if img not in parent_deleted_set]
-        else:
-            page_collage: UserCollage = yearbook_page.history[yearbook_page.history_index]
-            rebuild = False
+            rebuild = True
 
         if rebuild:
             first_photo_list = render.build_photolist(page_images)
@@ -838,6 +845,9 @@ class MainWindow(Gtk.Window):
             yearbook_page.photo_list = first_photo_list
             yearbook_page.history.append(page_collage)
             yearbook_page.history_index = len(yearbook_page.history) - 1
+        else:
+            # There's no change necessary on the page, just return it from history 
+            page_collage: UserCollage = yearbook_page.history[yearbook_page.history_index]
 
         # If the desired ratio changed in the meantime (e.g. from landscape to
         # portrait), it needs to be re-updated
@@ -968,7 +978,7 @@ class MainWindow(Gtk.Window):
             self.curr_page_index = 0
 
         try:
-            left_page = self.current_yearbook.pages[self.curr_page_index-1]
+            left_page = self.current_yearbook.pages[self.curr_page_index - 1]
             self.render_left_page(left_page)
         except IndexError:
             pass
@@ -999,7 +1009,7 @@ class MainWindow(Gtk.Window):
     def update_label_text(self):
 
         try:
-            _left = self.current_yearbook.pages[self.curr_page_index-1]
+            _left = self.current_yearbook.pages[self.curr_page_index - 1]
             if _left.tags is None or _left.tags == "None":
                 _label_text = str(_left.number) + ":" + _left.event_name
             else:
