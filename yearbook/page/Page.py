@@ -34,6 +34,7 @@ class Page:
         self.deleted_photos: {str} = set()
         self.parent_pages: [Page] = []
         self.tags: str = tags
+        self.cleared: bool = False
 
     def __getstate__(self): return self.__dict__
     def __setstate__(self, d): self.__dict__.update(d)
@@ -120,6 +121,14 @@ class Page:
                 return True
 
         return False
+
+    def clear_all(self):
+        self.history = []
+        self.history_index = 0
+        self.photo_list: [Photo] = []
+        self.pinned_photos: {str} = set()
+        self.deleted_photos: {str} = set()
+        self.cleared = False
 
     @property
     def photos_on_page(self):
