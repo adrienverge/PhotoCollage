@@ -399,7 +399,7 @@ class UserCollage:
         # to the square root of the output image ratio, and proportional to the
         # square root of the average input images ratio.
         avg_ratio = (sum(1.0 * photo.h / photo.w for photo in self.photolist) /
-                     len(self.photolist))
+                     max(len(self.photolist), 1))
         # Virtual number of images: since ~ 1 image over 3 is in a multi-cell
         # (i.e. takes two columns), it takes the space of 4 images.
         # So it's equivalent to 1/3 * 4 + 2/3 = 2 times the number of images.
@@ -466,8 +466,10 @@ class MainWindow(Gtk.Window):
         self.images_flow_box = Gtk.FlowBox()
         self.portraits_flow_box = Gtk.FlowBox()
         self.btn_settings = Gtk.Button()
+        self.btn_clear_left = Gtk.Button(label="ClearLeft")
         self.btn_regen_left = Gtk.Button(label=_("RegenerateLeft"))
         self.btn_regen_right = Gtk.Button(label=_("RegenerateRight"))
+        self.btn_clear_right = Gtk.Button(label="ClearRight")
         self.btn_redo = Gtk.Button()
         self.lbl_history_index = Gtk.Label(" ")
         self.btn_undo = Gtk.Button()
@@ -521,13 +523,20 @@ class MainWindow(Gtk.Window):
         #  Tools pan
         # -----------------------
         box.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
+        self.btn_clear_left.connect("clicked",
+                                    self.clear_layout)
+        box.pack_start(self.btn_clear_left, False, False, 0)
+
         self.btn_regen_left.connect("clicked",
                                     self.regenerate_layout)
         box.pack_start(self.btn_regen_left, False, False, 0)
         self.btn_regen_right.connect("clicked",
                                      self.regenerate_layout)
-        box.pack_start(self.btn_regen_right, False, False, 0)
 
+        box.pack_start(self.btn_regen_right, False, False, 0)
+        box.pack_start(self.btn_clear_right, False, False, 0)
+        self.btn_clear_right.connect("clicked",
+                                     self.clear_layout)
         box.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
 
         box.pack_start(self.btn_prev_page, False, False, 0)
@@ -735,8 +744,9 @@ class MainWindow(Gtk.Window):
             print("Image clicked %s " % event.button)
             print(event.button == 3)
 
-    def update_photolist(self, page, new_images: [str], display: bool = True):
+    def update_photolist(self, page, new_images: [str]):
         photolist: [Photo] = []
+        page.cleared = False
         try:
             if page.history_index < len(page.history):
                 photolist = copy.copy(
@@ -744,11 +754,9 @@ class MainWindow(Gtk.Window):
             photolist.extend(render.build_photolist(new_images))
 
             if len(photolist) > 0:
-                print("photos list now should be %s " % str(len(photolist)))
                 new_collage = UserCollage(photolist)
                 new_collage.make_page(self.opts)
-                if display:
-                    self.render_from_new_collage(page, new_collage)
+                self.render_from_new_collage(page, new_collage)
             else:
                 self.update_tool_buttons()
         except render.BadPhoto as e:
@@ -811,13 +819,20 @@ class MainWindow(Gtk.Window):
 
         rebuild = False
         pin_changed = False
+        first_render = False
         page_images = []
+
+        if yearbook_page.cleared:
+            img_preview_area.image = None
+            return
+
         if len(yearbook_page.history) == 0:
             if self.current_yearbook.parent_yearbook is None:
                 page_images = self.choose_images_for_page(yearbook_page)
             else:
                 parent_page: Page = self.current_yearbook.parent_yearbook.pages[yearbook_page.number - 1]
                 page_images = parent_page.photos_on_page
+            first_render = True
 
         if yearbook_page.has_parent_pins_changed():
             new_images = yearbook_page.get_filenames_parent_pins_not_on_page()
@@ -838,7 +853,7 @@ class MainWindow(Gtk.Window):
             page_images = [img for img in existing_images if img not in parent_deleted_set]
             rebuild = True
 
-        if rebuild:
+        if rebuild or first_render:
             first_photo_list = render.build_photolist(page_images)
             page_collage = UserCollage(first_photo_list)
             page_collage.make_page(self.opts)
@@ -846,7 +861,7 @@ class MainWindow(Gtk.Window):
             yearbook_page.history.append(page_collage)
             yearbook_page.history_index = len(yearbook_page.history) - 1
         else:
-            # There's no change necessary on the page, just return it from history 
+            # There's no change necessary on the page, just return it from history
             page_collage: UserCollage = yearbook_page.history[yearbook_page.history_index]
 
         # If the desired ratio changed in the meantime (e.g. from landscape to
@@ -908,6 +923,14 @@ class MainWindow(Gtk.Window):
             self.render_preview(page, self.img_preview_left)
         else:
             self.render_preview(page, self.img_preview_right)
+
+    def clear_layout(self, button):
+        if button.get_label().endswith("Right"):
+            self.current_yearbook.pages[self.curr_page_index].clear_all()
+            self.img_preview_right.image = None
+        else:
+            self.current_yearbook.pages[self.prev_page_index].clear_all()
+            self.img_preview_left.image = None
 
     def regenerate_layout(self, button):
         if button.get_label().endswith("Right"):
