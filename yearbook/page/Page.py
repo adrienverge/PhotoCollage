@@ -128,7 +128,7 @@ class Page:
         self.photo_list: [Photo] = []
         self.pinned_photos: {str} = set()
         self.deleted_photos: {str} = set()
-        self.cleared = False
+        self.cleared = True
 
     @property
     def photos_on_page(self):
