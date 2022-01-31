@@ -474,8 +474,11 @@ class MainWindow(Gtk.Window):
         self.lbl_history_index = Gtk.Label(" ")
         self.btn_undo = Gtk.Button()
         self.btn_prev_page = Gtk.Button(label=_("Prev page..."))
-        self.lbl_right_page = Gtk.Label(" ")
         self.lbl_left_page = Gtk.Label(" ")
+        self.page_num_text_entry = Gtk.Entry()
+        self.page_num_text_entry.set_text("1")
+        self.page_num_text_entry.set_max_length(2)
+        self.lbl_right_page = Gtk.Label(" ")
         self.btn_next_page = Gtk.Button(label=_("Next page..."))
         self.btn_publish_book = Gtk.Button(label=_("Publish"))
 
@@ -544,10 +547,11 @@ class MainWindow(Gtk.Window):
         self.btn_prev_page.connect("clicked", self.select_prev_page)
 
         box.pack_start(self.lbl_left_page, False, False, 0)
+        box.pack_start(self.page_num_text_entry, False, False, 0)
         box.pack_start(self.lbl_right_page, False, False, 0)
         box.pack_start(self.btn_next_page, True, True, 0)
         self.btn_next_page.connect("clicked", self.select_next_page)
-
+        self.page_num_text_entry.connect("activate", self.page_num_nav)
         box.pack_start(self.btn_publish_book, True, True, 0)
         self.btn_publish_book.connect("clicked", self.publish_and_pickle)
         box.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
@@ -663,6 +667,16 @@ class MainWindow(Gtk.Window):
     def get_child_portrait_images(self, yearbook: Yearbook):
         selfies_dir = os.path.join(self.corpus_base_dir, yearbook.school, "Selfies", yearbook.child)
         return [os.path.join(selfies_dir, img) for img in os.listdir(selfies_dir)]
+
+    def page_num_nav(self, widget):
+        new_page_num = int(self.page_num_text_entry.get_text())
+        if new_page_num % 2 == 0:
+            # If user entered an even number
+            self.curr_page_index = new_page_num - 2
+        else:
+            self.curr_page_index = new_page_num - 3
+
+        self.select_next_page(widget)
 
     def update_child_portrait_images(self, yearbook: Yearbook):
         flowbox = self.portraits_flow_box
@@ -1043,6 +1057,7 @@ class MainWindow(Gtk.Window):
 
         _right = self.current_yearbook.pages[self.curr_page_index]
         self.lbl_right_page.set_label(str(_right.number) + ":" + _right.event_name)
+        self.page_num_text_entry.set_text(str(_right.number))
 
     def update_tool_buttons(self):
         if self.current_yearbook is None:
