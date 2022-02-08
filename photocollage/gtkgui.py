@@ -43,6 +43,7 @@ _n = gettext.ngettext
 DEFAULT_OPTS = dict(border_w=0.01, border_c='black', out_w=800, out_h=600, last_visited_dir=None, last_output_dir=None)
 
 
+
 def pil_image_to_cairo_surface(src):
     # TODO: cairo.ImageSurface.create_for_data() is not yet available in
     # Python 3, so we use PNG as an intermediate.
@@ -154,7 +155,6 @@ class UserCollage:
     def duplicate(self):
         return UserCollage(copy.copy(self.photolist))
 
-
 class PhotoCollageWindow(Gtk.Window):
     TARGET_TYPE_TEXT = 1
     TARGET_TYPE_URI = 2
@@ -234,6 +234,12 @@ class PhotoCollageWindow(Gtk.Window):
         self.btn_new_layout.set_always_show_image(True)
         self.btn_new_layout.connect("clicked", self.regenerate_layout)
         box.pack_start(self.btn_new_layout, False, False, 0)
+        self.btn_reset = Gtk.Button(label=_("Reset"))
+        self.btn_reset.set_image(Gtk.Image.new_from_stock(
+            Gtk.STOCK_REMOVE, Gtk.IconSize.LARGE_TOOLBAR))
+        self.btn_reset.set_always_show_image(True)
+        self.btn_reset.connect("clicked", self.reset)
+        box.pack_start(self.btn_reset, False, False, 0)
 
         box.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
 
@@ -370,6 +376,13 @@ class PhotoCollageWindow(Gtk.Window):
         if response == Gtk.ResponseType.CANCEL:
             t.abort()
             compdialog.destroy()
+
+    def reset(self, button):
+        win.img_preview.collage.photolist = None
+        win.img_preview.image = None
+        win.img_preview.mode = win.img_preview.INSENSITIVE
+        win.img_preview.parent.history_index = len(win.img_preview.parent.history)
+        win.img_preview.parent.update_tool_buttons()
 
     def render_from_new_collage(self, collage):
         self.history.append(collage)
@@ -606,6 +619,7 @@ class ImagePreviewArea(Gtk.DrawingArea):
             cell = self.collage.page.get_cell_at_position(x, y)
             if not cell:
                 return
+
             # Has the user clicked the delete button?
             dist = (cell.x + cell.w - 12 - x) ** 2 + (cell.y + 12 - y) ** 2
             if dist <= 8 * 8:
@@ -858,6 +872,7 @@ def main():
     options_fn = os.path.join(options_dir, 'photocollage', 'options.yml')
     options_manager = YamlOptionsManager(opts_fn=options_fn)
     logging.debug(_("Config filename: '%s'") % options_fn)
+    global win 
     win = PhotoCollageWindow(options_manager=options_manager)
     win.connect("delete-event", win.on_destroy)
     win.show_all()
