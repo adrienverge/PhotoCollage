@@ -40,7 +40,7 @@ _n = gettext.ngettext
 # cp po/photocollage.pot po/fr.po
 # msgfmt -o po/fr.mo po/fr.po
 
-DEFAULT_OPTS = dict(border_w=0.01, border_c='black', out_w=800, out_h=600)
+DEFAULT_OPTS = dict(border_w=0.01, border_c='black', out_w=800, out_h=600, last_visited_dir=None, last_output_dir=None)
 
 
 def pil_image_to_cairo_surface(src):
@@ -271,6 +271,10 @@ class PhotoCollageWindow(Gtk.Window):
         self.update_photolist([])
 
     def update_photolist(self, new_images):
+        if new_images:
+            self.opts.last_visited_dir = os.path.dirname(
+                os.path.abspath(new_images[-1])
+            )
         try:
             photolist = []
             if self.history_index < len(self.history):
@@ -293,11 +297,13 @@ class PhotoCollageWindow(Gtk.Window):
             dialog.destroy()
 
     def choose_images(self, button):
-        dialog = PreviewFileChooserDialog(title=_("Choose images"),
-                                          parent=button.get_toplevel(),
-                                          action=Gtk.FileChooserAction.OPEN,
-                                          select_multiple=True,
-                                          modal=True)
+        dialog = PreviewFileChooserDialog(
+            title=_("Choose images"),
+            folder=self.opts.last_visited_dir,
+            parent=button.get_toplevel(),
+            action=Gtk.FileChooserAction.OPEN,
+            select_multiple=True,
+            modal=True)
 
         if dialog.run() == Gtk.ResponseType.OK:
             files = dialog.get_filenames()
@@ -408,6 +414,8 @@ class PhotoCollageWindow(Gtk.Window):
                                        Gtk.FileChooserAction.SAVE)
         dialog.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
         dialog.add_button(Gtk.STOCK_OK, Gtk.ResponseType.OK)
+        if self.opts.last_output_dir is not None:
+            dialog.set_current_folder(self.opts.last_output_dir)
         dialog.set_do_overwrite_confirmation(True)
         set_save_image_filters(dialog)
         if dialog.run() != Gtk.ResponseType.OK:
@@ -415,6 +423,7 @@ class PhotoCollageWindow(Gtk.Window):
             return
         savefile = dialog.get_filename()
         base, ext = os.path.splitext(savefile)
+        self.opts.last_output_dir = os.path.abspath(base)
         if ext == "" or not ext[1:].lower() in get_all_save_image_exts():
             savefile += ".jpg"
         dialog.destroy()
@@ -797,8 +806,10 @@ class ErrorDialog(Gtk.Dialog):
 class PreviewFileChooserDialog(Gtk.FileChooserDialog):
     PREVIEW_MAX_SIZE = 256
 
-    def __init__(self, **kw):
-        super().__init__(**kw)
+    def __init__(self, folder=None, **kw):
+        super(PreviewFileChooserDialog, self).__init__(**kw)
+        if folder is not None:
+            self.set_current_folder(folder)
 
         self.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
         self.add_button(Gtk.STOCK_OK, Gtk.ResponseType.OK)
