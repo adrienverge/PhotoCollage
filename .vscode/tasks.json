@@ -1,0 +1,13 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build Photocollage in Container",
+            "type": "shell",
+            "command": ". /opt/pcvenv/bin/activate; python3 setup.py sdist; pip3 install --upgrade dist/photocollage-*.tar.gz",
+            "problemMatcher": []
+        }
+    ]
+}
