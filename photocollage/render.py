@@ -24,7 +24,6 @@ import PIL.ImageFile
 
 from photocollage.collage import Photo
 
-
 QUALITY_SKEL = 0
 QUALITY_FAST = 1
 QUALITY_BEST = 2

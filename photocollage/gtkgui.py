@@ -17,6 +17,7 @@
 import copy
 import gettext
 from io import BytesIO
+import logging
 import math
 import os.path
 import random
@@ -28,10 +29,9 @@ import gi
 
 from photocollage import APP_NAME, artwork, collage, render
 from photocollage.render import PIL_SUPPORTED_EXTS as EXTS
-
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GObject, GdkPixbuf  # noqa: E402, I100
-
+from photocollage.config import YamlOptionsManager, OptionsLoadError
 
 gettext.textdomain(APP_NAME)
 _ = gettext.gettext
@@ -39,6 +39,8 @@ _n = gettext.ngettext
 # xgettext --keyword=_n:1,2 -o po/photocollage.pot $(find . -name '*.py')
 # cp po/photocollage.pot po/fr.po
 # msgfmt -o po/fr.mo po/fr.po
+
+DEFAULT_OPTS = dict(border_w=0.01, border_c='black', out_w=800, out_h=600)
 
 
 def pil_image_to_cairo_surface(src):
@@ -126,9 +128,9 @@ class UserCollage:
     def __init__(self, photolist):
         self.photolist = photolist
 
-    def make_page(self, opts):
+    def make_page(self, out_h, out_w):
         # Define the output image height / width ratio
-        ratio = 1.0 * opts.out_h / opts.out_w
+        ratio = 1.0 * out_h / out_w
 
         # Compute a good number of columns. It depends on the ratio, the number
         # of images and the average ratio of these images. According to my
@@ -157,26 +159,34 @@ class PhotoCollageWindow(Gtk.Window):
     TARGET_TYPE_TEXT = 1
     TARGET_TYPE_URI = 2
 
-    def __init__(self):
-        super().__init__(title=_("PhotoCollage"))
+    def __init__(self, options_manager):
+        """
+
+        :param options_manager: dict-like storage for configuration data.
+            Shall also accept function `store`, that takes care of data
+            persistence at exit.
+
+        """
+        super(PhotoCollageWindow, self).__init__(title=_("PhotoCollage"))
         self.history = []
         self.history_index = 0
 
-        class Options:
-            def __init__(self):
-                self.border_w = 0.01
-                self.border_c = "black"
-                self.out_w = 800
-                self.out_h = 600
-
-        self.opts = Options()
+        self.opts = options_manager
+        # load if options_manager file exists
+        try:
+            self.opts.load()
+        except OptionsLoadError:
+            pass
+        # set default values
+        self.opts.setdefault(**DEFAULT_OPTS)
 
         self.make_window()
 
     def make_window(self):
         self.set_border_width(10)
 
-        box_window = Gtk.Box(spacing=10, orientation=Gtk.Orientation.VERTICAL)
+        box_window = Gtk.Box(spacing=10,
+                             orientation=Gtk.Orientation.VERTICAL)
         self.add(box_window)
 
         # -----------------------
@@ -270,7 +280,8 @@ class PhotoCollageWindow(Gtk.Window):
 
             if len(photolist) > 0:
                 new_collage = UserCollage(photolist)
-                new_collage.make_page(self.opts)
+                new_collage.make_page(out_h=self.opts.out_h,
+                                      out_w=self.opts.out_w)
                 self.render_from_new_collage(new_collage)
             else:
                 self.update_tool_buttons()
@@ -310,8 +321,8 @@ class PhotoCollageWindow(Gtk.Window):
     def render_preview(self):
         collage = self.history[self.history_index]
 
-        # If the desired ratio changed in the meantime (e.g. from landscape to
-        # portrait), it needs to be re-updated
+        # If the desired ratio changed in the meantime (e.g. from landscape
+        # to portrait), it needs to be re-updated
         collage.page.target_ratio = 1.0 * self.opts.out_h / self.opts.out_w
         collage.page.adjust_cols_heights()
 
@@ -362,7 +373,8 @@ class PhotoCollageWindow(Gtk.Window):
 
     def regenerate_layout(self, button=None):
         new_collage = self.history[self.history_index].duplicate()
-        new_collage.make_page(self.opts)
+        new_collage.make_page(out_h=self.opts.out_h,
+                              out_w=self.opts.out_w)
         self.render_from_new_collage(new_collage)
 
     def select_prev_layout(self, button):
@@ -379,7 +391,7 @@ class PhotoCollageWindow(Gtk.Window):
         dialog = SettingsDialog(self)
         response = dialog.run()
         if response == Gtk.ResponseType.OK:
-            dialog.apply_opts(self.opts)
+            self.opts.update(**dialog.retrieve_opts())
             dialog.destroy()
             if self.history:
                 self.render_preview()
@@ -449,6 +461,11 @@ class PhotoCollageWindow(Gtk.Window):
             self.history_index < len(self.history))
         self.btn_new_layout.set_sensitive(
             self.history_index < len(self.history))
+
+    def on_destroy(self, widget=None, *args):
+        """Handles window closure properly"""
+        self.opts.store()
+        Gtk.main_quit()
 
 
 class ImagePreviewArea(Gtk.DrawingArea):
@@ -585,7 +602,8 @@ class ImagePreviewArea(Gtk.DrawingArea):
             if dist <= 8 * 8:
                 self.collage.photolist.remove(cell.photo)
                 if self.collage.photolist:
-                    self.collage.make_page(self.parent.opts)
+                    self.collage.make_page(out_h=self.parent.opts.out_h,
+                                           out_w=self.parent.opts.out_w)
                     self.parent.render_from_new_collage(self.collage)
                 else:
                     self.image = None
@@ -732,11 +750,12 @@ class SettingsDialog(Gtk.Dialog):
         except ValueError:
             entry.set_text(entry.last_valid_text)
 
-    def apply_opts(self, opts):
-        opts.out_w = int(self.etr_outw.get_text() or '1')
-        opts.out_h = int(self.etr_outh.get_text() or '1')
-        opts.border_w = float(self.etr_border.get_text() or '0') / 100.0
-        opts.border_c = self.colorbutton.get_rgba().to_string()
+    def retrieve_opts(self):
+        return dict(
+            out_w=int(self.etr_outw.get_text() or '1'),
+            out_h=int(self.etr_outh.get_text() or '1'),
+            border_w=float(self.etr_border.get_text() or '0') / 100.0,
+            border_c=self.colorbutton.get_rgba().to_string())
 
 
 class ComputingDialog(Gtk.Dialog):
@@ -814,11 +833,22 @@ class PreviewFileChooserDialog(Gtk.FileChooserDialog):
 
 
 def main():
+    # set level for logging
+    logging.basicConfig(level=logging.INFO)
+
     # Enable threading. Without that, threads hang!
     GObject.threads_init()
 
-    win = PhotoCollageWindow()
-    win.connect("delete-event", Gtk.main_quit)
+    # #38: adding config file
+    if 'XDG_CONFIG_HOME' in os.environ:
+        options_dir = os.environ['XDG_CONFIG_HOME']
+    else:
+        options_dir = os.path.join(os.path.expanduser('~'), '.config')
+    options_fn = os.path.join(options_dir, 'photocollage', 'options.yml')
+    options_manager = YamlOptionsManager(opts_fn=options_fn)
+    logging.debug(_("Config filename: '%s'") % options_fn)
+    win = PhotoCollageWindow(options_manager=options_manager)
+    win.connect("delete-event", win.on_destroy)
     win.show_all()
 
     # If arguments are given, treat them as input images
