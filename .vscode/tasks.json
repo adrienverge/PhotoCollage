@@ -6,7 +6,7 @@
         {
             "label": "Build Photocollage in Container",
             "type": "shell",
-            "command": ". /opt/pcvenv/bin/activate; python3 setup.py sdist; pip3 install --upgrade dist/photocollage-*.tar.gz",
+            "command": ". /opt/pcvenv/bin/activate; python3 setup.py sdist; pip3 install --upgrade dist/photocollage-*.tar.gz; photocollage",
             "problemMatcher": []
         }
     ]
