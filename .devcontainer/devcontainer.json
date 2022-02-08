@@ -1,0 +1,31 @@
+  
+{
+	"name": "Photocollage Dev",
+	"context": ".",
+	"dockerFile": "Dockerfile",
+
+
+	"settings": { 
+		"terminal.integrated.profiles.linux": {
+      "zsh": {
+        "path" : [
+          "/usr/bin/bash"
+        ],
+        "args": [],
+        "icon": "terminal-linux"
+      }
+    },
+		"python.pythonPath": "/opt/pcvenv/bin/python",
+		"python.linting.enabled": true
+	},
+
+	"extensions": [
+    "ms-python.python",
+	"eamodio.gitlens",
+	"editorconfig.editorconfig"
+	],
+
+	"mounts": [ "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind" ],
+
+	"postCreateCommand": ". /opt/pcvenv/bin/activate"
+}
