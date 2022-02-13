@@ -15,7 +15,7 @@ def corpus_processor(school_name: str, corpus_file: str = None, default_tags=Non
     image_to_face_map: dict[str, list[str]] = {}
 
     if corpus_file is None:
-        corpus_file = os.path.join('/Users', getpass.getuser(), 'GoogleDrive', 'YearbookCreatorInput', school_name + "_full.out")
+        corpus_file = os.path.join('/Users', getpass.getuser(), 'GoogleDrive', 'YearbookCreatorInput', school_name + ".out")
         if os.path.exists(corpus_file):
             base_dir = os.path.join('/Users', getpass.getuser(), 'GoogleDrive', school_name)
             # read the corpus file
