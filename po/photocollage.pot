@@ -1,0 +1,102 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2022-02-14 14:11+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: photocollage/gtkgui.py:72 photocollage/gtkgui.py:94
+msgid "All supported image formats"
+msgstr ""
+
+#: photocollage/gtkgui.py:104
+#, python-format
+msgid "%s image"
+msgstr ""
+
+#: photocollage/gtkgui.py:161
+msgid "PhotoCollage"
+msgstr ""
+
+#: photocollage/gtkgui.py:189
+msgid "Add images..."
+msgstr ""
+
+#: photocollage/gtkgui.py:196
+msgid "Save poster..."
+msgstr ""
+
+#: photocollage/gtkgui.py:221
+msgid "Regenerate"
+msgstr ""
+
+#: photocollage/gtkgui.py:279
+#, python-format
+msgid ""
+"This image could not be opened:\n"
+"\"%(imgname)s\"."
+msgstr ""
+
+#: photocollage/gtkgui.py:285
+msgid "Choose images"
+msgstr ""
+
+#: photocollage/gtkgui.py:336 photocollage/gtkgui.py:421
+msgid "An error occurred while rendering image:"
+msgstr ""
+
+#: photocollage/gtkgui.py:395
+msgid "Save image"
+msgstr ""
+
+#: photocollage/gtkgui.py:627
+msgid "Settings"
+msgstr ""
+
+#: photocollage/gtkgui.py:639
+msgid "Output image size"
+msgstr ""
+
+#: photocollage/gtkgui.py:654
+msgid "pixels"
+msgstr ""
+
+#: photocollage/gtkgui.py:678
+msgid "Apply a template:"
+msgstr ""
+
+#: photocollage/gtkgui.py:691
+msgid "Border"
+msgstr ""
+
+#: photocollage/gtkgui.py:696
+msgid "Thickness:"
+msgstr ""
+
+#: photocollage/gtkgui.py:707
+msgid "Color:"
+msgstr ""
+
+#: photocollage/gtkgui.py:746
+msgid "Please wait"
+msgstr ""
+
+#: photocollage/gtkgui.py:755
+msgid "Performing image computation..."
+msgstr ""
+
+#: photocollage/gtkgui.py:770
+msgid "Error"
+msgstr ""
