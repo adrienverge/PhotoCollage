@@ -13,6 +13,7 @@
  <summary xml:lang="nl">Grafische toepassing om fotocollageposters te maken</summary>
  <summary xml:lang="ru">Графический инструмент для создания фотоколлажей</summary>
  <summary xml:lang="uk">Графічний застосунок для створення фотоколажів</summary>
+ <summary xml:lang="zh_CN">制作照片拼贴海报的图形工具</summary>
  <description>
   <p>
    PhotoCollage allows you to create photo collage posters. It assembles the
@@ -47,37 +48,37 @@
    ale PhotoCollage je zdarma a open-source.
   </p>
   <p xml:lang="de">
-   PhotoCollage erlaubt Ihnen das Erstellen von Foto-Collage Postern. 
+   PhotoCollage erlaubt Ihnen das Erstellen von Foto-Collage Postern.
    Ausgewählte Fotos werden automatisch auf einer rechteckigen
-   Posterfläche arrangiert. Es ist möglich, Anordnung sowie Abmessungen der 
+   Posterfläche arrangiert. Es ist möglich, Anordnung sowie Abmessungen der
    Fotos und des Rahmens zu bearbeiten und Fotos auszutauschen.
    Das fertige Poster kann in beliebiger Größe gespeichert werden.
   </p>
   <p xml:lang="de">
-   Das zugrundeligende Rechenverfahren erzeugt die Anordnung bei größtmöglicher 
+   Das zugrundeligende Rechenverfahren erzeugt die Anordnung bei größtmöglicher
    Ausnutzung der Posterfläche in der Weise, dass jedes Foto so groß wie möglich
    dargestellt wird.
   </p>
   <p xml:lang="de">
    Der Funktionsumfang von PhotoCollage entspricht etwa dem vieler kommerzieller
-   Webseiten. Jedoch ist es kostenlos und der Quellcode unter einer freien 
+   Webseiten. Jedoch ist es kostenlos und der Quellcode unter einer freien
    Lizenz erhältlich.
   </p>
   <p xml:lang="es">
-   PhotoCollage te permite crear póster de collage de fotos. Reúne las 
-   fotografías de entrada que se le dan para generar un gran póster. Las 
-   fotos se organizan automáticamente para llenar todo el póster, luego 
-   puede cambiar el diseño final, las dimensiones, los bordes o intercambiar 
-   fotos en la cuadrícula generada. Finalmente, la imagen final del póster 
+   PhotoCollage te permite crear póster de collage de fotos. Reúne las
+   fotografías de entrada que se le dan para generar un gran póster. Las
+   fotos se organizan automáticamente para llenar todo el póster, luego
+   puede cambiar el diseño final, las dimensiones, los bordes o intercambiar
+   fotos en la cuadrícula generada. Finalmente, la imagen final del póster
    se puede guardar en cualquier tamaño.
   </p>
   <p xml:lang="es">
-   El algoritmo genera diseños aleatorios que colocan fotos mientras 
-   aprovechan todo el espacio libre. Intenta llenar todo el espacio 
+   El algoritmo genera diseños aleatorios que colocan fotos mientras
+   aprovechan todo el espacio libre. Intenta llenar todo el espacio
    manteniendo cada foto lo más grande posible.
   </p>
   <p xml:lang="es">
-   PhotoCollage hace más o menos lo mismo que muchos sitios web comerciales, 
+   PhotoCollage hace más o menos lo mismo que muchos sitios web comerciales,
    pero de forma gratuita y con código de open source.
   </p>
   <p xml:lang="fr">
@@ -124,17 +125,17 @@
   <p xml:lang="ru">
    PhotoCollage позволяет создавать фотоколлажи. Из данных ему
    фотографий он генерирует большой постер. Фотографии автоматически
-   заполняют всё полотно, затем можно изменить окончательный макет, 
+   заполняют всё полотно, затем можно изменить окончательный макет,
    размеры, границы или поменять местами фотографии в сгенерированной сетке.
    Окончательное изображение можно сохранить в любом размере.
   </p>
   <p xml:lang="ru">
-   Алгоритм генерирует случайные макеты, размещающие фотографии 
-   на всём доступном пространстве. Он старается заполнить всё полотно так, 
+   Алгоритм генерирует случайные макеты, размещающие фотографии
+   на всём доступном пространстве. Он старается заполнить всё полотно так,
    чтобы у каждой фотографии был наибольший возможный размер.
   </p>
   <p xml:lang="ru">
-   PhotoCollage делает более или менее то же самое, что и многие 
+   PhotoCollage делает более или менее то же самое, что и многие
    коммерческие веб-сайты, но бесплатно и с открытым исходным кодом.
   </p>
   <p xml:lang="uk">
@@ -152,6 +153,8 @@
   <p xml:lang="uk">
    PhotoCollage робить більш-менш те саме що комерційні сайти,
    але безкоштовно і з відкритим початковим кодом.
+  </p>
+  <p xml:lang="zh_CN">   PhotoCollage允许您创建照片拼贴海报。它组装输入照片，生成一张大海报。照片是自动排列以填充整个海报，然后您可以更改生成的网格中的最终布局、尺寸、边框或交换照片。最终，最终的海报图像可以保存为任何大小。
   </p>
  </description>
  <screenshots>
