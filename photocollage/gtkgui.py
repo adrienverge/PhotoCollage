@@ -481,6 +481,7 @@ class MainWindow(Gtk.Window):
         self.lbl_right_page = Gtk.Label(" ")
         self.btn_next_page = Gtk.Button(label=_("Next page..."))
         self.btn_publish_book = Gtk.Button(label=_("Publish"))
+        self.btn_print_book = Gtk.Button(label=_("Print@Lulu"))
 
         # on initialization
         self.treeModel: Gtk.TreeStore = get_tree_model(self.yearbook_parameters, self.school_combo.get_active_text())
@@ -501,8 +502,8 @@ class MainWindow(Gtk.Window):
             def __init__(self):
                 self.border_w = 0.01
                 self.border_c = "white"
-                self.out_w = 2550
-                self.out_h = 3300
+                self.out_w = 2100
+                self.out_h = 3000
 
         self.opts = Options()
         self.make_window()
@@ -554,6 +555,8 @@ class MainWindow(Gtk.Window):
         self.page_num_text_entry.connect("activate", self.page_num_nav)
         box.pack_start(self.btn_publish_book, True, True, 0)
         self.btn_publish_book.connect("clicked", self.publish_and_pickle)
+        box.pack_start(self.btn_print_book, True, True, 0)
+        self.btn_print_book.connect("clicked", self.print_final_lulu)
         box.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
 
         self.btn_settings.set_always_show_image(True)
@@ -959,6 +962,47 @@ class MainWindow(Gtk.Window):
     def publish_and_pickle(self, button):
         self.publish_pdf(button)
         self.pickle_book(button)
+
+    def print_final_lulu(self, button):
+        print("The setup to create the print would be to")
+        print("For every page:"
+              "     Take canvas image and paste it into the label image at a fixed location.")
+        print("Print a PDF file")
+        print("Upload PDF file using Google APIs to a drive location")
+        print("Once uploaded call the Lulu API to send the final order")
+        from PIL import Image
+        output_dir = self.yearbook_parameters['output_dir']
+        school_dir = os.path.join(self.corpus_base_dir, self.current_yearbook.school)
+
+        pil_images = [
+            Image.open(os.path.join(get_jpg_path(output_dir, self.current_yearbook.school,
+                                                 self.current_yearbook.classroom, self.current_yearbook.child),
+                                    str(page.number) + ".jpg")) for page in self.current_yearbook.pages]
+
+        print(pil_images)
+
+        #For the time being as a hack, we use the same label image for every page other than the first and the last page
+        back_image = Image.open(os.path.join(school_dir, "inside_background.png"))
+        back_image.load()
+        stitched_images = []
+        for canvas_img in pil_images[1:-1]:
+            canvas_img.load()
+            new_back_img = back_image.copy()
+            new_back_img.paste(canvas_img, (50, 50), mask=canvas_img.split()[3])
+            stitched_images.append(new_back_img)
+
+        print(stitched_images)
+
+        pdf_path = os.path.join(get_pdf_path(output_dir, self.current_yearbook.school,
+                                             self.current_yearbook.classroom, self.current_yearbook.child),
+                                "yearbook_stitched.pdf")
+        print(pdf_path)
+
+        #TODO:: Still need to append the final back cover here
+        pil_images[0].save(pdf_path, save_all=True,
+                           append_images=stitched_images)
+        print("Finished creating PDF version... ", pdf_path)
+
 
     def pickle_book(self, button):
         from pathlib import Path
