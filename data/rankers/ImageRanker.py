@@ -34,7 +34,7 @@ class ImageRanker(ABC):
 
         prev_page: Page = yearbook.get_prev_page(current_page)
 
-        print("Calling rank for %s, %s" % (current_page.event_name, current_page.image))
+        print("Calling rank for %s, %s, %s" % (current_page.event_name, current_page.image, current_page.tags))
         # First rank all candidate images
         all_images = self.rank(yearbook, current_page)
 
