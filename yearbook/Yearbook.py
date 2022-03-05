@@ -38,6 +38,8 @@ def create_yearbook_from_db(dir_params: {}, school_name: str, classroom: str, ch
     import os
     pages: [Page] = []
     from data.sqllite.reader import get_album_details_for_school
+
+    print(school_name)
     db_file_path = dir_params['db_file_path']
     corpus_base_dir = dir_params['corpus_base_dir']
     album_details = get_album_details_for_school(db_file_path, school_name)
@@ -45,7 +47,6 @@ def create_yearbook_from_db(dir_params: {}, school_name: str, classroom: str, ch
         personalized = False
         if row[2].startswith('Dynamic'):
             personalized = True
-
         page = Page(int(row[3]), str(row[1]).strip(), personalized,
                     os.path.join(corpus_base_dir, school_name, row[4]), str(row[5]))
         pages.append(page)
@@ -121,10 +122,17 @@ def get_tag_list_for_page(yearbook: Yearbook, page: Page):
     if yearbook.child is not None:
         tags.append(yearbook.child)
 
-    if page.tags is not None or page.tags != 'None':
+    try:
         tags.extend(page.tags.split(","))
+    except AttributeError:
+        pass
 
     tags.append(page.event_name)
+
+    try:
+        tags.remove('')
+    except ValueError:
+        pass
 
     try:
         tags.remove('None')
