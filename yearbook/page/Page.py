@@ -34,9 +34,9 @@ class Page:
         self.deleted_photos: {str} = set()
         self.parent_pages: [Page] = []
         if tags == '':
-            self.tags = None
+            self.tags = event
         else:
-            self.tags: str = tags
+            self.tags: str = tags + "," + event
 
         self.cleared: bool = False
 
