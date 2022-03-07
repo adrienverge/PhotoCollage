@@ -966,13 +966,12 @@ class MainWindow(Gtk.Window):
     def print_final_lulu(self, button):
         print("The setup to create the print would be to")
         print("For every page:"
-              "     Take canvas image and paste it into the label image at a fixed location.")
+              "     Take canvas image and paste it into the background image at a fixed location.")
         print("Print a PDF file")
         print("Upload PDF file using Google APIs to a drive location")
         print("Once uploaded call the Lulu API to send the final order")
         from PIL import Image
         output_dir = self.yearbook_parameters['output_dir']
-        school_dir = os.path.join(self.corpus_base_dir, self.current_yearbook.school)
 
         pil_images = [
             Image.open(os.path.join(get_jpg_path(output_dir, self.current_yearbook.school,
@@ -981,13 +980,15 @@ class MainWindow(Gtk.Window):
 
         print(pil_images)
 
-        #For the time being as a hack, we use the same label image for every page other than the first and the last page
-        back_image = Image.open(os.path.join(school_dir, "inside_background.png"))
-        back_image.load()
+        # For the time being as a hack,
+        # we use the same label image for every page other than the first and the last page
+
         stitched_images = []
-        for canvas_img in pil_images[1:-1]:
-            canvas_img.load()
+
+        for page, canvas_img in zip(self.current_yearbook.pages, pil_images):
+            back_image = Image.open(page.image)
             new_back_img = back_image.copy()
+            new_back_img.resize(canvas_img.size(0) + 50, canvas_img.size(1) + 50)
             new_back_img.paste(canvas_img, (50, 50), mask=canvas_img.split()[3])
             stitched_images.append(new_back_img)
 
@@ -998,9 +999,9 @@ class MainWindow(Gtk.Window):
                                 "yearbook_stitched.pdf")
         print(pdf_path)
 
-        #TODO:: Still need to append the final back cover here
-        pil_images[0].save(pdf_path, save_all=True,
-                           append_images=stitched_images)
+        stitched_images[0].save(pdf_path, save_all=True,
+                           append_images=stitched_images[1:])
+
         print("Finished creating PDF version... ", pdf_path)
 
 
