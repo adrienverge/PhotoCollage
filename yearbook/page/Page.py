@@ -33,7 +33,11 @@ class Page:
         self.pinned_photos: {str} = set()
         self.deleted_photos: {str} = set()
         self.parent_pages: [Page] = []
-        self.tags: str = tags
+        if tags == '':
+            self.tags = event
+        else:
+            self.tags: str = tags + "," + event
+
         self.cleared: bool = False
 
     def __getstate__(self): return self.__dict__

@@ -51,7 +51,8 @@ def get_school_list(db_file: str):
 
     all_schools = get_schools(conn)
     for school in all_schools:
-        if 'Monti' in school[0]:
+        # Allow JNR and Monticello as two datasets for the time being.
+        if 'JnR' in school[0] or 'Mont' in school[0]:
             school_list.append(school[0])
 
     conn.close()

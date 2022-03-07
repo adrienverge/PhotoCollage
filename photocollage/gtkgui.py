@@ -439,8 +439,9 @@ class MainWindow(Gtk.Window):
 
         self.corpus_base_dir = os.path.join('/Users', getpass.getuser(), 'GoogleDrive')
         self.output_base_dir = os.path.join(self.corpus_base_dir, 'YearbookCreatorOut')
+        self.input_base_dir = os.path.join(self.corpus_base_dir, 'YearbookCreatorInput')
         self.yearbook_parameters = {'max_count': 12,
-                                    'db_file_path': os.path.join(self.output_base_dir, 'RY.db'),
+                                    'db_file_path': os.path.join(self.input_base_dir, 'RY.db'),
                                     'output_dir': os.path.join(self.output_base_dir, getpass.getuser()),
                                     'corpus_base_dir': self.corpus_base_dir}
 
@@ -711,7 +712,6 @@ class MainWindow(Gtk.Window):
             candidate_images = [page.image]
         else:
             tags = get_unique_list_insertion_order(get_tag_list_for_page(self.current_yearbook, page))
-            print("Requesting with tags: %s" % tags)
             if self.current_yearbook.child is None:
                 candidate_images = self.corpus.get_images_with_tags_strict(tags)
 
