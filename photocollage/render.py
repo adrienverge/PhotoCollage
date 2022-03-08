@@ -316,7 +316,8 @@ class RenderingTask(Thread):
 
             if self.output_file:
                 print("Saving image at ...", self.output_file)
-                canvas.save(self.output_file, quality=95)
+
+                canvas.save(self.output_file, quality=100)
 
             if self.on_complete:
                 self.on_complete(canvas, self.output_file)
