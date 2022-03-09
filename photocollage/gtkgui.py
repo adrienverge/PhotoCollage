@@ -482,6 +482,7 @@ class MainWindow(Gtk.Window):
         self.lbl_right_page = Gtk.Label(" ")
         self.btn_next_page = Gtk.Button(label=_("Next page..."))
         self.btn_publish_book = Gtk.Button(label=_("Publish"))
+        self.btn_print_book = Gtk.Button(label=_("Print@Lulu"))
 
         # on initialization
         self.treeModel: Gtk.TreeStore = get_tree_model(self.yearbook_parameters, self.school_combo.get_active_text())
@@ -501,9 +502,9 @@ class MainWindow(Gtk.Window):
         class Options:
             def __init__(self):
                 self.border_w = 0.01
-                self.border_c = "white"
-                self.out_w = 2550
-                self.out_h = 3300
+                self.border_c = "black"
+                self.out_w = 2100
+                self.out_h = 3000
 
         self.opts = Options()
         self.make_window()
@@ -555,6 +556,8 @@ class MainWindow(Gtk.Window):
         self.page_num_text_entry.connect("activate", self.page_num_nav)
         box.pack_start(self.btn_publish_book, True, True, 0)
         self.btn_publish_book.connect("clicked", self.publish_and_pickle)
+        box.pack_start(self.btn_print_book, True, True, 0)
+        self.btn_print_book.connect("clicked", self.print_final_lulu)
         box.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
 
         self.btn_settings.set_always_show_image(True)
@@ -898,6 +901,7 @@ class MainWindow(Gtk.Window):
 
         def on_complete(img, out_file):
             img_preview_area.set_collage(img, page_collage)
+            yearbook_page.canvas = img
             comp_dialog.destroy()
 
         def on_fail(exception):
@@ -910,7 +914,7 @@ class MainWindow(Gtk.Window):
         out_file = os.path.join(get_jpg_path(self.yearbook_parameters['output_dir'],
                                              self.current_yearbook.school,
                                              self.current_yearbook.classroom, self.current_yearbook.child),
-                                str(yearbook_page.number) + ".jpg")
+                                str(yearbook_page.number) + ".png")
 
         t = render.RenderingTask(
             yearbook_page,
@@ -959,6 +963,76 @@ class MainWindow(Gtk.Window):
     def publish_and_pickle(self, button):
         self.publish_pdf(button)
         self.pickle_book(button)
+
+    def create_print_pdf(self):
+        output_dir = self.yearbook_parameters['output_dir']
+
+        page_collages = [
+            page.history[page.history_index] for page in self.current_yearbook.pages]
+
+        for page, page_collage in zip(self.current_yearbook.pages, page_collages):
+            new_img_path = os.path.join(get_jpg_path(output_dir, self.current_yearbook.school,
+                                                     self.current_yearbook.classroom, self.current_yearbook.child),
+                                        str(page.number) + "_stitched.png")
+
+            enlargement = float(self.opts.out_w) / page_collage.page.w
+            page_collage.page.scale(enlargement)
+
+            # Display a "please wait" dialog and do the job.
+            compdialog = ComputingDialog(self)
+
+            def on_update(img, fraction_complete):
+                compdialog.update(fraction_complete)
+
+            def on_complete(img, out_file):
+                print("Will save new image at %s on complete for page %s " % (out_file, page.event_name))
+                compdialog.destroy()
+
+            def on_fail(exception):
+                dialog = ErrorDialog(self, "{}:\n\n{}".format(
+                    _("An error occurred while rendering image:"), exception))
+                compdialog.destroy()
+                dialog.run()
+                dialog.destroy()
+
+            t = render.RenderingTask(
+                page,
+                page_collage.page,
+                output_file=new_img_path,
+                border_width=self.opts.border_w * max(page_collage.page.w,
+                                                      page_collage.page.h),
+                border_color=self.opts.border_c,
+                on_update=gtk_run_in_main_thread(on_update),
+                on_complete=gtk_run_in_main_thread(on_complete),
+                on_fail=gtk_run_in_main_thread(on_fail))
+            t.start()
+
+            response = compdialog.run()
+            if response == Gtk.ResponseType.CANCEL:
+                t.abort()
+                compdialog.destroy()
+
+
+        pdf_path = os.path.join(get_pdf_path(output_dir, self.current_yearbook.school,
+                                             self.current_yearbook.classroom, self.current_yearbook.child),
+                                "yearbook_stitched.pdf")
+        print(pdf_path)
+
+        #stitched_images[0].save(pdf_path, save_all=True,
+        #                        append_images=stitched_images[1:])
+
+        print("Finished creating PDF version... ", pdf_path)
+        return pdf_path
+
+    def print_final_lulu(self, button):
+        print("STEP 1: Create_print_pdf")
+        pdf_path = self.create_print_pdf()
+
+        print("STEP 2: Upload_pdf_to_drive")
+        self.upload_pdf(pdf_path)
+
+        print("STEP 3: Send PDF to print")
+        self.print_lulu()
 
     def pickle_book(self, button):
         from pathlib import Path
@@ -1076,6 +1150,46 @@ class MainWindow(Gtk.Window):
             left_page.history_index < len(left_page.history))
         self.btn_regen_right.set_sensitive(
             right_page.history_index < len(right_page.history))
+
+    def save_finished_img(self, collage:UserCollage, page: Page):
+        enlargement = float(self.opts.out_w) / collage.page.w
+        collage.page.scale(enlargement)
+        from PIL import Image
+        output_dir = self.yearbook_parameters["output_dir"]
+        save_file = os.path.join(get_jpg_path(output_dir, self.current_yearbook.school,
+                                              self.current_yearbook.classroom, self.current_yearbook.child),
+                                 str(page.number) + "_enlarged.png")
+
+        # Display a "please wait" dialog and do the job.
+        compdialog = ComputingDialog(self)
+
+        def on_update(img, fraction_complete):
+            compdialog.update(fraction_complete)
+
+        def on_complete(img):
+            compdialog.destroy()
+
+        def on_fail(exception):
+            dialog = ErrorDialog(self, "{}:\n\n{}".format(
+                _("An error occurred while rendering image:"), exception))
+            compdialog.destroy()
+            dialog.run()
+            dialog.destroy()
+
+        t = render.RenderingTask(
+            collage.page, output_file=save_file,
+            border_width=self.opts.border_w * max(collage.page.w,
+                                                  collage.page.h),
+            border_color=self.opts.border_c,
+            on_update=gtk_run_in_main_thread(on_update),
+            on_complete=gtk_run_in_main_thread(on_complete),
+            on_fail=gtk_run_in_main_thread(on_fail))
+        t.start()
+
+        response = compdialog.run()
+        if response == Gtk.ResponseType.CANCEL:
+            t.abort()
+            compdialog.destroy()
 
 
 class ComputingDialog(Gtk.Dialog):

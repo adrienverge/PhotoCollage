@@ -188,7 +188,7 @@ class RenderingTask(Thread):
         border = self.border_width - 1
         color = self.border_color
 
-        draw = PIL.ImageDraw.Draw(canvas)
+        draw = PIL.ImageDraw.Draw(canvas, 'RGBA')
         draw.rectangle((0, 0) + (border, H), color)
         draw.rectangle((W - border, 0) + (W, H), color)
         draw.rectangle((0, 0) + (W, border), color)
@@ -273,7 +273,7 @@ class RenderingTask(Thread):
     def run(self):
         try:
             canvas = PIL.Image.new(
-                "RGB", (int(self.page.w), int(self.page.h)), "white")
+                "RGB", (int(self.page.w), int(self.page.h)), "black")
 
             self.draw_skeleton(canvas)
             self.draw_borders(canvas)
@@ -316,7 +316,8 @@ class RenderingTask(Thread):
 
             if self.output_file:
                 print("Saving image at ...", self.output_file)
-                canvas.save(self.output_file, quality=95)
+
+                canvas.save(self.output_file, quality=100)
 
             if self.on_complete:
                 self.on_complete(canvas, self.output_file)
