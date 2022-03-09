@@ -502,7 +502,7 @@ class MainWindow(Gtk.Window):
         class Options:
             def __init__(self):
                 self.border_w = 0.01
-                self.border_c = "white"
+                self.border_c = "black"
                 self.out_w = 2100
                 self.out_h = 3000
 
@@ -985,6 +985,7 @@ class MainWindow(Gtk.Window):
                 compdialog.update(fraction_complete)
 
             def on_complete(img, out_file):
+                print("Will save new image at %s on complete for page %s " % (out_file, page.event_name))
                 compdialog.destroy()
 
             def on_fail(exception):
