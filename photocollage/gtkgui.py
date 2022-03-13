@@ -1028,7 +1028,10 @@ class MainWindow(Gtk.Window):
         pdf_path = self.create_print_pdf()
 
         print("STEP 2: Upload_pdf_to_drive")
-        self.upload_pdf(pdf_path)
+
+        from util.google.drive.util import upload_pdf_file
+        # the first argument is the google id of the folder that we upload to.
+        upload_pdf_file('1BsahliyczRpMHKYMofDWcWry7utS1IyM', pdf_path)
 
         print("STEP 3: Send PDF to print")
         self.print_lulu()
