@@ -1012,13 +1012,12 @@ class MainWindow(Gtk.Window):
                 t.abort()
                 compdialog.destroy()
 
-
         pdf_path = os.path.join(get_pdf_path(output_dir, self.current_yearbook.school,
                                              self.current_yearbook.classroom, self.current_yearbook.child),
                                 "yearbook_stitched.pdf")
         print(pdf_path)
 
-        #stitched_images[0].save(pdf_path, save_all=True,
+        # stitched_images[0].save(pdf_path, save_all=True,
         #                        append_images=stitched_images[1:])
 
         print("Finished creating PDF version... ", pdf_path)
@@ -1029,7 +1028,10 @@ class MainWindow(Gtk.Window):
         pdf_path = self.create_print_pdf()
 
         print("STEP 2: Upload_pdf_to_drive")
-        self.upload_pdf(pdf_path)
+
+        from util.google.drive.util import upload_pdf_file
+        # the first argument is the google id of the folder that we upload to.
+        upload_pdf_file('1BsahliyczRpMHKYMofDWcWry7utS1IyM', pdf_path)
 
         print("STEP 3: Send PDF to print")
         self.print_lulu()
@@ -1151,7 +1153,7 @@ class MainWindow(Gtk.Window):
         self.btn_regen_right.set_sensitive(
             right_page.history_index < len(right_page.history))
 
-    def save_finished_img(self, collage:UserCollage, page: Page):
+    def save_finished_img(self, collage: UserCollage, page: Page):
         enlargement = float(self.opts.out_w) / collage.page.w
         collage.page.scale(enlargement)
         from PIL import Image
