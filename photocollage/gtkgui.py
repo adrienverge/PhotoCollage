@@ -555,7 +555,7 @@ class MainWindow(Gtk.Window):
         self.btn_next_page.connect("clicked", self.select_next_page)
         self.page_num_text_entry.connect("activate", self.page_num_nav)
         box.pack_start(self.btn_publish_book, True, True, 0)
-        self.btn_publish_book.connect("clicked", self.publish_and_pickle)
+        self.btn_publish_book.connect("clicked", self.pickle_book)
         box.pack_start(self.btn_print_book, True, True, 0)
         self.btn_print_book.connect("clicked", self.print_final_lulu)
         box.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
@@ -960,10 +960,6 @@ class MainWindow(Gtk.Window):
         new_collage.make_page(self.opts)
         self.render_from_new_collage(page, new_collage)
 
-    def publish_and_pickle(self, button):
-        self.publish_pdf(button)
-        self.pickle_book(button)
-
     def create_print_pdf(self):
         output_dir = self.yearbook_parameters['output_dir']
 
@@ -1056,21 +1052,6 @@ class MainWindow(Gtk.Window):
 
         print("Saved pickled yearbook here: ", pickle_filename)
 
-    def publish_pdf(self, button):
-        from PIL import Image
-        output_dir = self.yearbook_parameters['output_dir']
-
-        pil_images = [
-            Image.open(os.path.join(get_jpg_path(output_dir, self.current_yearbook.school,
-                                                 self.current_yearbook.classroom, self.current_yearbook.child),
-                                    str(page.number) + ".jpg")) for page in self.current_yearbook.pages]
-
-        pdf_path = os.path.join(get_pdf_path(output_dir, self.current_yearbook.school,
-                                             self.current_yearbook.classroom, self.current_yearbook.child),
-                                "yearbook.pdf")
-        pil_images[0].save(pdf_path, save_all=True,
-                           append_images=pil_images[1:])
-        print("Finished creating PDF version... ", pdf_path)
 
     def select_next_page(self, button):
         # Increment to the next left page

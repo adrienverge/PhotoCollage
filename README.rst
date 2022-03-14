@@ -51,7 +51,6 @@ Installation
 * Debian 9+ / Ubuntu 16.10+:
 
   .. code:: bash
-
    sudo apt-get install photocollage
 
 * Using pip, the Python package manager:
