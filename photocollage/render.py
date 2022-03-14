@@ -138,7 +138,7 @@ class RenderingTask(Thread):
     """
     def __init__(self, yearbook_page: Page, page, border_width=0.01, border_color=(0, 0, 0),
                  quality=QUALITY_BEST, output_file=None,
-                 on_update=None, on_complete=None, on_fail=None):
+                 on_update=None, on_complete=None, on_fail=None, stitch_background=None):
         super().__init__()
 
         self.yearbook_page = yearbook_page
@@ -154,6 +154,7 @@ class RenderingTask(Thread):
         self.on_fail = on_fail
 
         self.canceled = False
+        self.stitch_background = stitch_background
 
     def abort(self):
         self.canceled = True
@@ -186,7 +187,7 @@ class RenderingTask(Thread):
         W = self.page.w - 1
         H = self.page.h - 1
         border = self.border_width - 1
-        color = self.border_color
+        color = (255, 255, 255, 127) # self.border_color
 
         draw = PIL.ImageDraw.Draw(canvas, 'RGBA')
         draw.rectangle((0, 0) + (border, H), color)
@@ -272,8 +273,9 @@ class RenderingTask(Thread):
 
     def run(self):
         try:
+            print(self.yearbook_page.image)
             canvas = PIL.Image.new(
-                "RGB", (int(self.page.w), int(self.page.h)), "black")
+                "RGBA", (int(self.page.w), int(self.page.h)), "black")
 
             self.draw_skeleton(canvas)
             self.draw_borders(canvas)
@@ -296,7 +298,7 @@ class RenderingTask(Thread):
 
                         img = self.resize_photo(c, use_cache=True)
 
-                        if c.photo.filename in pinned_photos:
+                        if not self.stitch_background and c.photo.filename in pinned_photos:
                             print("THIS NEEDS A DIFFERENT GRAYSCALE TREATMENT")
                             img = ImageOps.grayscale(img)
 
@@ -316,8 +318,13 @@ class RenderingTask(Thread):
 
             if self.output_file:
                 print("Saving image at ...", self.output_file)
-
-                canvas.save(self.output_file, quality=100)
+                if self.stitch_background:
+                    background = PIL.Image.open(self.yearbook_page.image).convert("RGBA")
+                    background.resize((int(self.page.w) + 50, int(self.page.h) + 50))
+                    background.paste(canvas, (100, 100), mask=canvas)
+                    background.save(self.output_file, quality=100)
+                else:
+                    canvas.save(self.output_file, quality=100)
 
             if self.on_complete:
                 self.on_complete(canvas, self.output_file)

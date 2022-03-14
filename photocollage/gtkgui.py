@@ -1004,7 +1004,8 @@ class MainWindow(Gtk.Window):
                 border_color=self.opts.border_c,
                 on_update=gtk_run_in_main_thread(on_update),
                 on_complete=gtk_run_in_main_thread(on_complete),
-                on_fail=gtk_run_in_main_thread(on_fail))
+                on_fail=gtk_run_in_main_thread(on_fail),
+                stitch_background=True)
             t.start()
 
             response = compdialog.run()
