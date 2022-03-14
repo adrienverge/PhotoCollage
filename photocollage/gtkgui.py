@@ -555,7 +555,7 @@ class MainWindow(Gtk.Window):
         self.btn_next_page.connect("clicked", self.select_next_page)
         self.page_num_text_entry.connect("activate", self.page_num_nav)
         box.pack_start(self.btn_publish_book, True, True, 0)
-        self.btn_publish_book.connect("clicked", self.publish_and_pickle)
+        self.btn_publish_book.connect("clicked", self.pickle_book)
         box.pack_start(self.btn_print_book, True, True, 0)
         self.btn_print_book.connect("clicked", self.print_final_lulu)
         box.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
@@ -959,9 +959,6 @@ class MainWindow(Gtk.Window):
         new_collage = page.history[page.history_index].duplicate()
         new_collage.make_page(self.opts)
         self.render_from_new_collage(page, new_collage)
-
-    def publish_and_pickle(self, button):
-        self.pickle_book(button)
 
     def create_print_pdf(self):
         output_dir = self.yearbook_parameters['output_dir']
