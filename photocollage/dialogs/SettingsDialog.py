@@ -42,7 +42,7 @@ class SettingsDialog(Gtk.Dialog):
         box.pack_end(Gtk.Label(_("pixels"), xalign=0), False, False, 0)
 
         templates = (
-            ("Custom Canvas (300ppi)", (2100, 3000)),
+            ("Custom Canvas (300ppi)", (2550, 3300)),
             ("US-Letter portrait (300ppi)", (2550, 3300)),
             ("A4 portrait (300ppi)", (2480, 3508)),
             ("800 × 600", (800, 600)),
