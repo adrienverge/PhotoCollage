@@ -29,7 +29,8 @@ from yearbook.page import Page
 QUALITY_SKEL = 0
 QUALITY_FAST = 1
 QUALITY_BEST = 2
-
+# Hard Coded Size value of 8.75 by 11.25 inches
+IMAGE_WITH_BLEED_SIZE = (2625, 3375)
 
 # Try to continue even if the input file is corrupted.
 # See issue at https://github.com/adrienverge/PhotoCollage/issues/65
@@ -187,7 +188,7 @@ class RenderingTask(Thread):
         W = self.page.w - 1
         H = self.page.h - 1
         border = self.border_width - 1
-        color = (255, 255, 255, 127) # self.border_color
+        color = (255, 255, 255, 0) # self.border_color
 
         draw = PIL.ImageDraw.Draw(canvas, 'RGBA')
         draw.rectangle((0, 0) + (border, H), color)
@@ -273,6 +274,7 @@ class RenderingTask(Thread):
 
     def run(self):
         try:
+
             print(self.yearbook_page.image)
             canvas = PIL.Image.new(
                 "RGBA", (int(self.page.w), int(self.page.h)), "black")
@@ -318,13 +320,14 @@ class RenderingTask(Thread):
 
             if self.output_file:
                 print("Saving image at ...", self.output_file)
-                if self.stitch_background:
+                if self.yearbook_page.personalized:
                     background = PIL.Image.open(self.yearbook_page.image).convert("RGBA")
-                    background.resize((int(self.page.w) + 50, int(self.page.h) + 50))
-                    background.paste(canvas, (100, 100), mask=canvas)
-                    background.save(self.output_file, quality=100)
+                    new_background = background.resize(IMAGE_WITH_BLEED_SIZE)
+                    new_background.paste(canvas, (37, 37), mask=canvas)
+                    new_background.save(self.output_file, quality=100)
                 else:
                     canvas.save(self.output_file, quality=100)
+                    new_background = canvas
 
             if self.on_complete:
                 self.on_complete(canvas, self.output_file)

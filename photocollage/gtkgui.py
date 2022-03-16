@@ -22,6 +22,7 @@ import os.path
 import random
 import urllib
 
+import PIL
 import cairo
 import gi
 from gi.repository.Gtk import TreeStore
@@ -392,7 +393,7 @@ class UserCollage:
     def make_page(self, opts):
         # Define the output image height / width ratio
         ratio = 1.0 * opts.out_h / opts.out_w
-
+        print("Ratio %s " % ratio)
         # Compute a good number of columns. It depends on the ratio, the number
         # of images and the average ratio of these images. According to my
         # calculations, the number of column should be inversely proportional
@@ -503,8 +504,9 @@ class MainWindow(Gtk.Window):
             def __init__(self):
                 self.border_w = 0.01
                 self.border_c = "black"
-                self.out_w = 2100
-                self.out_h = 3000
+                # Dimensions for Book trim size, US Letter, 8.5 x 11 inches at 300 ppi
+                self.out_w = 2550
+                self.out_h = 3300
 
         self.opts = Options()
         self.make_window()
@@ -822,7 +824,7 @@ class MainWindow(Gtk.Window):
         for page in self.current_yearbook.pages:
             self.render_preview(page, self.img_preview_left)
 
-        self.publish_and_pickle(None)
+        self.pickle_book(None)
         print("********Finished rendering pages for the yearbook********")
 
     def render_left_page(self, page):
@@ -877,6 +879,7 @@ class MainWindow(Gtk.Window):
             yearbook_page.photo_list = first_photo_list
             yearbook_page.history.append(page_collage)
             yearbook_page.history_index = len(yearbook_page.history) - 1
+
         else:
             # There's no change necessary on the page, just return it from history
             page_collage: UserCollage = yearbook_page.history[yearbook_page.history_index]
@@ -960,7 +963,7 @@ class MainWindow(Gtk.Window):
         new_collage.make_page(self.opts)
         self.render_from_new_collage(page, new_collage)
 
-    def create_print_pdf(self):
+    def stitch_background_with_image(self):
         output_dir = self.yearbook_parameters['output_dir']
 
         page_collages = [
@@ -972,6 +975,7 @@ class MainWindow(Gtk.Window):
                                         str(page.number) + "_stitched.png")
 
             enlargement = float(self.opts.out_w) / page_collage.page.w
+
             page_collage.page.scale(enlargement)
 
             # Display a "please wait" dialog and do the job.
@@ -981,7 +985,6 @@ class MainWindow(Gtk.Window):
                 compdialog.update(fraction_complete)
 
             def on_complete(img, out_file):
-                print("Will save new image at %s on complete for page %s " % (out_file, page.event_name))
                 compdialog.destroy()
 
             def on_fail(exception):
@@ -1013,18 +1016,29 @@ class MainWindow(Gtk.Window):
                                              self.current_yearbook.classroom, self.current_yearbook.child),
                                 "yearbook_stitched.pdf")
         print(pdf_path)
-
-        # stitched_images[0].save(pdf_path, save_all=True,
-        #                        append_images=stitched_images[1:])
-
-        print("Finished creating PDF version... ", pdf_path)
         return pdf_path
+
+    def create_pdf_from_images(self, pdf_path, images):
+        pil_images = [PIL.Image.open(image).convert('RGB') for image in images]
+        pil_images[0].save(
+            pdf_path, "PDF", resolution=100.0, save_all=True, append_images=pil_images[1:]
+        )
+        print("Finished saving PDF file %s" % pdf_path)
 
     def print_final_lulu(self, button):
         print("STEP 1: Create_print_pdf")
-        pdf_path = self.create_print_pdf()
+        pdf_path = self.stitch_background_with_image()
 
-        print("STEP 2: Upload_pdf_to_drive")
+        print("STEP 2: Create PDF")
+        images = []
+        for page in self.current_yearbook.pages:
+            images.append(os.path.join(get_jpg_path(self.yearbook_parameters['output_dir'],
+                                                    self.current_yearbook.school,
+                                                    self.current_yearbook.classroom, self.current_yearbook.child),
+                                       str(page.number) + "_stitched.png"))
+
+        print("Creating PDF from images")
+        self.create_pdf_from_images(pdf_path, images)
 
         from util.google.drive.util import upload_pdf_file
         # the first argument is the google id of the folder that we upload to.
@@ -1051,7 +1065,6 @@ class MainWindow(Gtk.Window):
             pickle.dump(self.current_yearbook.pickle_yearbook, f)
 
         print("Saved pickled yearbook here: ", pickle_filename)
-
 
     def select_next_page(self, button):
         # Increment to the next left page
