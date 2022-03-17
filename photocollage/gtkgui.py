@@ -607,10 +607,6 @@ class MainWindow(Gtk.Window):
         box.pack_start(_scrolledWindow, True, True, 0)
         box_window.pack_start(box, True, True, 0)
 
-        separator = Gtk.SeparatorToolItem()
-        separator.set_size_request(1, 300)
-        box.pack_start(separator, True, True, 0)
-
         # --------------------------------------------
         #  GTK Flow Box to view other candidate images
         # --------------------------------------------
@@ -719,6 +715,9 @@ class MainWindow(Gtk.Window):
 
             else:
                 candidate_images = self.corpus.get_images_for_child(tags, self.current_yearbook.child)
+
+        # Let's only keep the unique images from this list
+        candidate_images = get_unique_list_insertion_order(candidate_images)
 
         flowbox = self.images_flow_box
         flowbox.set_valign(Gtk.Align.START)
