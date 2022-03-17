@@ -155,7 +155,7 @@ class RenderingTask(Thread):
         self.on_fail = on_fail
 
         self.canceled = False
-        self.stitch_background = stitch_background
+        self.full_resolution = stitch_background
 
     def abort(self):
         self.canceled = True
@@ -300,7 +300,7 @@ class RenderingTask(Thread):
 
                         img = self.resize_photo(c, use_cache=True)
 
-                        if not self.stitch_background and c.photo.filename in pinned_photos:
+                        if not self.full_resolution and c.photo.filename in pinned_photos:
                             print("THIS NEEDS A DIFFERENT GRAYSCALE TREATMENT")
                             img = ImageOps.grayscale(img)
 
@@ -320,16 +320,19 @@ class RenderingTask(Thread):
 
             if self.output_file:
                 print("Saving image at ...", self.output_file)
-                if self.stitch_background and self.yearbook_page.personalized:
+
+                if self.yearbook_page.personalized:
                     background = PIL.Image.open(self.yearbook_page.image).convert("RGBA")
-                    new_background = background.resize(IMAGE_WITH_BLEED_SIZE)
-                    new_background.paste(canvas, (37, 37), mask=canvas)
+                    background_size = (canvas.size[0] + 150, canvas.size[1] + 150)
+                    new_background = background.resize(background_size)
+                    new_background.paste(canvas, (75, 75), mask=canvas)
                     new_background.save(self.output_file, quality=100)
                 else:
                     canvas.save(self.output_file, quality=100)
                     new_background = canvas
 
             if self.on_complete:
+                # We can change this to new_background if we wish to display it with the background
                 self.on_complete(canvas, self.output_file)
 
         except Exception as e:
