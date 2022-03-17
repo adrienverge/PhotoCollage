@@ -320,7 +320,7 @@ class RenderingTask(Thread):
 
             if self.output_file:
                 print("Saving image at ...", self.output_file)
-                if self.yearbook_page.personalized:
+                if self.stitch_background and self.yearbook_page.personalized:
                     background = PIL.Image.open(self.yearbook_page.image).convert("RGBA")
                     new_background = background.resize(IMAGE_WITH_BLEED_SIZE)
                     new_background.paste(canvas, (37, 37), mask=canvas)
