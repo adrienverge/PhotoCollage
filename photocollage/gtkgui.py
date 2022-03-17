@@ -569,14 +569,11 @@ class MainWindow(Gtk.Window):
         # --------------------------------------
         #  Tree View And Two Image Viewing Pans
         # --------------------------------------
-        box = Gtk.Box(spacing=10)
+        box = Gtk.Box(spacing=20)
         _scrolledWindow = Gtk.ScrolledWindow()
         _scrolledWindow.add(self.treeView)
-        _scrolledWindow.set_size_request(50, 300)
         box.pack_start(_scrolledWindow, True, True, 0)
         self.treeView.get_selection().connect("changed", self.on_tree_selection_changed)
-        box.set_size_request(200, 800)
-        box_window.pack_start(box, True, True, 0)
 
         targets = Gtk.TargetList.new([])
         targets.add_text_targets(MainWindow.TARGET_TYPE_TEXT)
@@ -594,7 +591,7 @@ class MainWindow(Gtk.Window):
                                              Gdk.DragAction.COPY)
         self.img_preview_right.drag_dest_set_target_list(targets)
         box.pack_end(self.img_preview_right, True, True, 0)
-        box.set_size_request(900, 800)
+        box.set_size_request(1200, 500)
         box_window.pack_start(box, True, True, 0)
 
         self.btn_undo.set_sensitive(False)
@@ -603,16 +600,16 @@ class MainWindow(Gtk.Window):
         # --------------------------------------------
         #  Child portraits/selfie viewer
         # --------------------------------------------
-        box = Gtk.Box(spacing=6)
+        box = Gtk.Box(spacing=10)
         _scrolledWindow = Gtk.ScrolledWindow()
         _scrolledWindow.add(self.portraits_flow_box)
-        _scrolledWindow.set_size_request(50, 300)
+        _scrolledWindow.set_size_request(100, 300)
         box.pack_start(_scrolledWindow, True, True, 0)
         box_window.pack_start(box, True, True, 0)
 
         separator = Gtk.SeparatorToolItem()
-        separator.set_size_request(1, 10)
-        # box.pack_start(separator, True, True, 0)
+        separator.set_size_request(1, 300)
+        box.pack_start(separator, True, True, 0)
 
         # --------------------------------------------
         #  GTK Flow Box to view other candidate images
