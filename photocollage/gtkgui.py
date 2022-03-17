@@ -505,8 +505,8 @@ class MainWindow(Gtk.Window):
                 self.border_w = 0.01
                 self.border_c = "black"
                 # Dimensions for Book trim size, US Letter, 8.5 x 11 inches at 300 ppi
-                self.out_w = 2550
-                self.out_h = 3300
+                self.out_w = 2475
+                self.out_h = 3225
 
         self.opts = Options()
         self.make_window()
