@@ -305,8 +305,10 @@ class ImagePreviewArea(Gtk.DrawingArea):
 
         if widget.name == "LeftPage":
             current_page = self.parent.current_yearbook.pages[self.parent.prev_page_index]
+            options = self.parent.left_opts
         else:
             current_page = self.parent.current_yearbook.pages[self.parent.curr_page_index]
+            options = self.parent.right_opts
 
         if self.mode == self.FLYING:
             x, y = self.get_pos_in_image(event.x, event.y)
@@ -323,7 +325,7 @@ class ImagePreviewArea(Gtk.DrawingArea):
                 current_page.remove_from_photolist(cell.photo)
 
                 if self.collage.photolist:
-                    self.collage.make_page(self.parent.opts)
+                    self.collage.make_page(options)
                     self.parent.render_from_new_collage(current_page, self.collage)
                 else:
                     self.image = None
@@ -421,6 +423,21 @@ def get_yearbook_string(column, cell, model, iter, data):
     cell.set_property('text', model.get_value(iter, 0).__repr__())
 
 
+class Options:
+    def __init__(self, left_page: bool = True):
+        self.border_w = 0.01
+        self.border_c = "black"
+        # Dimensions for Book trim size, US Letter, 8.5 x 11 inches at 300 ppi
+        if left_page:
+            # Making the width the same, and height of right page is smaller than left by 100 pixels
+            # for adding the label
+            self.out_w = 2475
+            self.out_h = 3225
+        else:
+            self.out_w = 2475
+            self.out_h = 3025
+
+
 class MainWindow(Gtk.Window):
     treeModel: TreeStore
     TARGET_TYPE_TEXT = 1
@@ -500,15 +517,8 @@ class MainWindow(Gtk.Window):
         tv_column.set_cell_data_func(cell, get_yearbook_string)
         tv_column.add_attribute(cell, 'text', 0)
 
-        class Options:
-            def __init__(self):
-                self.border_w = 0.01
-                self.border_c = "black"
-                # Dimensions for Book trim size, US Letter, 8.5 x 11 inches at 300 ppi
-                self.out_w = 2475
-                self.out_h = 3225
-
-        self.opts = Options()
+        self.left_opts = Options(left_page=True)
+        self.right_opts = Options(left_page=False)
         self.make_window()
 
     def make_window(self):
@@ -752,17 +762,17 @@ class MainWindow(Gtk.Window):
     def invoke_add_image(self, widget, event, img_name):
         if event.type == Gdk.EventType._2BUTTON_PRESS:
             print("double click, %s", img_name)
-            self.update_photolist(self.current_yearbook.pages[self.prev_page_index], [img_name])
+            self.update_photolist(self.current_yearbook.pages[self.prev_page_index], [img_name], self.left_opts)
             self.update_flow_box_with_images(self.current_yearbook.pages[self.prev_page_index])
         elif event.type == Gdk.EventType.BUTTON_PRESS and event.button == 3:
             print("Right clicked")
-            self.update_photolist(self.current_yearbook.pages[self.curr_page_index], [img_name])
+            self.update_photolist(self.current_yearbook.pages[self.curr_page_index], [img_name], self.right_opts)
             self.update_flow_box_with_images(self.current_yearbook.pages[self.curr_page_index])
         else:
             print("Image clicked %s " % event.button)
             print(event.button == 3)
 
-    def update_photolist(self, page, new_images: [str]):
+    def update_photolist(self, page, new_images: [str], options: Options = None):
         photolist: [Photo] = []
         page.cleared = False
         try:
@@ -773,7 +783,7 @@ class MainWindow(Gtk.Window):
 
             if len(photolist) > 0:
                 new_collage = UserCollage(photolist)
-                new_collage.make_page(self.opts)
+                new_collage.make_page(options)
                 self.render_from_new_collage(page, new_collage)
             else:
                 self.update_tool_buttons()
@@ -821,18 +831,23 @@ class MainWindow(Gtk.Window):
         print("*********First creation of this yearbook********")
         self.current_yearbook.print_yearbook_info()
         for page in self.current_yearbook.pages:
-            self.render_preview(page, self.img_preview_left)
+            if page.number % 2 == 0:
+                options = self.left_opts
+            else:
+                options = self.right_opts
+
+            self.render_preview(page, self.img_preview_left, options)
 
         self.pickle_book(None)
         print("********Finished rendering pages for the yearbook********")
 
     def render_left_page(self, page):
-        self.render_preview(page, self.img_preview_left)
+        self.render_preview(page, self.img_preview_left, self.left_opts)
 
     def render_right_page(self, page):
-        self.render_preview(page, self.img_preview_right)
+        self.render_preview(page, self.img_preview_right, self.right_opts)
 
-    def render_preview(self, yearbook_page: Page, img_preview_area: ImagePreviewArea):
+    def render_preview(self, yearbook_page: Page, img_preview_area: ImagePreviewArea, options: Options):
         print("---Displaying %s %s" % (yearbook_page.event_name, yearbook_page.tags))
 
         rebuild = False
@@ -874,7 +889,7 @@ class MainWindow(Gtk.Window):
         if rebuild or first_render:
             first_photo_list = render.build_photolist(page_images)
             page_collage = UserCollage(first_photo_list)
-            page_collage.make_page(self.opts)
+            page_collage.make_page(options)
             yearbook_page.photo_list = first_photo_list
             yearbook_page.history.append(page_collage)
             yearbook_page.history_index = len(yearbook_page.history) - 1
@@ -885,7 +900,7 @@ class MainWindow(Gtk.Window):
 
         # If the desired ratio changed in the meantime (e.g. from landscape to
         # portrait), it needs to be re-updated
-        page_collage.page.target_ratio = 1.0 * self.opts.out_h / self.opts.out_w
+        page_collage.page.target_ratio = 1.0 * options.out_h / options.out_w
         page_collage.page.adjust_cols_heights()
 
         # TODO:: Might be worth pulling these out and passing it in from the calling agent
@@ -922,9 +937,9 @@ class MainWindow(Gtk.Window):
             yearbook_page,
             page_collage.page,
             output_file=out_file,
-            border_width=self.opts.border_w * max(page_collage.page.w,
-                                                  page_collage.page.h),
-            border_color=self.opts.border_c,
+            border_width=options.border_w * max(page_collage.page.w,
+                                                       page_collage.page.h),
+            border_color=options.border_c,
             on_update=gtk_run_in_main_thread(on_update),
             on_complete=gtk_run_in_main_thread(on_complete),
             on_fail=gtk_run_in_main_thread(on_fail))
@@ -955,11 +970,13 @@ class MainWindow(Gtk.Window):
     def regenerate_layout(self, button):
         if button.get_label().endswith("Right"):
             page = self.current_yearbook.pages[self.curr_page_index]
+            options = self.right_opts
         else:
             page = self.current_yearbook.pages[self.prev_page_index]
+            options = self.left_opts
 
         new_collage = page.history[page.history_index].duplicate()
-        new_collage.make_page(self.opts)
+        new_collage.make_page(options)
         self.render_from_new_collage(page, new_collage)
 
     def stitch_background_with_image(self):
@@ -973,7 +990,12 @@ class MainWindow(Gtk.Window):
                                                      self.current_yearbook.classroom, self.current_yearbook.child),
                                         str(page.number) + "_stitched.png")
 
-            enlargement = float(self.opts.out_w) / page_collage.page.w
+            if page.number % 2 == 0:
+                options = self.left_opts
+            else:
+                options = self.right_opts
+
+            enlargement = float(options.out_w) / page_collage.page.w
 
             page_collage.page.scale(enlargement)
 
@@ -997,9 +1019,9 @@ class MainWindow(Gtk.Window):
                 page,
                 page_collage.page,
                 output_file=new_img_path,
-                border_width=self.opts.border_w * max(page_collage.page.w,
-                                                      page_collage.page.h),
-                border_color=self.opts.border_c,
+                border_width=options.border_w * max(page_collage.page.w,
+                                                           page_collage.page.h),
+                border_color=options.border_c,
                 on_update=gtk_run_in_main_thread(on_update),
                 on_complete=gtk_run_in_main_thread(on_complete),
                 on_fail=gtk_run_in_main_thread(on_fail),
@@ -1014,7 +1036,6 @@ class MainWindow(Gtk.Window):
         pdf_path = os.path.join(get_pdf_path(output_dir, self.current_yearbook.school,
                                              self.current_yearbook.classroom, self.current_yearbook.child),
                                 "yearbook_stitched.pdf")
-        print(pdf_path)
         return pdf_path
 
     def create_pdf_from_images(self, pdf_path, images):
@@ -1100,16 +1121,16 @@ class MainWindow(Gtk.Window):
         dialog = SettingsDialog(self)
         response = dialog.run()
         if response == Gtk.ResponseType.OK:
-            dialog.apply_opts(self.opts)
+            dialog.apply_opts(self.left_opts)
             dialog.destroy()
 
             if self.current_yearbook:
                 page = self.current_yearbook.pages[self.curr_page_index]
                 if page.history:
                     if page.number % 2 == 0:
-                        self.render_preview(page, self.img_preview_right)
-                    else:
                         self.render_preview(page, self.img_preview_left)
+                    else:
+                        self.render_preview(page, self.img_preview_right)
         else:
             dialog.destroy()
 
@@ -1146,46 +1167,6 @@ class MainWindow(Gtk.Window):
             left_page.history_index < len(left_page.history))
         self.btn_regen_right.set_sensitive(
             right_page.history_index < len(right_page.history))
-
-    def save_finished_img(self, collage: UserCollage, page: Page):
-        enlargement = float(self.opts.out_w) / collage.page.w
-        collage.page.scale(enlargement)
-        from PIL import Image
-        output_dir = self.yearbook_parameters["output_dir"]
-        save_file = os.path.join(get_jpg_path(output_dir, self.current_yearbook.school,
-                                              self.current_yearbook.classroom, self.current_yearbook.child),
-                                 str(page.number) + "_enlarged.png")
-
-        # Display a "please wait" dialog and do the job.
-        compdialog = ComputingDialog(self)
-
-        def on_update(img, fraction_complete):
-            compdialog.update(fraction_complete)
-
-        def on_complete(img):
-            compdialog.destroy()
-
-        def on_fail(exception):
-            dialog = ErrorDialog(self, "{}:\n\n{}".format(
-                _("An error occurred while rendering image:"), exception))
-            compdialog.destroy()
-            dialog.run()
-            dialog.destroy()
-
-        t = render.RenderingTask(
-            collage.page, output_file=save_file,
-            border_width=self.opts.border_w * max(collage.page.w,
-                                                  collage.page.h),
-            border_color=self.opts.border_c,
-            on_update=gtk_run_in_main_thread(on_update),
-            on_complete=gtk_run_in_main_thread(on_complete),
-            on_fail=gtk_run_in_main_thread(on_fail))
-        t.start()
-
-        response = compdialog.run()
-        if response == Gtk.ResponseType.CANCEL:
-            t.abort()
-            compdialog.destroy()
 
 
 class ComputingDialog(Gtk.Dialog):

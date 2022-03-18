@@ -22,6 +22,7 @@ import PIL.Image
 import PIL.ImageDraw
 import PIL.ImageFile
 from PIL import ImageOps
+from PIL import ImageFont
 
 from photocollage.collage import Photo
 from yearbook.page import Page
@@ -31,6 +32,7 @@ QUALITY_FAST = 1
 QUALITY_BEST = 2
 # Hard Coded Size value of 8.75 by 11.25 inches
 IMAGE_WITH_BLEED_SIZE = (2625, 3375)
+TEXT_FONT = ImageFont.truetype("/Users/anshah/Downloads/open-sans/OpenSans-Bold.ttf", 100)
 
 # Try to continue even if the input file is corrupted.
 # See issue at https://github.com/adrienverge/PhotoCollage/issues/65
@@ -137,6 +139,7 @@ class RenderingTask(Thread):
     is a separated thread.
 
     """
+
     def __init__(self, yearbook_page: Page, page, border_width=0.01, border_color=(0, 0, 0),
                  quality=QUALITY_BEST, output_file=None,
                  on_update=None, on_complete=None, on_fail=None, stitch_background=None):
@@ -188,7 +191,7 @@ class RenderingTask(Thread):
         W = self.page.w - 1
         H = self.page.h - 1
         border = self.border_width - 1
-        color = (255, 255, 255, 0) # self.border_color
+        color = (255, 255, 255, 0)  # self.border_color
 
         draw = PIL.ImageDraw.Draw(canvas, 'RGBA')
         draw.rectangle((0, 0) + (border, H), color)
@@ -257,7 +260,7 @@ class RenderingTask(Thread):
                 int(round(width_to_crop * cell.photo.offset_w)),
                 0,
                 int(round(img.size[0] - width_to_crop *
-                    (1 - cell.photo.offset_w))),
+                          (1 - cell.photo.offset_w))),
                 int(round(cell.h))
             ))
         elif shape < 0:  # image is too tall
@@ -267,7 +270,7 @@ class RenderingTask(Thread):
                 int(round(height_to_crop * cell.photo.offset_h)),
                 int(round(cell.w)),
                 int(round(img.size[1] - height_to_crop *
-                    (1 - cell.photo.offset_h)))
+                          (1 - cell.photo.offset_h)))
             ))
 
         return img
@@ -284,7 +287,7 @@ class RenderingTask(Thread):
 
             if self.quality != QUALITY_SKEL:
                 n = sum([len([cell for cell in col.cells if not
-                              cell.is_extension()]) for col in self.page.cols])
+                cell.is_extension()]) for col in self.page.cols])
                 i = 0.0
                 if self.on_update:
                     self.on_update(canvas, 0.0)
@@ -321,11 +324,18 @@ class RenderingTask(Thread):
             if self.output_file:
                 print("Saving image at ...", self.output_file)
 
-                if self.yearbook_page.personalized:
+                if self.full_resolution and self.yearbook_page.personalized :
                     background = PIL.Image.open(self.yearbook_page.image).convert("RGBA")
-                    background_size = (canvas.size[0] + 150, canvas.size[1] + 150)
-                    new_background = background.resize(background_size)
-                    new_background.paste(canvas, (75, 75), mask=canvas)
+                    new_background = background.resize(IMAGE_WITH_BLEED_SIZE)
+                    print("Canvas size")
+                    print(canvas.size)
+                    if self.yearbook_page.number % 2 != 0:
+                        img_edit = PIL.ImageDraw.Draw(new_background)
+                        img_edit.text((int(canvas.size[0] / 3), 75),
+                                      self.yearbook_page.event_name, (255, 255, 255), font=TEXT_FONT)
+                        new_background.paste(canvas, (75, 175), mask=canvas)
+                    else:
+                        new_background.paste(canvas, (75, 75), mask=canvas)
                     new_background.save(self.output_file, quality=100)
                 else:
                     canvas.save(self.output_file, quality=100)
@@ -333,7 +343,7 @@ class RenderingTask(Thread):
 
             if self.on_complete:
                 # We can change this to new_background if we wish to display it with the background
-                self.on_complete(canvas, self.output_file)
+                self.on_complete(new_background, self.output_file)
 
         except Exception as e:
             if self.on_fail:
