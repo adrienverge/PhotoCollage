@@ -37,7 +37,7 @@ def get_all_rows(conn):
 def get_album_details_for_school(db_file: str, school_name: str):
     conn = create_connection(db_file)
     cur = conn.cursor()
-    query = 'Select a.id, a.name, a.type, a.page_number, a.image, a.tags from pages a, schools s ' \
+    query = 'Select a.title, a.name, a.type, a.page_number, a.image, a.tags from pages a, schools s ' \
             'where a.album = s.[Album Id] and s.name = "%s" ' % school_name
 
     return cur.execute(query)
