@@ -47,7 +47,7 @@ def create_yearbook_from_db(dir_params: {}, school_name: str, classroom: str, ch
         if row[2].startswith('Dynamic'):
             personalized = True
         page = Page(int(row[3]), str(row[1]).strip(), personalized,
-                    os.path.join(corpus_base_dir, school_name, row[4]), str(row[5]))
+                    os.path.join(corpus_base_dir, school_name, row[4][1:]), str(row[5]))
         pages.append(page)
 
     return Yearbook(PickleYearbook(pages, school_name, classroom, child, parent_book))
