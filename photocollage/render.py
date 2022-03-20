@@ -25,6 +25,7 @@ from PIL import ImageOps
 from PIL import ImageFont
 
 from photocollage.collage import Photo
+from util.draw.DashedImageDraw import DashedImageDraw
 from yearbook.page import Page
 
 QUALITY_SKEL = 0
@@ -331,7 +332,12 @@ class RenderingTask(Thread):
                     print(canvas.size)
                     if self.yearbook_page.number % 2 != 0:
                         img_edit = PIL.ImageDraw.Draw(new_background)
-                        img_edit.text((int(canvas.size[0] / 3), 75),
+                        dashed_img_draw = DashedImageDraw(new_background)
+                        dashed_img_draw.dashed_rectangle([(25, 25), (2600, 3350)],
+                                                         dash=(5, 4), outline= 'white', width= 2)
+                        dashed_img_draw.dashed_rectangle([(75, 75), (2550, 3300)],
+                                                         dash=(5, 4), outline='white', width=2)
+                        dashed_img_draw.text((int(canvas.size[0] / 3), 75),
                                       self.yearbook_page.event_name, (255, 255, 255), font=TEXT_FONT)
                         new_background.paste(canvas, (75, 175), mask=canvas)
                     else:
