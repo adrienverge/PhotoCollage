@@ -15,7 +15,7 @@ class TestReader(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         print('BasicTest.__init__')
         super(TestReader, self).__init__(*args, **kwargs)
-        self.output_base_dir = os.path.join('/Users', getpass.getuser(), 'GoogleDrive', 'YearbookCreatorOut')
+        self.output_base_dir = os.path.join('/Users', getpass.getuser(), 'YearbookCreatorOut')
         self.input_base_dir = os.path.join('/Users', getpass.getuser(), 'GoogleDrive', 'YearbookCreatorInput')
         self.yearbook_parameters = {'max_count': 12,
                                     'db_file_path': os.path.join(self.input_base_dir, 'RY.db'),

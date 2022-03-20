@@ -46,8 +46,10 @@ def create_yearbook_from_db(dir_params: {}, school_name: str, classroom: str, ch
         personalized = False
         if row[2].startswith('Dynamic'):
             personalized = True
-        page = Page(int(row[3]), str(row[1]).strip(), personalized,
-                    os.path.join(corpus_base_dir, school_name, row[4][1:]), str(row[5]))
+
+        orig_img_loc = os.path.join(corpus_base_dir, school_name, row[4])
+        page = Page(number=int(row[3]), event=str(row[1]).strip(), personalized=personalized,
+                    orig_image_loc=orig_img_loc, title=str(row[0]), tags=str(row[5]))
         pages.append(page)
 
     return Yearbook(PickleYearbook(pages, school_name, classroom, child, parent_book))

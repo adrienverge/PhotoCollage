@@ -21,7 +21,7 @@ def read_page_json(json_file_loc):
 
 class Page:
 
-    def __init__(self, number: int, event: str, personalized: bool, orig_image_loc: str, tags: str = None):
+    def __init__(self, number: int, event: str, personalized: bool, orig_image_loc: str, title: str, tags: str = None):
         self.number = number
         self.event_name = event
         self.personalized = personalized
@@ -39,6 +39,7 @@ class Page:
             self.tags: str = tags + "," + event
 
         self.cleared: bool = False
+        self.title = title
 
     def __getstate__(self): return self.__dict__
     def __setstate__(self, d): self.__dict__.update(d)
