@@ -14,13 +14,14 @@ def check_key(dict_map, key):
 
 class PageTests(unittest.TestCase):
 
-    def test_generate_cropped_image_vectors(self):
-        print("Running Test for checking img vectors")
+    def test_page_tags(self):
+        print("Check page tags")
 
         page = Page.Page(number=1, event="Graduation",
-                         personalized=True, orig_image_loc="./Photos10_v3.png", title="Test")
+                         personalized=True, orig_image_loc="./Photos10_v3.png", title="Test", tags="test")
 
         assert page.data is not None
+        assert page.tags == "test,Graduation"
 
 
 if __name__ == '__main__':
