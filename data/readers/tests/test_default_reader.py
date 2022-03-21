@@ -11,19 +11,18 @@ class TestDefaultReader(unittest.TestCase):
         self.corpus = corpus_processor(school_name='Monticello_Preschool_2021_2022')
 
     def test_monticello_corpus_with_tags(self):
-        print(len(self.corpus.image_to_tags))
         assert len(self.corpus.image_to_tags) >= 2099
         image_tags = self.corpus.image_to_tags[
-            '/Users/ashah/GoogleDrive/Monticello_Preschool_2021_2022/Halloween/IMG_5811.png']
+            '/Users/ashah/GoogleDrive/Monticello_Preschool_2021_2022/Halloween/IMG_5882.png']
         assert "Halloween" in image_tags
-        print(image_tags)
-        assert len(image_tags) == 3
+        assert len(image_tags) == 2
 
     def test_monticello_corpus_images_for_event(self):
         images = self.corpus.tags_to_images['Portraits']
-        assert len(images) >= 327
+        print(len(images))
+        assert len(images) >= 311
         assert images.index(
-            '/Users/ashah/GoogleDrive/Monticello_Preschool_2021_2022/Adventureland/Portraits/Ethan Tang_2.png') >= 1
+            '/Users/ashah/GoogleDrive/Monticello_Preschool_2021_2022/Adventureland/Portraits/Vidya Iyengar_5.png') >= 1
 
     def test_get_child_portraits(self):
         tags_list = ["Portraits",
@@ -54,21 +53,21 @@ class TestDefaultReader(unittest.TestCase):
         sunshine_portraits = self.corpus.get_images_with_tags_strict([
             "Monticello_Preschool_2021_2022", "Portraits", "Sunshine"])
         adventure_portraits = self.corpus.get_images_with_tags_strict(["Monticello_Preschool_2021_2022", "Portraits", "Adventureland"])
-        assert len(sunshine_portraits) >= 133
-        assert len(adventure_portraits) >= 50
+        print("adventure_portraits portraits %s" % str(len(adventure_portraits)))
+        assert len(sunshine_portraits) >= 125
+        assert len(adventure_portraits) >= 27
 
         assert len(sunshine_portraits) != len(adventure_portraits)
 
         assert len(intersection(sunshine_portraits, adventure_portraits)) == 0
 
     def test_get_images_for_portraits(self):
-        assert len(self.corpus.get_portraits(classroom="Seaturtle", child="Emily Lin")) == 5
-        assert len(self.corpus.get_portraits(classroom="Seaturtle", child="Finn Yao")) == 7
+        assert len(self.corpus.get_portraits(classroom="Seaturtle", child="Emily Lin")) == 3
+        assert len(self.corpus.get_portraits(classroom="Seaturtle", child="Finn Yao")) == 3
 
         tag_list = ["Portraits", "Seaturtle", "Finn Yao"]
         child_portraits = self.corpus.get_images_with_tags_strict(tag_list)
-        print(len(child_portraits))
-        assert len(child_portraits) == 0
+        assert len(child_portraits) == 3
 
 
 if __name__ == '__main__':
