@@ -955,9 +955,9 @@ class MainWindow(Gtk.Window):
         page.history_index = len(page.history) - 1
         self.update_tool_buttons()
         if page.number % 2 == 0:
-            self.render_preview(page, self.img_preview_left)
+            self.render_preview(page, self.img_preview_left, self.left_opts)
         else:
-            self.render_preview(page, self.img_preview_right)
+            self.render_preview(page, self.img_preview_right, self.right_opts)
 
     def clear_layout(self, button):
         if button.get_label().endswith("Right"):
