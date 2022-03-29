@@ -30,6 +30,7 @@ from gi.repository.Gtk import TreeStore
 from data.pickle.utils import get_pickle_path, get_jpg_path, get_pdf_path
 from data.rankers import RankerFactory
 from data.sqllite.reader import get_tree_model
+from images.ImageWindow import ImageWindow
 from photocollage import APP_NAME, artwork, collage, render
 from photocollage.collage import Photo
 from photocollage.render import PIL_SUPPORTED_EXTS as EXTS
@@ -438,6 +439,14 @@ class Options:
             self.out_h = 3025
 
 
+def create_pdf_from_images(pdf_path, images):
+    pil_images = [PIL.Image.open(image).convert('RGB') for image in images]
+    pil_images[0].save(
+        pdf_path, "PDF", resolution=100.0, save_all=True, append_images=pil_images[1:]
+    )
+    print("Finished saving PDF file %s" % pdf_path)
+
+
 class MainWindow(Gtk.Window):
     treeModel: TreeStore
     TARGET_TYPE_TEXT = 1
@@ -482,6 +491,7 @@ class MainWindow(Gtk.Window):
 
         self.img_preview_left = ImagePreviewArea(self, "LeftPage")
         self.img_preview_right = ImagePreviewArea(self, "RightPage")
+        self.img_favorites_flow_box = Gtk.FlowBox()
         self.images_flow_box = Gtk.FlowBox()
         self.portraits_flow_box = Gtk.FlowBox()
         self.btn_settings = Gtk.Button()
@@ -519,6 +529,9 @@ class MainWindow(Gtk.Window):
 
         self.left_opts = Options(left_page=True)
         self.right_opts = Options(left_page=False)
+
+        self.deleted_images = set()
+
         self.make_window()
 
     def make_window(self):
@@ -610,7 +623,7 @@ class MainWindow(Gtk.Window):
         # --------------------------------------------
         #  Child portraits/selfie viewer
         # --------------------------------------------
-        box = Gtk.Box(spacing=10)
+        box = Gtk.Box(spacing=6)
         _scrolledWindow = Gtk.ScrolledWindow()
         _scrolledWindow.add(self.portraits_flow_box)
         _scrolledWindow.set_size_request(100, 300)
@@ -623,7 +636,24 @@ class MainWindow(Gtk.Window):
         _scrolledWindow = Gtk.ScrolledWindow()
         _scrolledWindow.set_size_request(600, 300)
         _scrolledWindow.add(self.images_flow_box)
-        box.pack_start(_scrolledWindow, True, True, 0)
+
+        notebook = Gtk.Notebook()
+        # Create Boxes
+        page1 = Gtk.Box()
+        page1.set_border_width(50)
+        notebook.append_page(_scrolledWindow, Gtk.Label("Images"))
+
+        _scrolledWindow = Gtk.ScrolledWindow()
+        _scrolledWindow.set_size_request(600, 300)
+        _scrolledWindow.add(self.img_favorites_flow_box)
+        page2 = Gtk.Box()
+        page2.set_border_width(50)
+        notebook.append_page(_scrolledWindow, Gtk.Label("Favorites"))
+
+        notebook.set_show_tabs(True)
+        notebook.show()
+
+        box.pack_start(notebook, True, True, 0)
         box_window.pack_start(box, True, True, 0)
 
     '''
@@ -675,6 +705,8 @@ class MainWindow(Gtk.Window):
         self.set_current_corpus()
         self.update_ui_elements()
         self.update_child_portrait_images(self.current_yearbook)
+        self.update_favorites_images()
+        self.update_deleted_images()
 
     def get_child_portrait_images(self, yearbook: Yearbook):
         selfies_dir = os.path.join(self.corpus_base_dir, yearbook.school, "Selfies", yearbook.child)
@@ -689,6 +721,39 @@ class MainWindow(Gtk.Window):
             self.curr_page_index = new_page_num - 3
 
         self.select_next_page(widget)
+
+    def add_image_to_deleted(self, image):
+        self.deleted_images.add(image)
+
+    def update_deleted_images(self):
+        deleted_images = os.listdir(self.get_deleted_images_folder())
+        [self.deleted_images.add(os.path.join(self.get_deleted_images_folder(), img)) for img in deleted_images]
+
+    def update_favorites_images(self):
+        flowbox = self.img_favorites_flow_box
+        [flowbox.remove(child) for child in flowbox.get_children()]
+        flowbox.set_valign(Gtk.Align.START)
+        flowbox.set_max_children_per_line(10)
+        flowbox.set_selection_mode(Gtk.SelectionMode.SINGLE)
+        favorite_images = os.listdir(self.get_favorites_folder())
+
+        for img in favorite_images:
+            try:
+                img_path = os.path.join(self.get_favorites_folder(), img)
+                del_img_path = img_path.replace(self.get_favorites_folder(), self.get_deleted_images_folder())
+                if del_img_path not in self.deleted_images:
+                    pixbuf = get_orientation_fixed_pixbuf(img_path)
+                    image = Gtk.Image.new_from_pixbuf(pixbuf)
+                    img_box = Gtk.EventBox()
+                    img_box.add(image)
+                    img_box.connect("button_press_event", self.invoke_add_image, img_path)
+                    flowbox.add(img_box)
+            except OSError:
+                # raise BadPhoto(name)
+                print("Skipping a photo: %s" % img)
+                continue
+
+        self.show_all()
 
     def update_child_portrait_images(self, yearbook: Yearbook):
         flowbox = self.portraits_flow_box
@@ -744,6 +809,9 @@ class MainWindow(Gtk.Window):
             if page.personalized and img in [photo.filename for photo in page.photo_list]:
                 continue
 
+            if img in self.deleted_images:
+                continue
+
             try:
                 pixbuf = get_orientation_fixed_pixbuf(img)
                 image = Gtk.Image.new_from_pixbuf(pixbuf)
@@ -759,18 +827,24 @@ class MainWindow(Gtk.Window):
 
         self.show_all()
 
+    def add_image_to_left_pane(self, img_name):
+        self.update_photolist(self.current_yearbook.pages[self.prev_page_index], [img_name], self.left_opts)
+        self.update_flow_box_with_images(self.current_yearbook.pages[self.prev_page_index])
+
+    def add_image_to_right_pane(self, img_name):
+        self.update_photolist(self.current_yearbook.pages[self.curr_page_index], [img_name], self.right_opts)
+        self.update_flow_box_with_images(self.current_yearbook.pages[self.curr_page_index])
+
     def invoke_add_image(self, widget, event, img_name):
         if event.type == Gdk.EventType._2BUTTON_PRESS:
             print("double click, %s", img_name)
-            self.update_photolist(self.current_yearbook.pages[self.prev_page_index], [img_name], self.left_opts)
-            self.update_flow_box_with_images(self.current_yearbook.pages[self.prev_page_index])
+            self.add_image_to_left_pane(img_name)
         elif event.type == Gdk.EventType.BUTTON_PRESS and event.button == 3:
             print("Right clicked")
-            self.update_photolist(self.current_yearbook.pages[self.curr_page_index], [img_name], self.right_opts)
-            self.update_flow_box_with_images(self.current_yearbook.pages[self.curr_page_index])
+            self.add_image_to_right_pane(img_name)
         else:
-            print("Image clicked %s " % event.button)
-            print(event.button == 3)
+            per_img_window = ImageWindow(img_name, self)
+            per_img_window.show_all()
 
     def update_photolist(self, page, new_images: [str], options: Options = None):
         photolist: [Photo] = []
@@ -938,7 +1012,7 @@ class MainWindow(Gtk.Window):
             page_collage.page,
             output_file=out_file,
             border_width=options.border_w * max(page_collage.page.w,
-                                                       page_collage.page.h),
+                                                page_collage.page.h),
             border_color=options.border_c,
             on_update=gtk_run_in_main_thread(on_update),
             on_complete=gtk_run_in_main_thread(on_complete),
@@ -1020,7 +1094,7 @@ class MainWindow(Gtk.Window):
                 page_collage.page,
                 output_file=new_img_path,
                 border_width=options.border_w * max(page_collage.page.w,
-                                                           page_collage.page.h),
+                                                    page_collage.page.h),
                 border_color=options.border_c,
                 on_update=gtk_run_in_main_thread(on_update),
                 on_complete=gtk_run_in_main_thread(on_complete),
@@ -1038,12 +1112,18 @@ class MainWindow(Gtk.Window):
                                 "yearbook_stitched.pdf")
         return pdf_path
 
-    def create_pdf_from_images(self, pdf_path, images):
-        pil_images = [PIL.Image.open(image).convert('RGB') for image in images]
-        pil_images[0].save(
-            pdf_path, "PDF", resolution=100.0, save_all=True, append_images=pil_images[1:]
-        )
-        print("Finished saving PDF file %s" % pdf_path)
+    def get_folder(self, folder_name):
+        folder = os.path.join(self.corpus_base_dir, self.current_yearbook.school, folder_name)
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+
+        return folder
+
+    def get_favorites_folder(self):
+        return self.get_folder("Favorites")
+
+    def get_deleted_images_folder(self):
+        return self.get_folder("Deleted")
 
     def print_final_lulu(self, button):
         print("STEP 1: Create_print_pdf")
@@ -1058,7 +1138,7 @@ class MainWindow(Gtk.Window):
                                        str(page.number) + "_stitched.png"))
 
         print("Creating PDF from images")
-        self.create_pdf_from_images(pdf_path, images)
+        create_pdf_from_images(pdf_path, images)
 
         from util.google.drive.util import upload_pdf_file
         # the first argument is the google id of the folder that we upload to.
@@ -1115,6 +1195,8 @@ class MainWindow(Gtk.Window):
         self.render_right_page(right_page)
 
         self.update_flow_box_with_images(left_page)
+        self.update_favorites_images()
+
         self.update_label_text()
 
     def set_settings(self, button):
