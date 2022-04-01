@@ -1,6 +1,8 @@
+import getpass
 import unittest
 from data.readers.default import corpus_processor
 from yearbook.Corpus import intersection
+import os
 
 
 class TestDefaultReader(unittest.TestCase):
@@ -8,29 +10,42 @@ class TestDefaultReader(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         print('BasicTest.__init__')
         super(TestDefaultReader, self).__init__(*args, **kwargs)
-        self.corpus = corpus_processor(school_name='Monticello_Preschool_2021_2022')
+        self.school_name = 'Monticello_Preschool_2021_2022'
+        self.user_name = getpass.getuser()
+
+        self.school_base_dir = os.path.join("/Users", self.user_name, "GoogleDrive", self.school_name)
+        self.corpus = corpus_processor(school_name=self.school_name)
 
     def test_monticello_corpus_with_tags(self):
         assert len(self.corpus.image_to_tags) >= 2099
+        import os
+
+        username = getpass.getuser()
+        file_path = os.path.join(self.school_base_dir, 'HalloweenParade')
         image_tags = self.corpus.image_to_tags[
-            '/Users/ashah/GoogleDrive/Monticello_Preschool_2021_2022/Halloween/IMG_5882.png']
-        assert "Halloween" in image_tags
+            file_path + '/IMG_5352.png']
+        assert "HalloweenParade" in image_tags
+        assert self.school_name in image_tags
         assert len(image_tags) == 2
 
     def test_monticello_corpus_images_for_event(self):
-        images = self.corpus.tags_to_images['Portraits']
-        print(len(images))
-        assert len(images) >= 311
+        images = self.corpus.tags_to_images['SunshinePortraits']
+        assert len(images) >= 119
+        known_portrait1 = os.path.join(self.school_base_dir, "SunshinePortraits", "Shivank Jithin_1.png")
+        known_portrait2 = os.path.join(self.school_base_dir, "SunshinePortraits", "Tingyu Deng_1.png")
+
         assert images.index(
-            '/Users/ashah/GoogleDrive/Monticello_Preschool_2021_2022/Adventureland/Portraits/Vidya Iyengar_5.png') >= 1
+            known_portrait1) >= 1
+
+        assert images.index(
+            known_portrait2) >= 1
 
     def test_get_child_portraits(self):
-        tags_list = ["Portraits",
-                     "Jungle",
-                     "Laura Sun"]
-        lauraImages = self.corpus.get_images_with_tags_strict(tags_list)
-        print(len(lauraImages))
-        [print(img) for img in lauraImages]
+        child_name = "Laura Sun"
+        class_name = "JunglePortraits"
+        tags_list = [child_name, class_name]
+        child_images = self.corpus.get_images_with_tags_strict(tags_list)
+        assert len(child_images) == 2
 
     def test_longer_lists(self):
         tags_list = ["Sunshine",
@@ -41,33 +56,23 @@ class TestDefaultReader(unittest.TestCase):
 
         assert len(self.corpus.get_images_with_tags_strict(tags_list)) == 0
 
-        tags_list = ['Monticello_Preschool_2021_2022', 'Ladybugs', 'Portraits', 'Aahana Namjoshi']
-        print("**********")
-        [print(img) for img in self.corpus.get_images_with_tags_strict(tags_list)]
-        print("**********")
-        [print(img) for img in self.corpus.get_images_for_child(tags_list, 'Aahana Namjoshi')]
+        tags_list = ['Monticello_Preschool_2021_2022', 'LadybugsPortraits', 'Aahana Namjoshi']
 
-        print (self.corpus.image_to_tags["/Users/ashah/GoogleDrive/Monticello_Preschool_2021_2022/Ladybugs/Portraits/Aahana Namjoshi_4.png"])
+        assert 5 == len(self.corpus.get_images_for_child(tags_list, 'Aahana Namjoshi'))
+        for img in self.corpus.get_images_for_child(tags_list, 'Aahana Namjoshi'):
+            assert 'LadybugsPortraits' in img
 
     def test_get_images(self):
         sunshine_portraits = self.corpus.get_images_with_tags_strict([
-            "Monticello_Preschool_2021_2022", "Portraits", "Sunshine"])
-        adventure_portraits = self.corpus.get_images_with_tags_strict(["Monticello_Preschool_2021_2022", "Portraits", "Adventureland"])
+            "Monticello_Preschool_2021_2022", "SunshinePortraits"])
+        adventure_portraits = self.corpus.get_images_with_tags_strict(["Monticello_Preschool_2021_2022", "AdventurelandPortraits"])
         print("adventure_portraits portraits %s" % str(len(adventure_portraits)))
-        assert len(sunshine_portraits) >= 125
-        assert len(adventure_portraits) >= 27
+        assert len(sunshine_portraits) >= 77
+        assert len(adventure_portraits) >= 9
 
         assert len(sunshine_portraits) != len(adventure_portraits)
 
         assert len(intersection(sunshine_portraits, adventure_portraits)) == 0
-
-    def test_get_images_for_portraits(self):
-        assert len(self.corpus.get_portraits(classroom="Seaturtle", child="Emily Lin")) == 3
-        assert len(self.corpus.get_portraits(classroom="Seaturtle", child="Finn Yao")) == 3
-
-        tag_list = ["Portraits", "Seaturtle", "Finn Yao"]
-        child_portraits = self.corpus.get_images_with_tags_strict(tag_list)
-        assert len(child_portraits) == 3
 
 
 if __name__ == '__main__':

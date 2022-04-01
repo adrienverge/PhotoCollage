@@ -26,6 +26,6 @@ def get_orientation_fixed_pixbuf(img: str):
                 pixbuf=pixbuf.rotate_simple(90)
     except OSError:
         # raise BadPhoto(name)
-        print("Skipping a photo: %s" % img)
+        print("Skipping a photo getting orientation: %s" % img)
 
     return pixbuf

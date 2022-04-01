@@ -108,7 +108,7 @@ def build_photolist(filelist: [str]) -> [Photo]:
         try:
             img = PIL.Image.open(name)
         except OSError:
-            print("Skipping a photo: %s" % name)
+            print("Building list --> Skipping a photo: %s" % name)
             continue
 
         w, h = img.size

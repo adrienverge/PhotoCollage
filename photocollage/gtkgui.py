@@ -396,7 +396,6 @@ class UserCollage:
     def make_page(self, opts):
         # Define the output image height / width ratio
         ratio = 1.0 * opts.out_h / opts.out_w
-        print("Ratio %s " % ratio)
         # Compute a good number of columns. It depends on the ratio, the number
         # of images and the average ratio of these images. According to my
         # calculations, the number of column should be inversely proportional
@@ -750,7 +749,7 @@ class MainWindow(Gtk.Window):
                     flowbox.add(img_box)
             except OSError:
                 # raise BadPhoto(name)
-                print("Skipping a photo: %s" % img)
+                print("Update favorites -- Skipping a photo: %s" % img)
                 continue
 
         self.show_all()
@@ -822,7 +821,7 @@ class MainWindow(Gtk.Window):
 
             except OSError:
                 # raise BadPhoto(name)
-                print("Skipping a photo: %s" % img)
+                print("FlowBox Skipping a photo: %s" % img)
                 continue
 
         self.show_all()
