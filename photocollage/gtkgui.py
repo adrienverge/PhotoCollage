@@ -508,7 +508,7 @@ class MainWindow(Gtk.Window):
         self.page_num_text_entry.set_max_length(2)
         self.lbl_right_page = Gtk.Label(" ")
         self.btn_next_page = Gtk.Button(label=_("Next page..."))
-        self.btn_publish_book = Gtk.Button(label=_("Publish"))
+        self.btn_publish_book = Gtk.Button(label=_("Save"))
         self.btn_print_book = Gtk.Button(label=_("Print@Lulu"))
 
         # on initialization
@@ -566,7 +566,10 @@ class MainWindow(Gtk.Window):
         box.pack_start(self.btn_clear_right, False, False, 0)
         self.btn_clear_right.connect("clicked",
                                      self.clear_layout)
-        box.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
+        box.pack_end(Gtk.SeparatorToolItem(), True, True, 0)
+
+        box = Gtk.Box(spacing=6, orientation=Gtk.Orientation.HORIZONTAL)
+        box_window.pack_start(box, False, False, 0)
 
         box.pack_start(self.btn_prev_page, False, False, 0)
         self.btn_prev_page.set_sensitive(False)
@@ -591,7 +594,7 @@ class MainWindow(Gtk.Window):
         # --------------------------------------
         #  Tree View And Two Image Viewing Pans
         # --------------------------------------
-        box = Gtk.Box(spacing=20)
+        box = Gtk.Box(spacing=10)
         _scrolledWindow = Gtk.ScrolledWindow()
         _scrolledWindow.add(self.treeView)
         box.pack_start(_scrolledWindow, True, True, 0)
@@ -1219,10 +1222,7 @@ class MainWindow(Gtk.Window):
 
         try:
             _left = self.current_yearbook.pages[self.curr_page_index - 1]
-            if _left.tags is None or _left.tags == "None":
-                _label_text = str(_left.number) + ":" + _left.event_name
-            else:
-                _label_text = str(_left.number) + ":" + _left.event_name + " " + _left.tags
+            _label_text = str(_left.number) + ":" + _left.event_name
             self.lbl_left_page.set_label(_label_text)
         except IndexError:
             self.lbl_left_page.set_label(str("-1"))
