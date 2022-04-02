@@ -804,14 +804,14 @@ class MainWindow(Gtk.Window):
         # Need to remove all previously added images
         [flowbox.remove(child) for child in flowbox.get_children()]
 
+        # Get a set of images used so far
+        used_images_set = set([photo.filename for photo in page.photo_list for page in self.current_yearbook.pages])
+
         for img in candidate_images:
 
             # Lets not add the image to the viewer if it's on the page.
             # TODO: This need to account for all previous pages and be smarter than what it currently is
-            if page.personalized and img in [photo.filename for photo in page.photo_list]:
-                continue
-
-            if img in self.deleted_images:
+            if img in used_images_set or img in self.deleted_images:
                 continue
 
             try:
