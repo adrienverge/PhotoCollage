@@ -530,7 +530,7 @@ class MainWindow(Gtk.Window):
         self.right_opts = Options(left_page=False)
 
         self.deleted_images = set()
-
+        self.per_img_window = ImageWindow(None, self)
         self.make_window()
 
     def make_window(self):
@@ -845,8 +845,8 @@ class MainWindow(Gtk.Window):
             print("Right clicked")
             self.add_image_to_right_pane(img_name)
         else:
-            per_img_window = ImageWindow(img_name, self)
-            per_img_window.show_all()
+            self.per_img_window.update_image(img_name)
+            self.per_img_window.show_all()
 
     def update_photolist(self, page, new_images: [str], options: Options = None):
         photolist: [Photo] = []

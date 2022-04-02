@@ -19,7 +19,7 @@ class ImageWindow(Gtk.Window):
         self.add_to_right = Gtk.Button(label=_("Add to right"))
         self.favorite = Gtk.Button(label=_("Favorite"))
         self.delete = Gtk.Button(label=_("Delete"))
-
+        self.frame = None
         self.parent_window = parent_window
         self.make_window()
 
@@ -44,8 +44,8 @@ class ImageWindow(Gtk.Window):
 
         box_window.pack_start(hbox, False, False, 0)
 
-        frame = Gtk.Frame()
-        frame.set_shadow_type(Gtk.ShadowType.IN)
+        self.frame = Gtk.Frame()
+        self.frame.set_shadow_type(Gtk.ShadowType.IN)
 
         # The alignment keeps the frame from growing when users resize
         # the window
@@ -53,13 +53,18 @@ class ImageWindow(Gtk.Window):
                               yalign=0.5,
                               xscale=0,
                               yscale=0)
-        align.add(frame)
+        align.add(self.frame)
         box_window.pack_start(align, False, False, 0)
 
-        pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(self.image, 800, 600, True)
+    def update_image(self, image):
+        pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(image, 800, 600, True)
         transparent = pixbuf.add_alpha(True, 0xff, 0xff, 0xff)
-        image = Gtk.Image.new_from_pixbuf(transparent)
-        frame.add(image)
+        new_img = Gtk.Image.new_from_pixbuf(transparent)
+        if self.image is not None:
+            self.frame.remove(self.image)
+
+        self.frame.add(new_img)
+        self.image = new_img
 
     def add_to_left_pane(self, widget):
         print(self.parent_window)
