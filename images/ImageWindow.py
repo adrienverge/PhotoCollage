@@ -12,14 +12,14 @@ _ = gettext.gettext
 
 
 class ImageWindow(Gtk.Window):
-    def __init__(self, image_name, parent_window):
+    def __init__(self, parent_window):
         super().__init__(title=_("Image Viewer"))
-        self.image = image_name
         self.add_to_left = Gtk.Button(label=_("Add to left"))
         self.add_to_right = Gtk.Button(label=_("Add to right"))
         self.favorite = Gtk.Button(label=_("Favorite"))
         self.delete = Gtk.Button(label=_("Delete"))
         self.frame = None
+        self.image = None
         self.parent_window = parent_window
         self.make_window()
 
@@ -57,14 +57,18 @@ class ImageWindow(Gtk.Window):
         box_window.pack_start(align, False, False, 0)
 
     def update_image(self, image):
+        print("UPDATING IMAGE %s " % image)
         pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(image, 800, 600, True)
         transparent = pixbuf.add_alpha(True, 0xff, 0xff, 0xff)
         new_img = Gtk.Image.new_from_pixbuf(transparent)
         if self.image is not None:
-            self.frame.remove(self.image)
+            try:
+                self.frame.remove(self.image)
+            except:
+                pass
 
         self.frame.add(new_img)
-        self.image = new_img
+        self.image = image
 
     def add_to_left_pane(self, widget):
         print(self.parent_window)
@@ -72,6 +76,7 @@ class ImageWindow(Gtk.Window):
         return
 
     def add_to_right_pane(self, widget):
+        print("Image to add %s " % self.image)
         self.parent_window.add_image_to_right_pane(self.image)
         return
 
