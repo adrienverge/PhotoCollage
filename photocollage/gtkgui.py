@@ -508,7 +508,8 @@ class MainWindow(Gtk.Window):
         self.page_num_text_entry.set_max_length(2)
         self.lbl_right_page = Gtk.Label(" ")
         self.btn_next_page = Gtk.Button(label=_("Next page..."))
-        self.btn_publish_book = Gtk.Button(label=_("Save"))
+        self.btn_save_book = Gtk.Button(label=_("Save"))
+        self.btn_pin_page = Gtk.Button(label="Pin Page")
         self.btn_print_book = Gtk.Button(label=_("Print@Lulu"))
 
         # on initialization
@@ -568,6 +569,9 @@ class MainWindow(Gtk.Window):
                                      self.clear_layout)
         box.pack_end(Gtk.SeparatorToolItem(), True, True, 0)
 
+        # -----------------------
+        #  Tools pan 2
+        # -----------------------
         box = Gtk.Box(spacing=6, orientation=Gtk.Orientation.HORIZONTAL)
         box_window.pack_start(box, False, False, 0)
 
@@ -581,8 +585,11 @@ class MainWindow(Gtk.Window):
         box.pack_start(self.btn_next_page, True, True, 0)
         self.btn_next_page.connect("clicked", self.select_next_page)
         self.page_num_text_entry.connect("activate", self.page_num_nav)
-        box.pack_start(self.btn_publish_book, True, True, 0)
-        self.btn_publish_book.connect("clicked", self.pickle_book)
+        box.pack_start(self.btn_save_book, True, True, 0)
+        self.btn_save_book.connect("clicked", self.pickle_book)
+
+        box.pack_start(self.btn_pin_page, True, True, 0)
+        self.btn_pin_page.connect("clicked", self.pin_page)
         box.pack_start(self.btn_print_book, True, True, 0)
         self.btn_print_book.connect("clicked", self.print_final_lulu)
         box.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
@@ -672,8 +679,6 @@ class MainWindow(Gtk.Window):
             _tree_model = self.tree_model_cache[self.school_name]
             self.treeView.set_model(_tree_model)
         else:
-
-            print(self.corpus.tags_to_images.keys())
             _tree_model = get_tree_model(self.yearbook_parameters, self.school_combo.get_active_text())
             self.treeView.set_model(_tree_model)
             self.treeView.set_cursor(0)
@@ -1143,11 +1148,28 @@ class MainWindow(Gtk.Window):
         create_pdf_from_images(pdf_path, images)
 
         from util.google.drive.util import upload_pdf_file
-        # the first argument is the google id of the folder that we upload to.
+        # the first argument is the Google id of the folder that we upload to.
         upload_pdf_file('1BsahliyczRpMHKYMofDWcWry7utS1IyM', pdf_path)
 
         print("STEP 3: Send PDF to print")
         self.print_lulu()
+
+    def pin_page(self, button):
+        self.treeModel.foreach(self.print_row)
+
+    def print_row(self, store, treepath, treeiter):
+        #print("\t" * (treepath.get_depth() - 1), store[treeiter][:], sep="")
+        print(treepath)
+
+    def pin_page_old(self, button):
+        tree_selection = self.treeView.get_selection()
+        model, treeiter = tree_selection.get_selected()
+        print("Will propagate this page to all children...%s" % model[treeiter][0])
+        if model.iter_has_child(treeiter):
+            num_children = model.iter_n_children(treeiter)
+            for i in range(num_children):
+                new_iter = model.iter_nth_child(treeiter, i)
+                print("Children %s name %s" % (i, model[new_iter][0]))
 
     def pickle_book(self, button):
         from pathlib import Path
