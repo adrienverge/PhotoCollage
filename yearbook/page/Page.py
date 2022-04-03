@@ -26,7 +26,10 @@ class Page:
         self.event_name = event
         self.personalized = personalized
         self.image = orig_image_loc
-        self.data = {"imagePath": orig_image_loc, "extension": os.path.splitext(orig_image_loc)[1]}
+        self.data = {"imagePath": orig_image_loc,
+                     "extension": os.path.splitext(orig_image_loc)[1],
+                     "locked": False
+                     }
         self.history = []
         self.history_index = 0
         self.photo_list: [Photo] = []
@@ -41,8 +44,11 @@ class Page:
         self.cleared: bool = False
         self.title = title
 
-    def __getstate__(self): return self.__dict__
-    def __setstate__(self, d): self.__dict__.update(d)
+    def __getstate__(self):
+        return self.__dict__
+
+    def __setstate__(self, d):
+        self.__dict__.update(d)
 
     def print_image_name(self):
         print("Name:: " + self.image)
@@ -81,7 +87,6 @@ class Page:
                       parent_page.get_all_deleted_photos()]
 
         return get_unique_list_insertion_order(_flat_list)
-
 
     '''
     This method will return all pinned photos and keep track of 
@@ -127,12 +132,19 @@ class Page:
 
         return False
 
+    def update_lock(self, flag: bool):
+        self.data["locked"] = flag
+
+    def is_locked(self):
+        return self.data["locked"]
+
     def clear_all(self):
         self.history = []
         self.history_index = 0
         self.photo_list: [Photo] = []
         self.pinned_photos: {str} = set()
         self.deleted_photos: {str} = set()
+        self.data["locked"] = False
         self.cleared = True
 
     @property
