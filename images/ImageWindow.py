@@ -57,27 +57,33 @@ class ImageWindow(Gtk.Window):
         box_window.pack_start(align, False, False, 0)
 
     def update_image(self, image):
+        import os
         print("UPDATING IMAGE %s " % image)
         pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(image, 800, 600, True)
         transparent = pixbuf.add_alpha(True, 0xff, 0xff, 0xff)
         new_img = Gtk.Image.new_from_pixbuf(transparent)
-        if self.image is not None:
-            try:
-                self.frame.remove(self.image)
-            except:
-                pass
 
+        [self.frame.remove(child) for child in self.frame.get_children()]
         self.frame.add(new_img)
+
         self.image = image
+        self.add_to_left.set_sensitive(True)
+        self.add_to_right.set_sensitive(True)
+        favorite_images = [os.path.join(self.parent_window.get_favorites_folder(), img) for img in os.listdir(self.parent_window.get_favorites_folder())]
+        if image in favorite_images:
+            self.favorite.set_sensitive(False)
 
     def add_to_left_pane(self, widget):
-        print(self.parent_window)
         self.parent_window.add_image_to_left_pane(self.image)
+
+        self.add_to_left.set_sensitive(False)
+        self.add_to_right.set_sensitive(False)
         return
 
     def add_to_right_pane(self, widget):
-        print("Image to add %s " % self.image)
         self.parent_window.add_image_to_right_pane(self.image)
+        self.add_to_left.set_sensitive(False)
+        self.add_to_right.set_sensitive(False)
         return
 
     def add_to_favorites(self, widget):
