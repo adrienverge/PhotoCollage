@@ -12,14 +12,14 @@ _ = gettext.gettext
 
 
 class ImageWindow(Gtk.Window):
-    def __init__(self, image_name, parent_window):
+    def __init__(self, parent_window):
         super().__init__(title=_("Image Viewer"))
-        self.image = image_name
         self.add_to_left = Gtk.Button(label=_("Add to left"))
         self.add_to_right = Gtk.Button(label=_("Add to right"))
         self.favorite = Gtk.Button(label=_("Favorite"))
         self.delete = Gtk.Button(label=_("Delete"))
-
+        self.frame = None
+        self.image = None
         self.parent_window = parent_window
         self.make_window()
 
@@ -44,8 +44,8 @@ class ImageWindow(Gtk.Window):
 
         box_window.pack_start(hbox, False, False, 0)
 
-        frame = Gtk.Frame()
-        frame.set_shadow_type(Gtk.ShadowType.IN)
+        self.frame = Gtk.Frame()
+        self.frame.set_shadow_type(Gtk.ShadowType.IN)
 
         # The alignment keeps the frame from growing when users resize
         # the window
@@ -53,21 +53,37 @@ class ImageWindow(Gtk.Window):
                               yalign=0.5,
                               xscale=0,
                               yscale=0)
-        align.add(frame)
+        align.add(self.frame)
         box_window.pack_start(align, False, False, 0)
 
-        pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(self.image, 800, 600, True)
+    def update_image(self, image):
+        import os
+        print("UPDATING IMAGE %s " % image)
+        pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(image, 800, 600, True)
         transparent = pixbuf.add_alpha(True, 0xff, 0xff, 0xff)
-        image = Gtk.Image.new_from_pixbuf(transparent)
-        frame.add(image)
+        new_img = Gtk.Image.new_from_pixbuf(transparent)
+
+        [self.frame.remove(child) for child in self.frame.get_children()]
+        self.frame.add(new_img)
+
+        self.image = image
+        self.add_to_left.set_sensitive(True)
+        self.add_to_right.set_sensitive(True)
+        favorite_images = [os.path.join(self.parent_window.get_favorites_folder(), img) for img in os.listdir(self.parent_window.get_favorites_folder())]
+        if image in favorite_images:
+            self.favorite.set_sensitive(False)
 
     def add_to_left_pane(self, widget):
-        print(self.parent_window)
         self.parent_window.add_image_to_left_pane(self.image)
+
+        self.add_to_left.set_sensitive(False)
+        self.add_to_right.set_sensitive(False)
         return
 
     def add_to_right_pane(self, widget):
         self.parent_window.add_image_to_right_pane(self.image)
+        self.add_to_left.set_sensitive(False)
+        self.add_to_right.set_sensitive(False)
         return
 
     def add_to_favorites(self, widget):
