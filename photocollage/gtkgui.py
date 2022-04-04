@@ -409,7 +409,6 @@ class UserCollage:
         no_cols = int(round(math.sqrt(avg_ratio / ratio * virtual_no_imgs)))
 
         self.page = collage.Page(1.0, ratio, no_cols)
-        random.shuffle(self.photolist)
         for photo in self.photolist:
             self.page.add_cell(photo)
         self.page.adjust()
@@ -445,15 +444,21 @@ def create_pdf_from_images(pdf_path, images):
     print("Finished saving PDF file %s" % pdf_path)
 
 
-def update_lock_flag_for_page(page: Page, button):
+def update_flag_for_page(page: Page, button, flag: str):
     if button.get_active():
         lock = True
     else:
         lock = False
 
-    print("Updating lock=%s page for %s " % (lock, page.number))
+    print("Updating flag=%s page for %s " % (flag, page.number))
 
-    page.update_lock(lock)
+    page.update_flag(flag, lock)
+
+
+def pin_all_photos_on_page(page, img_preview):
+    for column in img_preview.collage.page.cols:
+        for cell in column.cells:
+            page.pin_photo(cell.photo)
 
 
 class MainWindow(Gtk.Window):
@@ -518,9 +523,11 @@ class MainWindow(Gtk.Window):
         self.page_num_text_entry.set_max_length(2)
         self.lbl_right_page = Gtk.Label(" ")
         self.btn_next_page = Gtk.Button(label=_("Next page..."))
-        self.btn_publish_book = Gtk.Button(label=_("Save"))
+        self.btn_save_book = Gtk.Button(label=_("Save"))
         self.btn_lock_page_left = Gtk.ToggleButton(label=_("Lock Left"))
         self.btn_lock_page_right = Gtk.ToggleButton(label=_("Lock Right"))
+        self.btn_pin_page_left = Gtk.ToggleButton(label="Pin Page Left")
+        self.btn_pin_page_right = Gtk.ToggleButton(label="Pin Page Right")
 
         self.btn_print_book = Gtk.Button(label=_("Print@Lulu"))
 
@@ -581,6 +588,9 @@ class MainWindow(Gtk.Window):
                                      self.clear_layout)
         box.pack_end(Gtk.SeparatorToolItem(), True, True, 0)
 
+        # -----------------------
+        #  Tools pan 2
+        # -----------------------
         box = Gtk.Box(spacing=6, orientation=Gtk.Orientation.HORIZONTAL)
         box_window.pack_start(box, False, False, 0)
 
@@ -595,8 +605,14 @@ class MainWindow(Gtk.Window):
         self.btn_next_page.connect("clicked", self.select_next_page)
         self.page_num_text_entry.connect("activate", self.page_num_nav)
 
-        box.pack_start(self.btn_publish_book, True, True, 0)
-        self.btn_publish_book.connect("clicked", self.pickle_book)
+        box.pack_start(self.btn_save_book, True, True, 0)
+        self.btn_save_book.connect("clicked", self.pickle_book)
+
+        box.pack_start(self.btn_pin_page_left, True, True, 0)
+        self.btn_pin_page_left.connect("clicked", self.pin_page_left)
+
+        box.pack_start(self.btn_pin_page_right, True, True, 0)
+        self.btn_pin_page_right.connect("clicked", self.pin_page_right)
 
         box.pack_start(self.btn_lock_page_left, True, True, 0)
         self.btn_lock_page_left.connect("clicked", self.lock_page_left)
@@ -693,8 +709,6 @@ class MainWindow(Gtk.Window):
             _tree_model = self.tree_model_cache[self.school_name]
             self.treeView.set_model(_tree_model)
         else:
-
-            print(self.corpus.tags_to_images.keys())
             _tree_model = get_tree_model(self.yearbook_parameters, self.school_combo.get_active_text())
             self.treeView.set_model(_tree_model)
             self.treeView.set_cursor(0)
@@ -1001,7 +1015,6 @@ class MainWindow(Gtk.Window):
             yearbook_page.photo_list = first_photo_list
             yearbook_page.history.append(page_collage)
             yearbook_page.history_index = len(yearbook_page.history) - 1
-
         else:
             # There's no change necessary on the page, just return it from history
             page_collage: UserCollage = yearbook_page.history[yearbook_page.history_index]
@@ -1175,19 +1188,31 @@ class MainWindow(Gtk.Window):
         create_pdf_from_images(pdf_path, images)
 
         from util.google.drive.util import upload_pdf_file
-        # the first argument is the google id of the folder that we upload to.
+        # the first argument is the Google id of the folder that we upload to.
         upload_pdf_file('1BsahliyczRpMHKYMofDWcWry7utS1IyM', pdf_path)
 
         print("STEP 3: Send PDF to print")
         self.print_lulu()
 
+    def pin_page_left(self, button):
+        left_page = self.current_yearbook.pages[self.prev_page_index]
+        update_flag_for_page(left_page, button, "pinned")
+        pin_all_photos_on_page(left_page, self.img_preview_left)
+        self.render_left_page(left_page)
+
+    def pin_page_right(self, button):
+        right_page = self.current_yearbook.pages[self.curr_page_index]
+        update_flag_for_page(right_page, button, "pinned")
+        pin_all_photos_on_page(right_page, self.img_preview_right)
+        self.render_right_page(right_page)
+
     def lock_page_left(self, button):
         print("locking the left pager at index %s " % self.prev_page_index)
-        update_lock_flag_for_page(self.current_yearbook.pages[self.prev_page_index], button)
+        update_flag_for_page(self.current_yearbook.pages[self.prev_page_index], button, "locked")
 
     def lock_page_right(self, button):
         print("locking the right page at index %s " % self.curr_page_index)
-        update_lock_flag_for_page(self.current_yearbook.pages[self.curr_page_index], button)
+        update_flag_for_page(self.current_yearbook.pages[self.curr_page_index], button, "locked")
 
     def pickle_book(self, button):
         from pathlib import Path
@@ -1242,6 +1267,9 @@ class MainWindow(Gtk.Window):
         self.update_label_text()
         self.btn_lock_page_left.set_active(left_page.is_locked())
         self.btn_lock_page_right.set_active(right_page.is_locked())
+
+        self.btn_pin_page_left.set_active(left_page.is_pinned())
+        self.btn_pin_page_right.set_active(right_page.is_pinned())
 
     def set_settings(self, button):
         dialog = SettingsDialog(self)

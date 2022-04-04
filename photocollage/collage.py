@@ -422,7 +422,7 @@ class Page:
             self.scale(max_h / self.h)
 
     def next_free_col(self):
-        """Returns the column with lowest height"""
+        """Returns the column with the lowest height"""
         minimum = min(c.h for c in self.cols)
         candidates = []
         for c in self.cols:
@@ -448,6 +448,7 @@ class Page:
         col = self.next_free_col()
         left = col.left_neighbor()
         right = col.right_neighbor()
+        random.seed(1000)
         if 2 * random.random() > photo.ratio:
             if left and abs(col.h - left.h) < 0.5 * col.w:
                 return self.add_cell_multi_col(left, col, photo)

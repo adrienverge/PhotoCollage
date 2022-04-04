@@ -308,7 +308,6 @@ class RenderingTask(Thread):
                         img = self.resize_photo(c, use_cache=True)
 
                         if not self.full_resolution and c.photo.filename in pinned_photos:
-                            print("THIS NEEDS A DIFFERENT GRAYSCALE TREATMENT")
                             img = ImageOps.grayscale(img)
 
                         paste_photo(canvas, c, img)

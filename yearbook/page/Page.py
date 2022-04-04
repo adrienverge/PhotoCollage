@@ -28,7 +28,8 @@ class Page:
         self.image = orig_image_loc
         self.data = {"imagePath": orig_image_loc,
                      "extension": os.path.splitext(orig_image_loc)[1],
-                     "locked": False
+                     "locked": False,
+                     "pinned": False
                      }
         self.history = []
         self.history_index = 0
@@ -132,8 +133,11 @@ class Page:
 
         return False
 
-    def update_lock(self, flag: bool):
-        self.data["locked"] = flag
+    def update_flag(self, flag_name: str, flag: bool):
+        self.data[flag_name] = flag
+
+    def is_pinned(self):
+        return self.data["pinned"]
 
     def is_locked(self):
         return self.data["locked"]
@@ -145,6 +149,7 @@ class Page:
         self.pinned_photos: {str} = set()
         self.deleted_photos: {str} = set()
         self.data["locked"] = False
+        self.data["pinned"] = False
         self.cleared = True
 
     @property
