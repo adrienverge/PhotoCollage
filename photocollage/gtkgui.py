@@ -1155,21 +1155,7 @@ class MainWindow(Gtk.Window):
         self.print_lulu()
 
     def pin_page(self, button):
-        self.treeModel.foreach(self.print_row)
-
-    def print_row(self, store, treepath, treeiter):
-        #print("\t" * (treepath.get_depth() - 1), store[treeiter][:], sep="")
-        print(treepath)
-
-    def pin_page_old(self, button):
-        tree_selection = self.treeView.get_selection()
-        model, treeiter = tree_selection.get_selected()
-        print("Will propagate this page to all children...%s" % model[treeiter][0])
-        if model.iter_has_child(treeiter):
-            num_children = model.iter_n_children(treeiter)
-            for i in range(num_children):
-                new_iter = model.iter_nth_child(treeiter, i)
-                print("Children %s name %s" % (i, model[new_iter][0]))
+        
 
     def pickle_book(self, button):
         from pathlib import Path
