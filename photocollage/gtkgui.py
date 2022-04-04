@@ -82,7 +82,6 @@ def get_all_save_image_exts():
 def set_open_image_filters(dialog):
     """Set our own filter because Gtk.FileFilter.add_pixbuf_formats() contains
     formats not supported by PIL.
-
     """
     # Do not show the filter to the user, just limit selectable files
     img_filter = Gtk.FileFilter()
@@ -410,7 +409,6 @@ class UserCollage:
         no_cols = int(round(math.sqrt(avg_ratio / ratio * virtual_no_imgs)))
 
         self.page = collage.Page(1.0, ratio, no_cols)
-        random.shuffle(self.photolist)
         for photo in self.photolist:
             self.page.add_cell(photo)
         self.page.adjust()
@@ -444,6 +442,23 @@ def create_pdf_from_images(pdf_path, images):
         pdf_path, "PDF", resolution=100.0, save_all=True, append_images=pil_images[1:]
     )
     print("Finished saving PDF file %s" % pdf_path)
+
+
+def update_flag_for_page(page: Page, button, flag: str):
+    if button.get_active():
+        lock = True
+    else:
+        lock = False
+
+    print("Updating flag=%s page for %s " % (flag, page.number))
+
+    page.update_flag(flag, lock)
+
+
+def pin_all_photos_on_page(page, img_preview):
+    for column in img_preview.collage.page.cols:
+        for cell in column.cells:
+            page.pin_photo(cell.photo)
 
 
 class MainWindow(Gtk.Window):
@@ -509,7 +524,11 @@ class MainWindow(Gtk.Window):
         self.lbl_right_page = Gtk.Label(" ")
         self.btn_next_page = Gtk.Button(label=_("Next page..."))
         self.btn_save_book = Gtk.Button(label=_("Save"))
-        self.btn_pin_page = Gtk.Button(label="Pin Page")
+        self.btn_lock_page_left = Gtk.ToggleButton(label=_("Lock Left"))
+        self.btn_lock_page_right = Gtk.ToggleButton(label=_("Lock Right"))
+        self.btn_pin_page_left = Gtk.ToggleButton(label="Pin Page Left")
+        self.btn_pin_page_right = Gtk.ToggleButton(label="Pin Page Right")
+
         self.btn_print_book = Gtk.Button(label=_("Print@Lulu"))
 
         # on initialization
@@ -531,7 +550,7 @@ class MainWindow(Gtk.Window):
         self.right_opts = Options(left_page=False)
 
         self.deleted_images = set()
-
+        self.per_img_window = ImageWindow(self)
         self.make_window()
 
     def make_window(self):
@@ -585,11 +604,22 @@ class MainWindow(Gtk.Window):
         box.pack_start(self.btn_next_page, True, True, 0)
         self.btn_next_page.connect("clicked", self.select_next_page)
         self.page_num_text_entry.connect("activate", self.page_num_nav)
+
         box.pack_start(self.btn_save_book, True, True, 0)
         self.btn_save_book.connect("clicked", self.pickle_book)
 
-        box.pack_start(self.btn_pin_page, True, True, 0)
-        self.btn_pin_page.connect("clicked", self.pin_page)
+        box.pack_start(self.btn_pin_page_left, True, True, 0)
+        self.btn_pin_page_left.connect("clicked", self.pin_page_left)
+
+        box.pack_start(self.btn_pin_page_right, True, True, 0)
+        self.btn_pin_page_right.connect("clicked", self.pin_page_right)
+
+        box.pack_start(self.btn_lock_page_left, True, True, 0)
+        self.btn_lock_page_left.connect("clicked", self.lock_page_left)
+
+        box.pack_start(self.btn_lock_page_right, True, True, 0)
+        self.btn_lock_page_right.connect("clicked", self.lock_page_right)
+
         box.pack_start(self.btn_print_book, True, True, 0)
         self.btn_print_book.connect("clicked", self.print_final_lulu)
         box.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
@@ -809,14 +839,14 @@ class MainWindow(Gtk.Window):
         # Need to remove all previously added images
         [flowbox.remove(child) for child in flowbox.get_children()]
 
+        # Get a set of images used so far
+        used_images_set = set([photo.filename for photo in page.photo_list for page in self.current_yearbook.pages])
+
         for img in candidate_images:
 
             # Lets not add the image to the viewer if it's on the page.
             # TODO: This need to account for all previous pages and be smarter than what it currently is
-            if page.personalized and img in [photo.filename for photo in page.photo_list]:
-                continue
-
-            if img in self.deleted_images:
+            if img in used_images_set or img in self.deleted_images:
                 continue
 
             try:
@@ -844,14 +874,12 @@ class MainWindow(Gtk.Window):
 
     def invoke_add_image(self, widget, event, img_name):
         if event.type == Gdk.EventType._2BUTTON_PRESS:
-            print("double click, %s", img_name)
             self.add_image_to_left_pane(img_name)
         elif event.type == Gdk.EventType.BUTTON_PRESS and event.button == 3:
-            print("Right clicked")
             self.add_image_to_right_pane(img_name)
         else:
-            per_img_window = ImageWindow(img_name, self)
-            per_img_window.show_all()
+            self.per_img_window.update_image(img_name)
+            self.per_img_window.show_all()
 
     def update_photolist(self, page, new_images: [str], options: Options = None):
         photolist: [Photo] = []
@@ -940,6 +968,19 @@ class MainWindow(Gtk.Window):
             img_preview_area.image = None
             return
 
+        if yearbook_page.is_locked():
+            outfile = os.path.join(get_jpg_path(self.yearbook_parameters['output_dir'],
+                                                self.current_yearbook.school,
+                                                self.current_yearbook.classroom,
+                                                self.current_yearbook.child),
+                                   str(yearbook_page.number) + ".png")
+            from PIL import ImageOps
+            
+            img_preview_area.image = pil_image_to_cairo_surface(
+                ImageOps.grayscale(PIL.Image.open(outfile))
+            )
+            return
+
         if len(yearbook_page.history) == 0:
             if self.current_yearbook.parent_yearbook is None:
                 page_images = self.choose_images_for_page(yearbook_page)
@@ -974,7 +1015,6 @@ class MainWindow(Gtk.Window):
             yearbook_page.photo_list = first_photo_list
             yearbook_page.history.append(page_collage)
             yearbook_page.history_index = len(yearbook_page.history) - 1
-
         else:
             # There's no change necessary on the page, just return it from history
             page_collage: UserCollage = yearbook_page.history[yearbook_page.history_index]
@@ -1154,8 +1194,25 @@ class MainWindow(Gtk.Window):
         print("STEP 3: Send PDF to print")
         self.print_lulu()
 
-    def pin_page(self, button):
-        
+    def pin_page_left(self, button):
+        left_page = self.current_yearbook.pages[self.prev_page_index]
+        update_flag_for_page(left_page, button, "pinned")
+        pin_all_photos_on_page(left_page, self.img_preview_left)
+        self.render_left_page(left_page)
+
+    def pin_page_right(self, button):
+        right_page = self.current_yearbook.pages[self.curr_page_index]
+        update_flag_for_page(right_page, button, "pinned")
+        pin_all_photos_on_page(right_page, self.img_preview_right)
+        self.render_right_page(right_page)
+
+    def lock_page_left(self, button):
+        print("locking the left pager at index %s " % self.prev_page_index)
+        update_flag_for_page(self.current_yearbook.pages[self.prev_page_index], button, "locked")
+
+    def lock_page_right(self, button):
+        print("locking the right page at index %s " % self.curr_page_index)
+        update_flag_for_page(self.current_yearbook.pages[self.curr_page_index], button, "locked")
 
     def pickle_book(self, button):
         from pathlib import Path
@@ -1208,6 +1265,11 @@ class MainWindow(Gtk.Window):
         self.update_favorites_images()
 
         self.update_label_text()
+        self.btn_lock_page_left.set_active(left_page.is_locked())
+        self.btn_lock_page_right.set_active(right_page.is_locked())
+
+        self.btn_pin_page_left.set_active(left_page.is_pinned())
+        self.btn_pin_page_right.set_active(right_page.is_pinned())
 
     def set_settings(self, button):
         dialog = SettingsDialog(self)
