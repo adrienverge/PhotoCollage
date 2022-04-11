@@ -168,6 +168,10 @@ class RenderingTask(Thread):
         self.canceled = True
 
     def draw_skeleton(self, canvas):
+
+        if self.yearbook_page.is_locked():
+            return
+
         for col in self.page.cols:
             for c in col.cells:
                 if c.is_extension():
@@ -189,6 +193,9 @@ class RenderingTask(Thread):
         return canvas
 
     def draw_borders(self, canvas):
+        if self.yearbook_page.is_locked():
+            return
+
         if self.border_width == 0:
             return
 
@@ -281,8 +288,6 @@ class RenderingTask(Thread):
 
     def run(self):
         try:
-
-            print(self.yearbook_page.image)
             canvas = PIL.Image.new(
                 "RGBA", (int(self.page.w), int(self.page.h)), "black")
 
