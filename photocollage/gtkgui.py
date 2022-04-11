@@ -252,19 +252,21 @@ class ImagePreviewArea(Gtk.DrawingArea):
             context.paint()
 
             if self.mode == self.FLYING:
+                if self.parent.curr_page_index is not None:
+                    if widget.name == "LeftPage":
+                        _current_page = self.parent.current_yearbook.pages[self.parent.prev_page_index]
+                    else:
+                        _current_page = self.parent.current_yearbook.pages[self.parent.curr_page_index]
+                    if _current_page.is_locked():
+                        return
+
                 cell = self.collage.page.get_cell_at_position(self.x, self.y)
                 if cell:
                     self.paint_image_border(context, cell)
 
-                    if self.parent.curr_page_index is not None:
-                        if widget.name == "LeftPage":
-                            _current_page = self.parent.current_yearbook.pages[self.parent.prev_page_index]
-                        else:
-                            _current_page = self.parent.current_yearbook.pages[self.parent.curr_page_index]
-
-                        if cell.photo.filename not in _current_page.get_parent_pinned_photos():
-                            # Allow deleting only when the image is not pinned by any parent.
-                            self.paint_image_delete_button(context, cell)
+                    if cell.photo.filename not in _current_page.get_parent_pinned_photos():
+                        # Allow deleting only when the image is not pinned by any parent.
+                        self.paint_image_delete_button(context, cell)
 
                     if self.parent.current_yearbook.child is None:
                         # only then we bother with pinning icons
@@ -330,7 +332,6 @@ class ImagePreviewArea(Gtk.DrawingArea):
                 else:
                     self.image = None
                     self.mode = self.INSENSITIVE
-                    current_page.history_index = len(current_page.history)
                     self.parent.update_tool_buttons()
 
                 # Let's update the flow images to have this image show up in the bottom
@@ -388,11 +389,11 @@ class UserCollage:
 
     """
 
-    def __init__(self, photolist: [Photo]):
+    def __init__(self, photolist: [Photo], collage_page: collage.Page = None):
         self.photolist: [Photo] = photolist
-        self.page: collage.Page = None
+        self.page: collage.Page = collage_page
 
-    def make_page(self, opts):
+    def make_page(self, opts, shuffle=False):
         # Define the output image height / width ratio
         ratio = 1.0 * opts.out_h / opts.out_w
         # Compute a good number of columns. It depends on the ratio, the number
@@ -409,12 +410,19 @@ class UserCollage:
         no_cols = int(round(math.sqrt(avg_ratio / ratio * virtual_no_imgs)))
 
         self.page = collage.Page(1.0, ratio, no_cols)
+
+        if shuffle:
+            random.shuffle(self.photolist)
+
         for photo in self.photolist:
             self.page.add_cell(photo)
         self.page.adjust()
 
     def duplicate(self):
         return UserCollage(copy.copy(self.photolist))
+
+    def duplicate_with_layout(self):
+        return UserCollage(copy.copy(self.photolist), copy.deepcopy(self.page))
 
 
 def get_yearbook_string(column, cell, model, iter, data):
@@ -445,20 +453,18 @@ def create_pdf_from_images(pdf_path, images):
 
 
 def update_flag_for_page(page: Page, button, flag: str):
-    if button.get_active():
-        lock = True
-    else:
-        lock = False
+    print("Updating flag=%s page for %s in state %s" % (flag, page.number, button.get_active()))
 
-    print("Updating flag=%s page for %s " % (flag, page.number))
-
-    page.update_flag(flag, lock)
+    page.update_flag(flag, button.get_active())
 
 
-def pin_all_photos_on_page(page, img_preview):
-    for column in img_preview.collage.page.cols:
-        for cell in column.cells:
-            page.pin_photo(cell.photo)
+def pin_all_photos_on_page(page: Page, img_preview: ImagePreviewArea):
+    try:
+        for column in img_preview.collage.page.cols:
+            for cell in column.cells:
+                page.pin_photo(cell.photo)
+    except:
+        pass
 
 
 class MainWindow(Gtk.Window):
@@ -736,7 +742,6 @@ class MainWindow(Gtk.Window):
         model, treeiter = selection.get_selected()
         if treeiter is not None:
             self.current_yearbook: Yearbook = model[treeiter][0]
-            self.current_yearbook.print_yearbook_info()
 
         # Update the tool buttons
         self.set_current_corpus()
@@ -772,12 +777,13 @@ class MainWindow(Gtk.Window):
         flowbox.set_valign(Gtk.Align.START)
         flowbox.set_max_children_per_line(10)
         flowbox.set_selection_mode(Gtk.SelectionMode.SINGLE)
-        favorite_images = os.listdir(self.get_favorites_folder())
+        fav_folder = self.get_favorites_folder()
+        favorite_images = os.listdir(fav_folder)
 
         for img in favorite_images:
             try:
-                img_path = os.path.join(self.get_favorites_folder(), img)
-                del_img_path = img_path.replace(self.get_favorites_folder(), self.get_deleted_images_folder())
+                img_path = os.path.join(fav_folder, img)
+                del_img_path = img_path.replace(fav_folder, self.get_deleted_images_folder())
                 if del_img_path not in self.deleted_images:
                     pixbuf = get_orientation_fixed_pixbuf(img_path)
                     image = Gtk.Image.new_from_pixbuf(pixbuf)
@@ -824,7 +830,6 @@ class MainWindow(Gtk.Window):
             tags = get_unique_list_insertion_order(get_tag_list_for_page(self.current_yearbook, page))
             if self.current_yearbook.child is None:
                 candidate_images = self.corpus.get_images_with_tags_strict(tags)
-
             else:
                 candidate_images = self.corpus.get_images_for_child(tags, self.current_yearbook.child)
 
@@ -840,7 +845,9 @@ class MainWindow(Gtk.Window):
         [flowbox.remove(child) for child in flowbox.get_children()]
 
         # Get a set of images used so far
-        used_images_set = set([photo.filename for photo in page.photo_list for page in self.current_yearbook.pages])
+        used_images_set = set()
+        for pg in self.current_yearbook.pages:
+            [used_images_set.add(photo.filename) for photo in pg.photo_list]
 
         for img in candidate_images:
 
@@ -864,24 +871,34 @@ class MainWindow(Gtk.Window):
 
         self.show_all()
 
+    def is_left_page_locked(self):
+        return self.current_yearbook.pages[self.prev_page_index].is_locked()
+
+    def is_right_page_locked(self):
+        return self.current_yearbook.pages[self.curr_page_index].is_locked()
+
     def add_image_to_left_pane(self, img_name):
+        print("Updating left page, page index %s " % str(self.prev_page_index))
         self.update_photolist(self.current_yearbook.pages[self.prev_page_index], [img_name], self.left_opts)
         self.update_flow_box_with_images(self.current_yearbook.pages[self.prev_page_index])
 
     def add_image_to_right_pane(self, img_name):
+        print("Updating right page, page index %s " % str(self.curr_page_index))
         self.update_photolist(self.current_yearbook.pages[self.curr_page_index], [img_name], self.right_opts)
         self.update_flow_box_with_images(self.current_yearbook.pages[self.curr_page_index])
 
     def invoke_add_image(self, widget, event, img_name):
         if event.type == Gdk.EventType._2BUTTON_PRESS:
-            self.add_image_to_left_pane(img_name)
+            if not self.current_yearbook.pages[self.prev_page_index].is_locked():
+                self.add_image_to_left_pane(img_name)
         elif event.type == Gdk.EventType.BUTTON_PRESS and event.button == 3:
-            self.add_image_to_right_pane(img_name)
+            if not self.current_yearbook.pages[self.curr_page_index].is_locked():
+                self.add_image_to_right_pane(img_name)
         else:
             self.per_img_window.update_image(img_name)
             self.per_img_window.show_all()
 
-    def update_photolist(self, page, new_images: [str], options: Options = None):
+    def update_photolist(self, page: Page, new_images: [str], options: Options = None):
         photolist: [Photo] = []
         page.cleared = False
         try:
@@ -893,6 +910,8 @@ class MainWindow(Gtk.Window):
             if len(photolist) > 0:
                 new_collage = UserCollage(photolist)
                 new_collage.make_page(options)
+                page.update_flag("edited", True)
+                print("*******UPDATING EDIT FLAG*********")
                 self.render_from_new_collage(page, new_collage)
             else:
                 self.update_tool_buttons()
@@ -908,7 +927,8 @@ class MainWindow(Gtk.Window):
     def choose_images_for_page(self, page: Page, max_count=6) -> [str]:
         # Let's find the right ranker to delegate to
         ranker = RankerFactory.create_ranker(self.corpus, self.current_yearbook)
-        print("Working on: (%s, %s, %s) with tags %s" % (page.image, page.event_name, page.number, page.tags))
+        print(
+            "choose_images_for_page: (%s, %s, %s) with tags %s" % (page.image, page.event_name, page.number, page.tags))
         return ranker.get_candidate_images(self.current_yearbook, page, max_count)
 
     def on_drag(self, widget, drag_context, x, y, data, info, time):
@@ -957,11 +977,10 @@ class MainWindow(Gtk.Window):
         self.render_preview(page, self.img_preview_right, self.right_opts)
 
     def render_preview(self, yearbook_page: Page, img_preview_area: ImagePreviewArea, options: Options):
-        print("---Displaying %s %s" % (yearbook_page.event_name, yearbook_page.tags))
+        print("---Displaying %s %s" % (yearbook_page.event_name, str(yearbook_page.number)))
 
         rebuild = False
         pin_changed = False
-        first_render = False
         page_images = []
 
         if yearbook_page.cleared:
@@ -969,56 +988,88 @@ class MainWindow(Gtk.Window):
             return
 
         if yearbook_page.is_locked():
+            print("Page %s is locked..." % yearbook_page.number)
             outfile = os.path.join(get_jpg_path(self.yearbook_parameters['output_dir'],
                                                 self.current_yearbook.school,
                                                 self.current_yearbook.classroom,
                                                 self.current_yearbook.child),
                                    str(yearbook_page.number) + ".png")
             from PIL import ImageOps
-            
+
             img_preview_area.image = pil_image_to_cairo_surface(
                 ImageOps.grayscale(PIL.Image.open(outfile))
             )
+            print("Finished displayed grayscale single image")
             return
 
-        if len(yearbook_page.history) == 0:
-            if self.current_yearbook.parent_yearbook is None:
+        print("Current page metadata")
+        print(yearbook_page.data)
+
+        # If this page has never been edited,
+        if not yearbook_page.is_edited():
+            if self.current_yearbook.parent_yearbook is not None:
+                parent_page: Page = yearbook_page.parent_pages[-1]
+                print("******We have a parent, let's retrieve from there, %s*****" % parent_page.history_index)
+                print(parent_page.data)
+                page_collage: UserCollage = parent_page.history[-1].duplicate_with_layout()
+                yearbook_page.photo_list: [Photo] = page_collage.photolist
+                yearbook_page.history.append(page_collage)
+                print("******%s*****" % yearbook_page.history_index)
+
+            elif yearbook_page.history_index < 0:
+                print("No parent exists, so we create from scratch")
                 page_images = self.choose_images_for_page(yearbook_page)
-            else:
-                parent_page: Page = self.current_yearbook.parent_yearbook.pages[yearbook_page.number - 1]
-                page_images = parent_page.photos_on_page
-            first_render = True
+                first_photo_list: [Photo] = render.build_photolist(page_images)
+                page_collage = UserCollage(first_photo_list)
+                page_collage.make_page(options)
+                yearbook_page.photo_list = first_photo_list
+                yearbook_page.history.append(page_collage)
+                print("Finished appending first time, %s " % len(yearbook_page.history))
+                print("Index %s" % str(yearbook_page.history_index))
 
-        if yearbook_page.has_parent_pins_changed():
-            new_images = yearbook_page.get_filenames_parent_pins_not_on_page()
-            existing_images = yearbook_page.photos_on_page
-            new_images.extend(existing_images)
-            page_images = get_unique_list_insertion_order(new_images)
-            pin_changed = True
-            rebuild = True
-
-        if yearbook_page.did_parent_delete():
-            if pin_changed:
-                existing_images = page_images
-            else:
-                existing_images = yearbook_page.photos_on_page
-
-            parent_deleted_set = yearbook_page.get_parent_deleted_photos()
-            # remove parent deleted images from existing set
-            page_images = [img for img in existing_images if img not in parent_deleted_set]
-            rebuild = True
-
-        if rebuild or first_render:
-            first_photo_list = render.build_photolist(page_images)
-            page_collage = UserCollage(first_photo_list)
-            page_collage.make_page(options)
-            yearbook_page.photo_list = first_photo_list
-            yearbook_page.history.append(page_collage)
-            yearbook_page.history_index = len(yearbook_page.history) - 1
         else:
-            # There's no change necessary on the page, just return it from history
-            page_collage: UserCollage = yearbook_page.history[yearbook_page.history_index]
+            if yearbook_page.has_parent_pins_changed():
+                new_images = yearbook_page.get_filenames_parent_pins_not_on_page()
+                existing_images = yearbook_page.photos_on_page
+                new_images.extend(existing_images)
+                page_images = get_unique_list_insertion_order(new_images)
+                pin_changed = True
+                rebuild = True
 
+            if yearbook_page.did_parent_delete():
+                if pin_changed:
+                    existing_images = page_images
+                else:
+                    existing_images = yearbook_page.photos_on_page
+
+                parent_deleted_set = yearbook_page.get_parent_deleted_photos()
+                # remove parent deleted images from existing set
+                page_images = [img for img in existing_images if img not in parent_deleted_set]
+                rebuild = True
+
+            if rebuild:
+                print("REBUILDING PHOTO LIST")
+                first_photo_list = render.build_photolist(page_images)
+                page_collage = UserCollage(first_photo_list)
+                page_collage.make_page(options)
+                yearbook_page.photo_list = first_photo_list
+                yearbook_page.history.append(page_collage)
+            else:
+                # If the images of the current page are the same as the parent
+                # then we want to update and copy the most recent layout of the parent
+                from yearbook.Corpus import intersection
+                if self.current_yearbook.parent_yearbook is not None:
+                    parent_page: Page = self.current_yearbook.parent_yearbook.pages[yearbook_page.number - 1]
+                    if set(yearbook_page.photo_list) == set(parent_page.photo_list):
+                        page_collage: UserCollage = parent_page.history[-1]
+                        # Need to copy the parent layout in this case
+                        yearbook_page.history.append(page_collage)
+                        print("Attempting to copy parent layout, since this child has same images as parent")
+                    else:
+                        print("")
+
+        print("Picking up from history %s, %s " % (yearbook_page.history_index, len(yearbook_page.history)))
+        page_collage: UserCollage = yearbook_page.history[yearbook_page.history_index]
         # If the desired ratio changed in the meantime (e.g. from landscape to
         # portrait), it needs to be re-updated
         page_collage.page.target_ratio = 1.0 * options.out_h / options.out_w
@@ -1073,7 +1124,6 @@ class MainWindow(Gtk.Window):
 
     def render_from_new_collage(self, page: Page, _collage):
         page.history.append(_collage)
-        page.history_index = len(page.history) - 1
         self.update_tool_buttons()
         if page.number % 2 == 0:
             self.render_preview(page, self.img_preview_left, self.left_opts)
@@ -1097,7 +1147,7 @@ class MainWindow(Gtk.Window):
             options = self.left_opts
 
         new_collage = page.history[page.history_index].duplicate()
-        new_collage.make_page(options)
+        new_collage.make_page(options, shuffle=True)
         self.render_from_new_collage(page, new_collage)
 
     def stitch_background_with_image(self):
@@ -1197,22 +1247,30 @@ class MainWindow(Gtk.Window):
     def pin_page_left(self, button):
         left_page = self.current_yearbook.pages[self.prev_page_index]
         update_flag_for_page(left_page, button, "pinned")
-        pin_all_photos_on_page(left_page, self.img_preview_left)
+        if button.get_active():
+            pin_all_photos_on_page(left_page, self.img_preview_left)
+
         self.render_left_page(left_page)
 
     def pin_page_right(self, button):
         right_page = self.current_yearbook.pages[self.curr_page_index]
         update_flag_for_page(right_page, button, "pinned")
-        pin_all_photos_on_page(right_page, self.img_preview_right)
+        if button.get_active():
+            pin_all_photos_on_page(right_page, self.img_preview_right)
+
         self.render_right_page(right_page)
 
     def lock_page_left(self, button):
-        print("locking the left pager at index %s " % self.prev_page_index)
-        update_flag_for_page(self.current_yearbook.pages[self.prev_page_index], button, "locked")
+        left_page = self.current_yearbook.pages[self.prev_page_index]
+        print("locking the left page at index %s " % self.prev_page_index)
+        update_flag_for_page(left_page, button, "locked")
+        self.render_left_page(left_page)
 
     def lock_page_right(self, button):
+        right_page = self.current_yearbook.pages[self.curr_page_index]
         print("locking the right page at index %s " % self.curr_page_index)
-        update_flag_for_page(self.current_yearbook.pages[self.curr_page_index], button, "locked")
+        update_flag_for_page(right_page, button, "locked")
+        self.render_right_page(right_page)
 
     def pickle_book(self, button):
         from pathlib import Path
@@ -1253,7 +1311,7 @@ class MainWindow(Gtk.Window):
             self.curr_page_index = 0
 
         try:
-            left_page = self.current_yearbook.pages[self.curr_page_index - 1]
+            left_page = self.current_yearbook.pages[self.prev_page_index]
             self.render_left_page(left_page)
         except IndexError:
             pass

@@ -106,8 +106,8 @@ def get_tree_model(dir_params: {}, school_selection: str) -> Gtk.TreeStore:
                                              child=None, parent_book=school_yearbook.pickle_yearbook)
 
             # Set the parent pages for this yearbook
-            [class_page.parent_pages.append(school_page) for class_page, school_page in
-             zip(class_yearbook.pages, school_yearbook.pages)]
+            for class_page, school_page in zip(class_yearbook.pages, school_yearbook.pages):
+                class_page.parent_pages.append(school_page)
 
             class_parent = treestore.append(school_parent, [class_yearbook])
             added_schools[school_name][current_class] = {}
@@ -122,8 +122,8 @@ def get_tree_model(dir_params: {}, school_selection: str) -> Gtk.TreeStore:
             added_schools[school_name][current_class][current_child] = {}
 
             # Set the parent pages for this yearbook
-            [child_page.parent_pages.append(class_page) for child_page, class_page in
-             zip(child_yearbook.pages, class_yearbook.pages)]
+            for child_page, class_page in zip(child_yearbook.pages, class_yearbook.pages):
+                child_page.parent_pages.append(class_page)
 
     conn.close()
     return treestore

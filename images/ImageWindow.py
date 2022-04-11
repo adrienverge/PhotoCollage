@@ -22,6 +22,10 @@ class ImageWindow(Gtk.Window):
         self.image = None
         self.parent_window = parent_window
         self.make_window()
+        self.connect('delete_event', self.ignore)
+
+    def ignore(self):  # do nothing
+        return Gtk.TRUE
 
     def make_window(self):
         self.set_border_width(8)
@@ -58,7 +62,6 @@ class ImageWindow(Gtk.Window):
 
     def update_image(self, image):
         import os
-        print("UPDATING IMAGE %s " % image)
         pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(image, 800, 600, True)
         transparent = pixbuf.add_alpha(True, 0xff, 0xff, 0xff)
         new_img = Gtk.Image.new_from_pixbuf(transparent)
@@ -67,13 +70,15 @@ class ImageWindow(Gtk.Window):
         self.frame.add(new_img)
 
         self.image = image
-        self.add_to_left.set_sensitive(True)
-        self.add_to_right.set_sensitive(True)
+        self.add_to_left.set_sensitive(not self.parent_window.is_left_page_locked())
+        self.add_to_right.set_sensitive(not self.parent_window.is_right_page_locked())
+
         favorite_images = [os.path.join(self.parent_window.get_favorites_folder(), img) for img in os.listdir(self.parent_window.get_favorites_folder())]
         if image in favorite_images:
             self.favorite.set_sensitive(False)
 
     def add_to_left_pane(self, widget):
+
         self.parent_window.add_image_to_left_pane(self.image)
 
         self.add_to_left.set_sensitive(False)
