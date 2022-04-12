@@ -529,13 +529,13 @@ class MainWindow(Gtk.Window):
         self.page_num_text_entry.set_max_length(2)
         self.lbl_right_page = Gtk.Label(" ")
         self.btn_next_page = Gtk.Button(label=_("Next page..."))
-        self.btn_save_book = Gtk.Button(label=_("Save"))
+        self.btn_save_all_books = Gtk.Button(label=_("Save All"))
         self.btn_lock_page_left = Gtk.ToggleButton(label=_("Lock Left"))
         self.btn_lock_page_right = Gtk.ToggleButton(label=_("Lock Right"))
         self.btn_pin_page_left = Gtk.ToggleButton(label="Pin Page Left")
         self.btn_pin_page_right = Gtk.ToggleButton(label="Pin Page Right")
 
-        self.btn_print_book = Gtk.Button(label=_("Print@Lulu"))
+        self.btn_print_all_books = Gtk.Button(label=_("Print All@Lulu"))
 
         # on initialization
         self.treeModel: Gtk.TreeStore = get_tree_model(self.yearbook_parameters, self.school_combo.get_active_text())
@@ -611,9 +611,6 @@ class MainWindow(Gtk.Window):
         self.btn_next_page.connect("clicked", self.select_next_page)
         self.page_num_text_entry.connect("activate", self.page_num_nav)
 
-        box.pack_start(self.btn_save_book, True, True, 0)
-        self.btn_save_book.connect("clicked", self.pickle_book)
-
         box.pack_start(self.btn_pin_page_left, True, True, 0)
         self.btn_pin_page_left.connect("clicked", self.pin_page_left)
 
@@ -626,8 +623,11 @@ class MainWindow(Gtk.Window):
         box.pack_start(self.btn_lock_page_right, True, True, 0)
         self.btn_lock_page_right.connect("clicked", self.lock_page_right)
 
-        box.pack_start(self.btn_print_book, True, True, 0)
-        self.btn_print_book.connect("clicked", self.print_final_lulu)
+        box.pack_start(self.btn_save_all_books, True, True, 0)
+        self.btn_save_all_books.connect("clicked", self.pickle_all_books)
+
+        box.pack_start(self.btn_print_all_books, True, True, 0)
+        self.btn_print_all_books.connect("clicked", self.print_final_lulu)
         box.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
 
         self.btn_settings.set_always_show_image(True)
@@ -967,7 +967,7 @@ class MainWindow(Gtk.Window):
 
             self.render_preview(page, self.img_preview_left, options)
 
-        self.pickle_book(None)
+        self.pickle_all_books(None)
         print("********Finished rendering pages for the yearbook********")
 
     def render_left_page(self, page):
@@ -1275,14 +1275,15 @@ class MainWindow(Gtk.Window):
         update_flag_for_page(right_page, button, "locked")
         self.render_right_page(right_page)
 
-    def pickle_book(self, button):
+    def pickle_book(self, store: Gtk.TreeStore, treepath: Gtk.TreePath, treeiter: Gtk.TreeIter):
         from pathlib import Path
         import pickle
         import os
+        _yearbook = store[treeiter][0]
 
         output_dir = self.yearbook_parameters['output_dir']
-        pickle_path = get_pickle_path(output_dir, self.current_yearbook.school,
-                                      self.current_yearbook.classroom, self.current_yearbook.child)
+        pickle_path = get_pickle_path(output_dir, _yearbook.school,
+                                      _yearbook.classroom, _yearbook.child)
         pickle_filename = os.path.join(pickle_path, "file.pickle")
         path1 = Path(pickle_filename)
         # Create the parent directories if they don't exist
@@ -1290,9 +1291,12 @@ class MainWindow(Gtk.Window):
 
         # Important to open the file in binary mode
         with open(pickle_filename, 'wb') as f:
-            pickle.dump(self.current_yearbook.pickle_yearbook, f)
+            pickle.dump(_yearbook.pickle_yearbook, f)
 
         print("Saved pickled yearbook here: ", pickle_filename)
+
+    def pickle_all_books(self, button):
+        self.treeModel.foreach(self.pickle_book)
 
     def select_next_page(self, button):
         # Increment to the next left page
