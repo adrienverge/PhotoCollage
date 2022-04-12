@@ -778,22 +778,21 @@ class MainWindow(Gtk.Window):
         flowbox.set_max_children_per_line(10)
         flowbox.set_selection_mode(Gtk.SelectionMode.SINGLE)
         fav_folder = self.get_favorites_folder()
-        favorite_images = os.listdir(fav_folder)
+        favorite_images = [os.path.join(fav_folder, img) for img in os.listdir(fav_folder)]
 
-        for img in favorite_images:
+        for img_path in favorite_images:
             try:
-                img_path = os.path.join(fav_folder, img)
                 del_img_path = img_path.replace(fav_folder, self.get_deleted_images_folder())
                 if del_img_path not in self.deleted_images:
                     pixbuf = get_orientation_fixed_pixbuf(img_path)
                     image = Gtk.Image.new_from_pixbuf(pixbuf)
                     img_box = Gtk.EventBox()
                     img_box.add(image)
-                    img_box.connect("button_press_event", self.invoke_add_image, img_path)
+                    img_box.connect("button_press_event", self.invoke_add_image, img_path, favorite_images)
                     flowbox.add(img_box)
             except OSError:
                 # raise BadPhoto(name)
-                print("Update favorites -- Skipping a photo: %s" % img)
+                print("Update favorites -- Skipping a photo: %s" % img_path)
                 continue
 
         self.show_all()
@@ -861,7 +860,7 @@ class MainWindow(Gtk.Window):
                 image = Gtk.Image.new_from_pixbuf(pixbuf)
                 img_box = Gtk.EventBox()
                 img_box.add(image)
-                img_box.connect("button_press_event", self.invoke_add_image, img)
+                img_box.connect("button_press_event", self.invoke_add_image, img, candidate_images)
                 flowbox.add(img_box)
 
             except OSError:
@@ -887,7 +886,7 @@ class MainWindow(Gtk.Window):
         self.update_photolist(self.current_yearbook.pages[self.curr_page_index], [img_name], self.right_opts)
         self.update_flow_box_with_images(self.current_yearbook.pages[self.curr_page_index])
 
-    def invoke_add_image(self, widget, event, img_name):
+    def invoke_add_image(self, widget, event, img_name, images_list):
         if event.type == Gdk.EventType._2BUTTON_PRESS:
             if not self.current_yearbook.pages[self.prev_page_index].is_locked():
                 self.add_image_to_left_pane(img_name)
@@ -895,6 +894,7 @@ class MainWindow(Gtk.Window):
             if not self.current_yearbook.pages[self.curr_page_index].is_locked():
                 self.add_image_to_right_pane(img_name)
         else:
+            self.per_img_window.update_images_list(images_list)
             self.per_img_window.update_image(img_name)
             self.per_img_window.show_all()
 
@@ -1210,6 +1210,9 @@ class MainWindow(Gtk.Window):
         return pdf_path
 
     def get_folder(self, folder_name):
+        if self.current_yearbook is None or self.current_yearbook.school is None:
+            return None
+
         folder = os.path.join(self.corpus_base_dir, self.current_yearbook.school, folder_name)
         if not os.path.exists(folder):
             os.makedirs(folder)
