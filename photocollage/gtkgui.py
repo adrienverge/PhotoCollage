@@ -445,11 +445,15 @@ class Options:
 
 
 def create_pdf_from_images(pdf_path, images):
+
+    # This creates the internal PDF file
     pil_images = [PIL.Image.open(image).convert('RGB') for image in images]
-    pil_images[0].save(
-        pdf_path, "PDF", resolution=100.0, save_all=True, append_images=pil_images[1:]
+    pil_images[1].save(
+        pdf_path, "PDF", resolution=100.0, save_all=True, append_images=pil_images[2:-1]
     )
     print("Finished saving PDF file %s" % pdf_path)
+
+    print("STILL NEED TO CREATE THE FINAL COVER FILE")
 
 
 def update_flag_for_page(page: Page, button, flag: str):
@@ -627,7 +631,7 @@ class MainWindow(Gtk.Window):
         self.btn_save_all_books.connect("clicked", self.pickle_all_books)
 
         box.pack_start(self.btn_print_all_books, True, True, 0)
-        self.btn_print_all_books.connect("clicked", self.print_final_lulu)
+        self.btn_print_all_books.connect("clicked", self.print_all_pdfs)
         box.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
 
         self.btn_settings.set_always_show_image(True)
@@ -1150,15 +1154,16 @@ class MainWindow(Gtk.Window):
         new_collage.make_page(options, shuffle=True)
         self.render_from_new_collage(page, new_collage)
 
-    def stitch_background_with_image(self):
+    def stitch_background_with_image(self, yearbook: Yearbook):
         output_dir = self.yearbook_parameters['output_dir']
 
         page_collages = [
-            page.history[page.history_index] for page in self.current_yearbook.pages]
+            page.history[page.history_index] for page in yearbook.pages]
 
-        for page, page_collage in zip(self.current_yearbook.pages, page_collages):
-            new_img_path = os.path.join(get_jpg_path(output_dir, self.current_yearbook.school,
-                                                     self.current_yearbook.classroom, self.current_yearbook.child),
+        for page, page_collage in zip(yearbook.pages, page_collages):
+            new_img_path = os.path.join(get_jpg_path(output_dir, yearbook.school,
+                                                     yearbook.classroom,
+                                                     yearbook.child),
                                         str(page.number) + "_stitched.png")
 
             if page.number % 2 == 0:
@@ -1204,9 +1209,15 @@ class MainWindow(Gtk.Window):
                 t.abort()
                 compdialog.destroy()
 
-        pdf_path = os.path.join(get_pdf_path(output_dir, self.current_yearbook.school,
-                                             self.current_yearbook.classroom, self.current_yearbook.child),
-                                "yearbook_stitched.pdf")
+        os.makedirs(os.path.join(output_dir, "pdf_outputs"), exist_ok=True)
+
+        if yearbook.classroom is None:
+            pdf_path = os.path.join(output_dir, "pdf_outputs", yearbook.school + ".pdf")
+        elif yearbook.child is None:
+            pdf_path = os.path.join(output_dir, "pdf_outputs", yearbook.school + "_" + yearbook.classroom + ".pdf")
+        else:
+            pdf_path = os.path.join(output_dir, "pdf_outputs", yearbook.school + "_" + yearbook.classroom + "_"
+                                    + yearbook.child + ".pdf")
         return pdf_path
 
     def get_folder(self, folder_name):
@@ -1225,27 +1236,33 @@ class MainWindow(Gtk.Window):
     def get_deleted_images_folder(self):
         return self.get_folder("Deleted")
 
-    def print_final_lulu(self, button):
+    def print_all_pdfs(self, button):
+        self.treeModel.foreach(self.create_internal_pdf)
+
+    def create_internal_pdf(self, store: Gtk.TreeStore, treepath: Gtk.TreePath, treeiter: Gtk.TreeIter):
+        _yearbook = store[treeiter][0]
+
         print("STEP 1: Create_print_pdf")
-        pdf_path = self.stitch_background_with_image()
+        pdf_path = self.stitch_background_with_image(_yearbook)
 
         print("STEP 2: Create PDF")
         images = []
-        for page in self.current_yearbook.pages:
+        for page in _yearbook.pages:
             images.append(os.path.join(get_jpg_path(self.yearbook_parameters['output_dir'],
-                                                    self.current_yearbook.school,
-                                                    self.current_yearbook.classroom, self.current_yearbook.child),
+                                                    _yearbook.school,
+                                                    _yearbook.classroom,
+                                                    _yearbook.child),
                                        str(page.number) + "_stitched.png"))
 
         print("Creating PDF from images")
         create_pdf_from_images(pdf_path, images)
 
-        from util.google.drive.util import upload_pdf_file
+        # from util.google.drive.util import upload_pdf_file
         # the first argument is the Google id of the folder that we upload to.
-        upload_pdf_file('1BsahliyczRpMHKYMofDWcWry7utS1IyM', pdf_path)
+        # upload_pdf_file('1BsahliyczRpMHKYMofDWcWry7utS1IyM', pdf_path)
 
-        print("STEP 3: Send PDF to print")
-        self.print_lulu()
+        # print("STEP 3: Send PDF to print")
+        # self.print_lulu()
 
     def pin_page_left(self, button):
         left_page = self.current_yearbook.pages[self.prev_page_index]
