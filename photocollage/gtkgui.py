@@ -1209,9 +1209,15 @@ class MainWindow(Gtk.Window):
                 t.abort()
                 compdialog.destroy()
 
-        pdf_path = os.path.join(get_pdf_path(output_dir, yearbook.school,
-                                             yearbook.classroom, yearbook.child),
-                                "yearbook_stitched.pdf")
+        os.makedirs(os.path.join(output_dir, "pdf_outputs"), exist_ok=True)
+
+        if yearbook.classroom is None:
+            pdf_path = os.path.join(output_dir, "pdf_outputs", yearbook.school + ".pdf")
+        elif yearbook.child is None:
+            pdf_path = os.path.join(output_dir, "pdf_outputs", yearbook.school + "_" + yearbook.classroom + ".pdf")
+        else:
+            pdf_path = os.path.join(output_dir, "pdf_outputs", yearbook.school + "_" + yearbook.classroom + "_"
+                                    + yearbook.child + ".pdf")
         return pdf_path
 
     def get_folder(self, folder_name):
