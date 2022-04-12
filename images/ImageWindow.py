@@ -29,12 +29,13 @@ class ImageWindow(Gtk.Window):
         self.parent_window = parent_window
         self.browse_images_list = []
         self.make_window()
+        self.connect('delete-event', self.ignore)
 
     def update_images_list(self, images):
         self.browse_images_list = images
 
-    def ignore(self, widget):  # do nothing
-        return Gtk.TRUE
+    def ignore(self, widget=None, *data):  # do nothing
+        return True
 
     @property
     def favorites(self):
