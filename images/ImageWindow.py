@@ -101,6 +101,9 @@ class ImageWindow(Gtk.Window):
         self.current_image = image
         self.frame.show_all()
         self.update_buttons()
+        self.set_keep_above(True)  # if used alone it will cause window permanently on top
+        self.show_all()  # show your window, should be in the middle between these 2 calls
+        self.set_keep_above(False)  # disable always on top
 
     def add_to_left_pane(self, widget):
 
