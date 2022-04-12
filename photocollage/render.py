@@ -333,7 +333,7 @@ class RenderingTask(Thread):
                 print("Saving image at ...", self.output_file)
 
                 if self.full_resolution and self.yearbook_page.personalized :
-                    background = PIL.Image.open(self.yearbook_page.current_image).convert("RGBA")
+                    background = PIL.Image.open(self.yearbook_page.image).convert("RGBA")
                     new_background = background.resize(IMAGE_WITH_BLEED_SIZE)
                     print("Canvas size")
                     print(canvas.size)

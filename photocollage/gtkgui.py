@@ -1158,7 +1158,8 @@ class MainWindow(Gtk.Window):
 
         for page, page_collage in zip(self.current_yearbook.pages, page_collages):
             new_img_path = os.path.join(get_jpg_path(output_dir, self.current_yearbook.school,
-                                                     self.current_yearbook.classroom, self.current_yearbook.child),
+                                                     self.current_yearbook.classroom,
+                                                     self.current_yearbook.child),
                                         str(page.number) + "_stitched.png")
 
             if page.number % 2 == 0:
@@ -1227,18 +1228,20 @@ class MainWindow(Gtk.Window):
 
     def print_final_lulu(self, button):
         print("STEP 1: Create_print_pdf")
-        pdf_path = self.stitch_background_with_image()
+        pdf_path = "/Users/anshah/YearbookCreatorOut/anshah/.pdfs/Monticello_Preschool_2021_2022_pdfs/yearbook_stitched.pdf"
+        #pdf_path = self.stitch_background_with_image()
 
         print("STEP 2: Create PDF")
         images = []
         for page in self.current_yearbook.pages:
             images.append(os.path.join(get_jpg_path(self.yearbook_parameters['output_dir'],
                                                     self.current_yearbook.school,
-                                                    self.current_yearbook.classroom, self.current_yearbook.child),
+                                                    self.current_yearbook.classroom,
+                                                    self.current_yearbook.child),
                                        str(page.number) + "_stitched.png"))
 
         print("Creating PDF from images")
-        create_pdf_from_images(pdf_path, images)
+        #create_pdf_from_images(pdf_path, images)
 
         from util.google.drive.util import upload_pdf_file
         # the first argument is the Google id of the folder that we upload to.
