@@ -355,7 +355,8 @@ class RenderingTask(Thread):
 
                         new_background.paste(canvas, (75, 175), mask=canvas)
                     else:
-                        new_background.paste(canvas, (75, 75), mask=canvas)
+                        new_background.paste(canvas, (75, 75))
+
                     new_background.save(self.output_file, quality=100)
                 else:
                     canvas.save(self.output_file, quality=100)
