@@ -73,12 +73,3 @@ class Corpus:
 
         return images_with_same_tags
 
-    def get_portraits(self, classroom: str, child: str):
-        portrait_images = [img for img in self.tags_to_images[child] if "Portraits" in self.image_to_tags[img]
-                           and classroom in self.image_to_tags[img]]
-
-        if portrait_images is None or len(portrait_images) == 0:
-            # Need a default image being returned here
-            print("Some default image needs to be returned")
-
-        return portrait_images

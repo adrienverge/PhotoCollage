@@ -28,10 +28,16 @@ from photocollage.settings.PrintSettings import IMAGE_WITH_BLEED_SIZE, TEXT_FONT
 from util.draw.DashedImageDraw import DashedImageDraw
 from yearbook.page import Page
 
+import os, getpass
+
 QUALITY_SKEL = 0
 QUALITY_FAST = 1
 QUALITY_BEST = 2
 # Hard Coded Size value of 8.75 by 11.25 inches
+
+IMAGE_WITH_BLEED_SIZE = (2625, 3375)
+FONT_DIR = os.path.join("/Users", getpass.getuser(), "GoogleDrive", "Fonts")
+TEXT_FONT = ImageFont.truetype(os.path.join(FONT_DIR, "open-sans/OpenSans-Bold.ttf"), 100)
 
 # Try to continue even if the input file is corrupted.
 # See issue at https://github.com/adrienverge/PhotoCollage/issues/65
@@ -103,7 +109,7 @@ def build_photolist(filelist: [str]) -> [Photo]:
         try:
             img = PIL.Image.open(name)
         except OSError:
-            print("Skipping a photo: %s" % name)
+            print("Building list --> Skipping a photo: %s" % name)
             continue
 
         w, h = img.size
@@ -163,6 +169,10 @@ class RenderingTask(Thread):
         self.canceled = True
 
     def draw_skeleton(self, canvas):
+
+        if self.yearbook_page.is_locked():
+            return
+
         for col in self.page.cols:
             for c in col.cells:
                 if c.is_extension():
@@ -184,6 +194,9 @@ class RenderingTask(Thread):
         return canvas
 
     def draw_borders(self, canvas):
+        if self.yearbook_page.is_locked():
+            return
+
         if self.border_width == 0:
             return
 
@@ -276,8 +289,6 @@ class RenderingTask(Thread):
 
     def run(self):
         try:
-
-            print(self.yearbook_page.image)
             canvas = PIL.Image.new(
                 "RGBA", (int(self.page.w), int(self.page.h)), "black")
 
@@ -303,7 +314,6 @@ class RenderingTask(Thread):
                         img = self.resize_photo(c, use_cache=True)
 
                         if not self.full_resolution and c.photo.filename in pinned_photos:
-                            print("THIS NEEDS A DIFFERENT GRAYSCALE TREATMENT")
                             img = ImageOps.grayscale(img)
 
                         paste_photo(canvas, c, img)

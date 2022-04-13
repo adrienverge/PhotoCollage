@@ -21,14 +21,19 @@ def read_page_json(json_file_loc):
 
 class Page:
 
-    def __init__(self, number: int, event: str, personalized: bool, orig_image_loc: str, title: str, tags: str = None):
+    def __init__(self, number: int, event: str, personalized: bool,
+                 orig_image_loc: str, title: str, tags: str = None):
         self.number = number
         self.event_name = event
         self.personalized = personalized
         self.image = orig_image_loc
-        self.data = {"imagePath": orig_image_loc, "extension": os.path.splitext(orig_image_loc)[1]}
+        self.data = {"imagePath": orig_image_loc,
+                     "extension": os.path.splitext(orig_image_loc)[1],
+                     "locked": False,
+                     "pinned": False,
+                     "edited": False
+                     }
         self.history = []
-        self.history_index = 0
         self.photo_list: [Photo] = []
         self.pinned_photos: {str} = set()
         self.deleted_photos: {str} = set()
@@ -41,8 +46,11 @@ class Page:
         self.cleared: bool = False
         self.title = title
 
-    def __getstate__(self): return self.__dict__
-    def __setstate__(self, d): self.__dict__.update(d)
+    def __getstate__(self):
+        return self.__dict__
+
+    def __setstate__(self, d):
+        self.__dict__.update(d)
 
     def print_image_name(self):
         print("Name:: " + self.image)
@@ -67,6 +75,7 @@ class Page:
             # Keep track of the filename that was explicitly deleted
             # This should not show up on any pages anymore.
             self.deleted_photos.add(photo_to_remove.filename)
+            self.update_flag("edited", True)
         except KeyError:
             pass
 
@@ -81,7 +90,6 @@ class Page:
                       parent_page.get_all_deleted_photos()]
 
         return get_unique_list_insertion_order(_flat_list)
-
 
     '''
     This method will return all pinned photos and keep track of 
@@ -127,14 +135,48 @@ class Page:
 
         return False
 
+    def update_flag(self, flag_name: str, flag: bool):
+        self.data[flag_name] = flag
+
+    def is_pinned(self):
+        return "pinned" in self.data and self.data["pinned"]
+
+    def is_locked(self):
+        return "locked" in self.data and self.data["locked"]
+
+    def is_edited(self):
+        return "edited" in self.data and self.data["edited"]
+
     def clear_all(self):
         self.history = []
-        self.history_index = 0
         self.photo_list: [Photo] = []
         self.pinned_photos: {str} = set()
         self.deleted_photos: {str} = set()
+        self.data["locked"] = False
+        self.data["pinned"] = False
+        self.data["edited"] = False
         self.cleared = True
+
+    @property
+    def history_index(self):
+        return len(self.history) - 1
 
     @property
     def photos_on_page(self):
         return [photo.filename for photo in self.photo_list]
+
+    # def get_pinned_parent(self):
+    #     pinned_parent = None
+    #     for parent_page in self.parent_pages:
+    #         if parent_page.is_pinned():
+    #             pinned_parent = parent_page
+    #
+    #     return pinned_parent
+    #
+    # def get_pinned_parent_collage(self):
+    #     pinned_parent = self.get_pinned_parent()
+    #     if pinned_parent is not None:
+    #         return pinned_parent.history[-1]
+    #
+    #     return None
+

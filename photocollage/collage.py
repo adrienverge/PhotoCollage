@@ -422,7 +422,7 @@ class Page:
             self.scale(max_h / self.h)
 
     def next_free_col(self):
-        """Returns the column with lowest height"""
+        """Returns the column with the lowest height"""
         minimum = min(c.h for c in self.cols)
         candidates = []
         for c in self.cols:

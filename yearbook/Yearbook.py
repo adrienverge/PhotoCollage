@@ -77,7 +77,6 @@ class PickleYearbook:
         print("%s :-> %s :-> %s" % (self.school,
                                     self.classroom, self.child))
 
-
 class Yearbook(GObject.GObject):
 
     def __init__(self, pickle_yearbook: PickleYearbook):
