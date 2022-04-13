@@ -1302,7 +1302,7 @@ class MainWindow(Gtk.Window):
                                        str(page.number) + "_stitched.png"))
 
         print("Creating PDF from images")
-        create_pdf_from_images(pdf_path, images)
+        #create_pdf_from_images(pdf_path, images)
 
         upload_to_folder('1UWyYpHCUJ2lIUP0wOrTwtFeXYOXTd5x9', pdf_path)
 
