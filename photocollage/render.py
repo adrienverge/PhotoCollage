@@ -21,7 +21,7 @@ import time
 import PIL.Image
 import PIL.ImageDraw
 import PIL.ImageFile
-from PIL import ImageOps
+from PIL import ImageOps, ImageFont
 
 from photocollage.collage import Photo
 from photocollage.settings.PrintSettings import IMAGE_WITH_BLEED_SIZE, TEXT_FONT
@@ -38,6 +38,7 @@ QUALITY_BEST = 2
 IMAGE_WITH_BLEED_SIZE = (2625, 3375)
 FONT_DIR = os.path.join("/Users", getpass.getuser(), "GoogleDrive", "Fonts")
 TEXT_FONT = ImageFont.truetype(os.path.join(FONT_DIR, "open-sans/OpenSans-Bold.ttf"), 100)
+TEXT_FONT_SMALL = ImageFont.truetype(os.path.join(FONT_DIR, "open-sans/OpenSans-Bold.ttf"), 50)
 
 # Try to continue even if the input file is corrupted.
 # See issue at https://github.com/adrienverge/PhotoCollage/issues/65
@@ -333,23 +334,25 @@ class RenderingTask(Thread):
             if self.output_file:
                 print("Saving image at ...", self.output_file)
 
-                if self.full_resolution and self.yearbook_page.personalized :
+                if self.full_resolution and self.yearbook_page.personalized:
                     background = PIL.Image.open(self.yearbook_page.image).convert("RGBA")
                     new_background = background.resize(IMAGE_WITH_BLEED_SIZE)
-                    print("Canvas size")
-                    print(canvas.size)
                     if self.yearbook_page.number % 2 != 0:
                         dashed_img_draw = DashedImageDraw(new_background)
 
                         w, h = TEXT_FONT.getsize(self.yearbook_page.title)
 
                         dashed_img_draw.dashed_rectangle([(25, 25), (2600, 3350)],
-                                                         dash=(5, 4), outline= 'white', width= 2)
+                                                         dash=(5, 4), outline='white', width=2)
                         dashed_img_draw.dashed_rectangle([(75, 75), (2550, 3300)],
                                                          dash=(5, 4), outline='white', width=2)
 
                         dashed_img_draw.text((int((canvas.size[0] - w) / 2) + 75, 75),
                                              self.yearbook_page.title, (255, 255, 255), font=TEXT_FONT)
+                        dashed_img_draw.text((2450, 3200),
+                                             str(self.yearbook_page.number),
+                                             (255, 255, 255), font=TEXT_FONT_SMALL)
+
                         new_background.paste(canvas, (75, 175), mask=canvas)
                     else:
                         new_background.paste(canvas, (75, 75), mask=canvas)
