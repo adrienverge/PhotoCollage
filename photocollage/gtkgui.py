@@ -1290,7 +1290,7 @@ class MainWindow(Gtk.Window):
                                     + _yearbook.child + ".pdf")
 
         print("STEP 1: Create_print_pdf")
-        #self.stitch_background_with_image(_yearbook)
+        self.stitch_background_with_image(_yearbook)
 
         print("STEP 2: Create PDF")
         images = []
@@ -1302,7 +1302,7 @@ class MainWindow(Gtk.Window):
                                        str(page.number) + "_stitched.png"))
 
         print("Creating PDF from images")
-        #create_pdf_from_images(pdf_path, images)
+        create_pdf_from_images(pdf_path, images)
 
         upload_to_folder('1UWyYpHCUJ2lIUP0wOrTwtFeXYOXTd5x9', pdf_path)
 
