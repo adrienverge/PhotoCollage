@@ -25,6 +25,7 @@ import urllib
 import PIL
 import cairo
 import gi
+from PIL import Image
 from gi.repository.Gtk import TreeStore
 
 from data.pickle.utils import get_pickle_path, get_jpg_path, get_pdf_path
@@ -37,11 +38,15 @@ from photocollage.render import PIL_SUPPORTED_EXTS as EXTS
 from photocollage.dialogs.SettingsDialog import SettingsDialog
 
 from data.readers.default import corpus_processor
+from photocollage.settings.PrintSettings import US_LETTER_HARDCOVER, \
+    BACK_COVER_BOTTOM_RIGHT, BACK_COVER_TOP_LEFT, FRONT_COVER_TOP_LEFT, FRONT_COVER_BOTTOM_RIGHT, BOOK_COVER_SIZE, \
+    COVER_CHILD_IMAGE
+from util.draw.DashedImageDraw import DashedImageDraw
 from util.utils import get_unique_list_insertion_order
 from yearbook.Yearbook import Yearbook, get_tag_list_for_page
 from yearbook.Yearbook import Page
 
-from images.utils import get_orientation_fixed_pixbuf
+from images.utils import get_orientation_fixed_pixbuf, pixbuf2image
 
 gi.require_version('Gtk', '3.0')
 gi.require_version('GdkPixbuf', '2.0')
@@ -1153,6 +1158,46 @@ class MainWindow(Gtk.Window):
         new_collage = page.history[page.history_index].duplicate()
         new_collage.make_page(options, shuffle=True)
         self.render_from_new_collage(page, new_collage)
+
+    def stitch_print_ready_cover(self):
+        output_dir = self.yearbook_parameters['output_dir']
+        cover_path = os.path.join(get_jpg_path(output_dir, self.current_yearbook.school,
+                                               self.current_yearbook.classroom, self.current_yearbook.child),
+                                  "cover.png")
+        cover_path_pdf = cover_path.replace("png", "pdf")
+
+        cover_img = PIL.Image.new(
+            "RGBA", US_LETTER_HARDCOVER, "black")
+
+        dashed_img_draw = DashedImageDraw(cover_img)
+        dashed_img_draw.dashed_rectangle([FRONT_COVER_TOP_LEFT, FRONT_COVER_BOTTOM_RIGHT],
+                                       dash=(5, 4), outline='white', width=2)
+
+        dashed_img_draw.dashed_rectangle([BACK_COVER_TOP_LEFT, BACK_COVER_BOTTOM_RIGHT],
+                                         dash=(5, 4), outline='white', width=2)
+
+        back_cover_img = Image.open(self.current_yearbook.pages[-1].image).convert('RGBA')
+        w = int(BOOK_COVER_SIZE[0])
+        h = int(BOOK_COVER_SIZE[1])
+        back_cover_resized = back_cover_img.resize((w, h))
+        cover_img.paste(back_cover_resized, (int(BACK_COVER_TOP_LEFT[0]), int(BACK_COVER_TOP_LEFT[1])))
+
+        front_cover_img = Image.open(self.current_yearbook.pages[0].image).convert('RGBA')
+        front_cover_resized = front_cover_img.resize((w, h))
+        cover_img.paste(front_cover_resized, (int(FRONT_COVER_TOP_LEFT[0]), int(FRONT_COVER_TOP_LEFT[1])))
+
+        # Paste one selfie image
+        self.current_yearbook.child = "Rui Jason Wang"
+        child_images = self.get_child_portrait_images(self.current_yearbook)
+        pixbuf = get_orientation_fixed_pixbuf(child_images[0], COVER_CHILD_IMAGE[0], COVER_CHILD_IMAGE[1])
+        child_img = pixbuf2image(pixbuf)
+        cover_img.paste(child_img,
+                        (int(FRONT_COVER_TOP_LEFT[0]) + 400, int(FRONT_COVER_TOP_LEFT[1]) + 1800))
+
+        cover_img.save(cover_path)
+        cover_img.convert("RGB").save(cover_path_pdf, "PDF", resolution=100.0)
+
+        return cover_path
 
     def stitch_background_with_image(self, yearbook: Yearbook):
         output_dir = self.yearbook_parameters['output_dir']

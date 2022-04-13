@@ -22,9 +22,9 @@ import PIL.Image
 import PIL.ImageDraw
 import PIL.ImageFile
 from PIL import ImageOps
-from PIL import ImageFont
 
 from photocollage.collage import Photo
+from photocollage.settings.PrintSettings import IMAGE_WITH_BLEED_SIZE, TEXT_FONT
 from util.draw.DashedImageDraw import DashedImageDraw
 from yearbook.page import Page
 
@@ -34,6 +34,7 @@ QUALITY_SKEL = 0
 QUALITY_FAST = 1
 QUALITY_BEST = 2
 # Hard Coded Size value of 8.75 by 11.25 inches
+
 IMAGE_WITH_BLEED_SIZE = (2625, 3375)
 FONT_DIR = os.path.join("/Users", getpass.getuser(), "GoogleDrive", "Fonts")
 TEXT_FONT = ImageFont.truetype(os.path.join(FONT_DIR, "open-sans/OpenSans-Bold.ttf"), 100)
@@ -348,7 +349,7 @@ class RenderingTask(Thread):
                                                          dash=(5, 4), outline='white', width=2)
 
                         dashed_img_draw.text((int((canvas.size[0] - w) / 2) + 75, 75),
-                                      self.yearbook_page.title, (255, 255, 255), font=TEXT_FONT)
+                                             self.yearbook_page.title, (255, 255, 255), font=TEXT_FONT)
                         new_background.paste(canvas, (75, 175), mask=canvas)
                     else:
                         new_background.paste(canvas, (75, 75), mask=canvas)
