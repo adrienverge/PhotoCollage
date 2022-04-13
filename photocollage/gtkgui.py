@@ -34,7 +34,7 @@ from data.sqllite.reader import get_tree_model
 from images.ImageWindow import ImageWindow
 from photocollage import APP_NAME, artwork, collage, render
 from photocollage.collage import Photo
-from photocollage.render import PIL_SUPPORTED_EXTS as EXTS
+from photocollage.render import PIL_SUPPORTED_EXTS as EXTS, TEXT_FONT
 from photocollage.dialogs.SettingsDialog import SettingsDialog
 
 from data.readers.default import corpus_processor
@@ -440,15 +440,14 @@ class Options:
         self.border_w = 0.01
         self.border_c = "black"
         # Dimensions for Book trim size, US Letter, 8.5 x 11 inches at 300 ppi
+        # Making the width the same, and height of right page is smaller than left by 100 pixels
+        # for adding the label
         if left_page:
-            # Making the width the same, and height of right page is smaller than left by 100 pixels
-            # for adding the label
-            self.out_w = 2475
             self.out_h = 3225
         else:
-            self.out_w = 2475
-            self.out_h = 3025
-
+            _, h = TEXT_FONT.getsize("A")
+            self.out_h = 3225 - h
+        self.out_w = 2475
 
 def create_pdf_from_images(pdf_path, images):
 
