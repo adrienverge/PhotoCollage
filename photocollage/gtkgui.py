@@ -41,6 +41,7 @@ from data.readers.default import corpus_processor
 from photocollage.settings.PrintSettings import US_LETTER_HARDCOVER, \
     BACK_COVER_BOTTOM_RIGHT, BACK_COVER_TOP_LEFT, FRONT_COVER_TOP_LEFT, FRONT_COVER_BOTTOM_RIGHT, BOOK_COVER_SIZE, \
     COVER_CHILD_IMAGE
+
 from util.draw.DashedImageDraw import DashedImageDraw
 from util.google.drive.util import upload_pdf_file, read_files, upload_to_folder
 from util.utils import get_unique_list_insertion_order
@@ -53,6 +54,8 @@ gi.require_version('Gtk', '3.0')
 gi.require_version('GdkPixbuf', '2.0')
 
 from gi.repository import Gtk, Gdk, GObject, GdkPixbuf  # noqa: E402, I100
+from reportlab.pdfgen.canvas import Canvas
+from reportlab.lib.units import inch, cm
 
 gettext.textdomain(APP_NAME)
 _ = gettext.gettext
@@ -450,6 +453,13 @@ class Options:
         self.out_w = 2475
 
 def create_pdf_from_images(pdf_path, images):
+    canvas = Canvas(pdf_path, pagesize=(8.75 * inch, 11.25 * inch))
+
+    for image in images:
+        canvas.drawImage(image, 0, 0,
+                         width=8.75 * inch, height=11.25 * inch, preserveAspectRatio=True)
+        canvas.showPage()
+    canvas.save()
 
     # This creates the internal PDF file
     pil_images = [PIL.Image.open(image).convert('RGB') for image in images]
@@ -457,8 +467,6 @@ def create_pdf_from_images(pdf_path, images):
         pdf_path, "PDF", resolution=100.0, save_all=True, append_images=pil_images[2:-1]
     )
     print("Finished saving PDF file %s" % pdf_path)
-
-    print("STILL NEED TO CREATE THE FINAL COVER FILE")
 
 
 def update_flag_for_page(page: Page, button, flag: str):
@@ -474,6 +482,33 @@ def pin_all_photos_on_page(page: Page, img_preview: ImagePreviewArea):
                 page.pin_photo(cell.photo)
     except:
         pass
+
+
+def stitch_print_ready_cover(pdf_path: str, yearbook: Yearbook):
+    dirname = os.path.dirname(pdf_path)
+    base_name = os.path.basename(pdf_path)
+    cover_path_pdf = os.path.join(dirname, base_name + "_cover.pdf")
+
+    canvas_cover = Canvas(cover_path_pdf, pagesize=(19 * inch, 12.75 * inch))
+
+    # First draw the back cover page
+    canvas_cover.drawImage(yearbook.pages[-1].image, 0.75 * inch, 0.75 * inch,
+                           width=8.625 * inch, height=11.25 * inch)
+
+    # Then draw the front cover page
+    canvas_cover.drawImage(yearbook.pages[0].image, 9.625 * inch, 0.75 * inch,
+                           width=8.625 * inch, height=11.25 * inch)
+
+    if yearbook.child is not None:
+        # On the front cover we draw the text
+        canvas_cover.setFont("Signika", 34)
+        # TODO:: Have to do the math to figure out the name
+        canvas_cover.drawString(14 * inch, 11.25 * inch, yearbook.child)
+
+    canvas_cover.save()
+
+    print("Finished writing pdf here %s " % cover_path_pdf)
+    return cover_path_pdf
 
 
 class MainWindow(Gtk.Window):
@@ -1159,6 +1194,7 @@ class MainWindow(Gtk.Window):
         new_collage.make_page(options, shuffle=True)
         self.render_from_new_collage(page, new_collage)
 
+
     def stitch_print_ready_cover(self):
         output_dir = self.yearbook_parameters['output_dir']
         cover_path = os.path.join(get_jpg_path(output_dir, self.current_yearbook.school,
@@ -1205,16 +1241,16 @@ class MainWindow(Gtk.Window):
         page_collages = [
             page.history[page.history_index] for page in yearbook.pages]
 
-        for page, page_collage in zip(yearbook.pages, page_collages):
+        # We need to ignore the first page and the last page as they are the covers
+        for page, page_collage in zip(yearbook.pages[1:-1], page_collages[1:-1]):
             new_img_path = os.path.join(get_jpg_path(output_dir, yearbook.school,
-                                                     yearbook.classroom,
-                                                     yearbook.child),
+                                                     yearbook.classroom, yearbook.child),
                                         str(page.number) + "_stitched.png")
 
-            if page.number % 2 == 0:
-                options = self.left_opts
-            else:
+            if page.personalized and page.number % 2 != 0:
                 options = self.right_opts
+            else:
+                options = self.left_opts
 
             enlargement = float(options.out_w) / page_collage.page.w
 
@@ -1273,13 +1309,13 @@ class MainWindow(Gtk.Window):
         return self.get_folder("Deleted")
 
     def print_all_pdfs(self, button):
-        self.treeModel.foreach(self.create_internal_pdf)
+        self.treeModel.foreach(self.create_publish_pdf)
 
-    def create_internal_pdf(self, store: Gtk.TreeStore, treepath: Gtk.TreePath, treeiter: Gtk.TreeIter):
-
+    def create_publish_pdf(self, store: Gtk.TreeStore, treepath: Gtk.TreePath, treeiter: Gtk.TreeIter):
         _yearbook = store[treeiter][0]
-        output_dir = self.yearbook_parameters['output_dir']
 
+        print("STEP 1: Create_print_pdf")
+        output_dir = self.yearbook_parameters['output_dir']
         if _yearbook.classroom is None:
             pdf_path = os.path.join(output_dir, "pdf_outputs", _yearbook.school + ".pdf")
         elif _yearbook.child is None:
@@ -1287,6 +1323,9 @@ class MainWindow(Gtk.Window):
         else:
             pdf_path = os.path.join(output_dir, "pdf_outputs", _yearbook.school + "_" + _yearbook.classroom + "_"
                                     + _yearbook.child + ".pdf")
+
+        print("STEP 0: Create_cover_pages")
+        cover_path = stitch_print_ready_cover(pdf_path, _yearbook)
 
         print("STEP 1: Create_print_pdf")
         self.stitch_background_with_image(_yearbook)
@@ -1304,9 +1343,10 @@ class MainWindow(Gtk.Window):
         create_pdf_from_images(pdf_path, images)
 
         upload_to_folder('1UWyYpHCUJ2lIUP0wOrTwtFeXYOXTd5x9', pdf_path)
+        upload_to_folder('1UWyYpHCUJ2lIUP0wOrTwtFeXYOXTd5x9', cover_path)
 
-        # print("STEP 3: Send PDF to print")
-        # self.print_lulu()
+        print("STEP 4: Send PDF to print")
+        return
 
     def pin_page_left(self, button):
         left_page = self.current_yearbook.pages[self.prev_page_index]
@@ -1442,8 +1482,7 @@ class MainWindow(Gtk.Window):
             self.lbl_history_index.set_label(" ")
         self.btn_regen_left.set_sensitive(
             left_page.history_index < len(left_page.history))
-        self.btn_regen_right.set_sensitive(
-            right_page.history_index < len(right_page.history))
+        self.btn_regen_right.set_sensitive(right_page.history_index < len(right_page.history))
 
 
 class ComputingDialog(Gtk.Dialog):
