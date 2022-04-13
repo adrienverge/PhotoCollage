@@ -34,7 +34,6 @@ QUALITY_SKEL = 0
 QUALITY_FAST = 1
 QUALITY_BEST = 2
 # Hard Coded Size value of 8.75 by 11.25 inches
-
 IMAGE_WITH_BLEED_SIZE = (2625, 3375)
 FONT_DIR = os.path.join("/Users", getpass.getuser(), "GoogleDrive", "Fonts")
 TEXT_FONT = ImageFont.truetype(os.path.join(FONT_DIR, "open-sans/OpenSans-Bold.ttf"), 100)
@@ -333,11 +332,16 @@ class RenderingTask(Thread):
 
             if self.output_file:
                 print("Saving image at ...", self.output_file)
-
-                if self.full_resolution and self.yearbook_page.personalized:
+                if self.full_resolution:
                     background = PIL.Image.open(self.yearbook_page.image).convert("RGBA")
                     new_background = background.resize(IMAGE_WITH_BLEED_SIZE)
+                else:
+                    new_background = canvas
+
+                if self.yearbook_page.personalized:
                     if self.yearbook_page.number % 2 != 0:
+
+                        # Right-hand size page, which will have a title
                         dashed_img_draw = DashedImageDraw(new_background)
 
                         w, h = TEXT_FONT.getsize(self.yearbook_page.title)
@@ -355,12 +359,10 @@ class RenderingTask(Thread):
 
                         new_background.paste(canvas, (75, 175), mask=canvas)
                     else:
-                        new_background.paste(canvas, (75, 75))
+                        # Left-hand size page, which will have the image starting at 75,75
+                        new_background.paste(canvas, (75, 75), mask=canvas)
 
-                    new_background.save(self.output_file, quality=100)
-                else:
-                    canvas.save(self.output_file, quality=100)
-                    new_background = canvas
+                new_background.save(self.output_file, quality=100)
 
             if self.on_complete:
                 # We can change this to new_background if we wish to display it with the background

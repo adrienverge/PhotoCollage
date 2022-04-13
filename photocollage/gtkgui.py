@@ -452,6 +452,7 @@ class Options:
             self.out_h = 3225 - h
         self.out_w = 2475
 
+
 def create_pdf_from_images(pdf_path, images):
     canvas = Canvas(pdf_path, pagesize=(8.75 * inch, 11.25 * inch))
 
@@ -460,12 +461,6 @@ def create_pdf_from_images(pdf_path, images):
                          width=8.75 * inch, height=11.25 * inch, preserveAspectRatio=True)
         canvas.showPage()
     canvas.save()
-
-    # This creates the internal PDF file
-    pil_images = [PIL.Image.open(image).convert('RGB') for image in images]
-    pil_images[1].save(
-        pdf_path, "PDF", resolution=100.0, save_all=True, append_images=pil_images[2:-1]
-    )
     print("Finished saving PDF file %s" % pdf_path)
 
 
@@ -1194,7 +1189,6 @@ class MainWindow(Gtk.Window):
         new_collage.make_page(options, shuffle=True)
         self.render_from_new_collage(page, new_collage)
 
-
     def stitch_print_ready_cover(self):
         output_dir = self.yearbook_parameters['output_dir']
         cover_path = os.path.join(get_jpg_path(output_dir, self.current_yearbook.school,
@@ -1207,7 +1201,7 @@ class MainWindow(Gtk.Window):
 
         dashed_img_draw = DashedImageDraw(cover_img)
         dashed_img_draw.dashed_rectangle([FRONT_COVER_TOP_LEFT, FRONT_COVER_BOTTOM_RIGHT],
-                                       dash=(5, 4), outline='white', width=2)
+                                         dash=(5, 4), outline='white', width=2)
 
         dashed_img_draw.dashed_rectangle([BACK_COVER_TOP_LEFT, BACK_COVER_BOTTOM_RIGHT],
                                          dash=(5, 4), outline='white', width=2)
