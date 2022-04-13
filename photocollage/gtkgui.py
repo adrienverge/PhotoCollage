@@ -42,6 +42,7 @@ from photocollage.settings.PrintSettings import US_LETTER_HARDCOVER, \
     BACK_COVER_BOTTOM_RIGHT, BACK_COVER_TOP_LEFT, FRONT_COVER_TOP_LEFT, FRONT_COVER_BOTTOM_RIGHT, BOOK_COVER_SIZE, \
     COVER_CHILD_IMAGE
 from util.draw.DashedImageDraw import DashedImageDraw
+from util.google.drive.util import upload_pdf_file, read_files, upload_to_folder
 from util.utils import get_unique_list_insertion_order
 from yearbook.Yearbook import Yearbook, get_tag_list_for_page
 from yearbook.Yearbook import Page
@@ -1256,15 +1257,6 @@ class MainWindow(Gtk.Window):
 
         os.makedirs(os.path.join(output_dir, "pdf_outputs"), exist_ok=True)
 
-        if yearbook.classroom is None:
-            pdf_path = os.path.join(output_dir, "pdf_outputs", yearbook.school + ".pdf")
-        elif yearbook.child is None:
-            pdf_path = os.path.join(output_dir, "pdf_outputs", yearbook.school + "_" + yearbook.classroom + ".pdf")
-        else:
-            pdf_path = os.path.join(output_dir, "pdf_outputs", yearbook.school + "_" + yearbook.classroom + "_"
-                                    + yearbook.child + ".pdf")
-        return pdf_path
-
     def get_folder(self, folder_name):
         if self.current_yearbook is None or self.current_yearbook.school is None:
             return None
@@ -1285,10 +1277,20 @@ class MainWindow(Gtk.Window):
         self.treeModel.foreach(self.create_internal_pdf)
 
     def create_internal_pdf(self, store: Gtk.TreeStore, treepath: Gtk.TreePath, treeiter: Gtk.TreeIter):
+
         _yearbook = store[treeiter][0]
+        output_dir = self.yearbook_parameters['output_dir']
+
+        if _yearbook.classroom is None:
+            pdf_path = os.path.join(output_dir, "pdf_outputs", _yearbook.school + ".pdf")
+        elif _yearbook.child is None:
+            pdf_path = os.path.join(output_dir, "pdf_outputs", _yearbook.school + "_" + _yearbook.classroom + ".pdf")
+        else:
+            pdf_path = os.path.join(output_dir, "pdf_outputs", _yearbook.school + "_" + _yearbook.classroom + "_"
+                                    + _yearbook.child + ".pdf")
 
         print("STEP 1: Create_print_pdf")
-        pdf_path = self.stitch_background_with_image(_yearbook)
+        #self.stitch_background_with_image(_yearbook)
 
         print("STEP 2: Create PDF")
         images = []
@@ -1302,9 +1304,7 @@ class MainWindow(Gtk.Window):
         print("Creating PDF from images")
         create_pdf_from_images(pdf_path, images)
 
-        # from util.google.drive.util import upload_pdf_file
-        # the first argument is the Google id of the folder that we upload to.
-        # upload_pdf_file('1BsahliyczRpMHKYMofDWcWry7utS1IyM', pdf_path)
+        upload_to_folder('1UWyYpHCUJ2lIUP0wOrTwtFeXYOXTd5x9', pdf_path)
 
         # print("STEP 3: Send PDF to print")
         # self.print_lulu()
