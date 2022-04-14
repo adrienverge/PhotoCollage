@@ -42,8 +42,8 @@ class LuluIntegrationTests(unittest.TestCase):
         valid_json = json.loads(json_str)
 
     def test_create_all_print_jobs(self):
-        cover_url = "https://drive.google.com/file/d/1Y3y1GlcY4n120ERg_PU0ISNbiTnK1Rn9/view?usp=sharing"
-        interior_url = "https://drive.google.com/file/d/1GpzDaNbea-aZcHFMzb-HvzP8isxIfYr5/view?usp=sharing"
+        cover_url = "https://drive.google.com/file/d/1UCdNESiQvd4J-97rAtx5BbssY0EVF4iK/view?usp=sharing"
+        interior_url = "https://drive.google.com/file/d/18vfC1xcQDUb3EJVTRVrksemsLYfrdwKM/view?usp=sharing"
         first_item = LuluLineItem("1", "0827X1169FCPRELW060UW444MNG", interior_url, cover_url)
         second_item = LuluLineItem("2", "0827X1169FCPRELW060UW444MNG", interior_url, cover_url)
 

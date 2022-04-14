@@ -57,6 +57,7 @@ from gi.repository import Gtk, Gdk, GObject, GdkPixbuf  # noqa: E402, I100
 from reportlab.pdfgen.canvas import Canvas
 from reportlab.lib.units import inch, cm
 
+
 gettext.textdomain(APP_NAME)
 _ = gettext.gettext
 _n = gettext.ngettext
