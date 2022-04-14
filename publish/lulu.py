@@ -13,6 +13,8 @@ print_job_url = sandbox_base_url + "print-jobs/"
 job_details_url = sandbox_base_url + "print-jobs/%s/"
 all_jobs_url = 'https://api.sandbox.lulu.com/print-jobs/statistics/'
 
+LULU_MONTICELLO_POD_ID = "0827X1169FCPRELW060UW444MNG"
+
 
 def get_access_token_json(client_id: str, client_secret: str) -> str:
     data = {'grant_type': 'client_credentials'}

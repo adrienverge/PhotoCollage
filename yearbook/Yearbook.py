@@ -1,5 +1,5 @@
 from data.pickle.utils import get_pickle_path
-from publish import LuluLineItem
+from publish.LuluLineItem import LuluLineItem
 from yearbook.page.Page import Page
 from gi.repository import GObject
 
@@ -110,18 +110,15 @@ class Yearbook(GObject.GObject):
 
         return self.pickle_yearbook.child
 
-    def update_line_item(self, lulu_line_item: LuluLineItem):
-        self.lulu_line_item.student_id = lulu_line_item.student_id
-        self.lulu_line_item.pod_package_id = lulu_line_item.pod_package_id
-        self.lulu_line_item.interior_pdf_url = lulu_line_item.interior_pdf_url
-        self.lulu_line_item.cover_url = lulu_line_item.cover_url
-        self.lulu_line_item.job_id = lulu_line_item.job_id
-
-    def update_line_item(self, student_id: str, interior_pdf_url: str, cover_pdf_url: str, job_id: str):
-        self.lulu_line_item.student_id = student_id
-        self.lulu_line_item.interior_pdf_url = interior_pdf_url
-        self.lulu_line_item.cover_url = cover_pdf_url
-        self.lulu_line_item.job_id = job_id
+    def update_line_item(self, student_id: str, pod_id: str, interior_pdf_url: str, cover_pdf_url: str, job_id: str):
+        if self.lulu_line_item is None:
+            self.lulu_line_item = LuluLineItem(student_id, pod_id, interior_pdf_url, cover_pdf_url)
+            self.lulu_line_item.job_id = job_id
+        else:
+            self.lulu_line_item.student_id = student_id
+            self.lulu_line_item.interior_pdf_url = interior_pdf_url
+            self.lulu_line_item.cover_url = cover_pdf_url
+            self.lulu_line_item.job_id = job_id
 
     def print_yearbook_info(self):
         print("%s :-> %s :-> %s" % (self.pickle_yearbook.school,
@@ -132,6 +129,7 @@ class Yearbook(GObject.GObject):
 
         is_edited = [page.is_edited() for page in self.pages]
         return reduce(lambda x, y: x or y, is_edited)
+
 
 def get_tag_list_for_page(yearbook: Yearbook, page: Page):
     tags = page.tags.split(",")

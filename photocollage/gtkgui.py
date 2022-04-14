@@ -42,10 +42,12 @@ from data.readers.default import corpus_processor
 from photocollage.settings.PrintSettings import US_LETTER_HARDCOVER, \
     BACK_COVER_BOTTOM_RIGHT, BACK_COVER_TOP_LEFT, FRONT_COVER_TOP_LEFT, FRONT_COVER_BOTTOM_RIGHT, BOOK_COVER_SIZE, \
     COVER_CHILD_IMAGE
-from publish.lulu import create_order_payload, get_header, print_job_url
+from publish import LuluLineItem
+from publish.lulu import create_order_payload, get_header, print_job_url, LULU_MONTICELLO_POD_ID
 
 from util.draw.DashedImageDraw import DashedImageDraw
-from util.google.drive.util import upload_to_folder, get_url_from_file_id
+from util.google.drive.util import upload_to_folder, get_url_from_file_id, \
+    check_file_exists
 from util.utils import get_unique_list_insertion_order
 from yearbook.Yearbook import Yearbook, get_tag_list_for_page
 from yearbook.Yearbook import Page
@@ -58,7 +60,6 @@ gi.require_version('GdkPixbuf', '2.0')
 from gi.repository import Gtk, Gdk, GObject, GdkPixbuf  # noqa: E402, I100
 from reportlab.pdfgen.canvas import Canvas
 from reportlab.lib.units import inch, cm
-
 
 gettext.textdomain(APP_NAME)
 _ = gettext.gettext
@@ -469,7 +470,6 @@ def create_pdf_from_images(pdf_path, images):
 
 def update_flag_for_page(page: Page, button, flag: str):
     print("Updating flag=%s page for %s in state %s" % (flag, page.number, button.get_active()))
-
     page.update_flag(flag, button.get_active())
 
 
@@ -487,7 +487,7 @@ def stitch_print_ready_cover(pdf_path: str, yearbook: Yearbook):
     base_name = os.path.basename(pdf_path)
     cover_path_pdf = os.path.join(dirname, base_name + "_cover.pdf")
 
-    canvas_cover = Canvas(cover_path_pdf, pagesize=(17.5 * inch, 11.25 * inch))
+    canvas_cover = Canvas(cover_path_pdf, pagesize=(19 * inch, 12.75 * inch))
 
     # First draw the back cover page
     canvas_cover.drawImage(yearbook.pages[-1].image, 0.75 * inch, 0.75 * inch,
@@ -556,7 +556,7 @@ class MainWindow(Gtk.Window):
         self.tree_model_cache = {}
 
         self.current_yearbook: Yearbook = None
-        self.order_line_items = []
+        self.order_line_items: [LuluLineItem] = []
         self.corpus = None
 
         from data.sqllite.reader import get_tree_model, get_school_list
@@ -597,6 +597,7 @@ class MainWindow(Gtk.Window):
         self.btn_pin_page_right = Gtk.ToggleButton(label="Pin Page Right")
 
         self.btn_print_all_books = Gtk.Button(label=_("Print All@Lulu"))
+        self.btn_submit_order = Gtk.Button(label=_("ORDER"))
 
         # on initialization
         self.treeModel: Gtk.TreeStore = get_tree_model(self.yearbook_parameters, self.school_combo.get_active_text())
@@ -689,6 +690,11 @@ class MainWindow(Gtk.Window):
 
         box.pack_start(self.btn_print_all_books, True, True, 0)
         self.btn_print_all_books.connect("clicked", self.print_all_pdfs)
+        box.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
+
+        self.btn_submit_order.set_sensitive(False)
+        box.pack_start(self.btn_submit_order, True, True, 0)
+        self.btn_submit_order.connect("clicked", self.submit_full_order)
         box.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
 
         self.btn_settings.set_always_show_image(True)
@@ -1199,46 +1205,6 @@ class MainWindow(Gtk.Window):
         new_collage.make_page(options, shuffle=True)
         self.render_from_new_collage(page, new_collage)
 
-    def stitch_print_ready_cover(self):
-        output_dir = self.yearbook_parameters['output_dir']
-        cover_path = os.path.join(get_jpg_path(output_dir, self.current_yearbook.school,
-                                               self.current_yearbook.classroom, self.current_yearbook.child),
-                                  "cover.png")
-        cover_path_pdf = cover_path.replace("png", "pdf")
-
-        cover_img = PIL.Image.new(
-            "RGBA", US_LETTER_HARDCOVER, "black")
-
-        dashed_img_draw = DashedImageDraw(cover_img)
-        dashed_img_draw.dashed_rectangle([FRONT_COVER_TOP_LEFT, FRONT_COVER_BOTTOM_RIGHT],
-                                         dash=(5, 4), outline='white', width=2)
-
-        dashed_img_draw.dashed_rectangle([BACK_COVER_TOP_LEFT, BACK_COVER_BOTTOM_RIGHT],
-                                         dash=(5, 4), outline='white', width=2)
-
-        back_cover_img = Image.open(self.current_yearbook.pages[-1].image).convert('RGBA')
-        w = int(BOOK_COVER_SIZE[0])
-        h = int(BOOK_COVER_SIZE[1])
-        back_cover_resized = back_cover_img.resize((w, h))
-        cover_img.paste(back_cover_resized, (int(BACK_COVER_TOP_LEFT[0]), int(BACK_COVER_TOP_LEFT[1])))
-
-        front_cover_img = Image.open(self.current_yearbook.pages[0].image).convert('RGBA')
-        front_cover_resized = front_cover_img.resize((w, h))
-        cover_img.paste(front_cover_resized, (int(FRONT_COVER_TOP_LEFT[0]), int(FRONT_COVER_TOP_LEFT[1])))
-
-        # Paste one selfie image
-        self.current_yearbook.child = "Rui Jason Wang"
-        child_images = self.get_child_portrait_images(self.current_yearbook)
-        pixbuf = get_orientation_fixed_pixbuf(child_images[0], COVER_CHILD_IMAGE[0], COVER_CHILD_IMAGE[1])
-        child_img = pixbuf2image(pixbuf)
-        cover_img.paste(child_img,
-                        (int(FRONT_COVER_TOP_LEFT[0]) + 400, int(FRONT_COVER_TOP_LEFT[1]) + 1800))
-
-        cover_img.save(cover_path)
-        cover_img.convert("RGB").save(cover_path_pdf, "PDF", resolution=100.0)
-
-        return cover_path
-
     def stitch_background_with_image(self, yearbook: Yearbook):
         output_dir = self.yearbook_parameters['output_dir']
 
@@ -1314,8 +1280,7 @@ class MainWindow(Gtk.Window):
 
     def print_all_pdfs(self, button):
         self.treeModel.foreach(self.create_and_upload_pdfs)
-        print("Lets see the length of the line items")
-        print(len(self.order_line_items))
+        self.btn_submit_order.set_sensitive(True)
 
     def create_and_upload_pdfs(self, store: Gtk.TreeStore, treepath: Gtk.TreePath, treeiter: Gtk.TreeIter):
         _yearbook: Yearbook = store[treeiter][0]
@@ -1338,33 +1303,32 @@ class MainWindow(Gtk.Window):
                                     + _yearbook.child + ".pdf")
             student_id = _yearbook.child
 
-        print("STEP 0: Create_cover_pages")
+        print("STEP 2: Create_cover_pages")
         cover_path = stitch_print_ready_cover(pdf_path, _yearbook)
-
-        print("STEP 1: Create_print_pdf")
-        if _yearbook.parent_yearbook is None or _yearbook.is_edited():
-            self.stitch_background_with_image(_yearbook)
-            print("STEP 2: Create Custom PDF")
-            images = []
-            # Need to skip both front and back cover pages
-            for page in _yearbook.pages[1:-1]:
-                images.append(os.path.join(get_jpg_path(self.yearbook_parameters['output_dir'],
-                                                        _yearbook.school,
-                                                        _yearbook.classroom,
-                                                        _yearbook.child),
-                                           str(page.number) + "_stitched.png"))
-
-            print("Creating PDF from images")
-            create_pdf_from_images(pdf_path, images)
-            interior_url = get_url_from_file_id(upload_to_folder('1UWyYpHCUJ2lIUP0wOrTwtFeXYOXTd5x9', pdf_path))
-        else:
-            # Let's just get the parent
-            print("Getting the parent url, there's nothing custom to upload")
-            interior_url = _yearbook.parent_yearbook.lulu_line_item.interior_pdf_url
-
         cover_url = get_url_from_file_id(upload_to_folder('1UWyYpHCUJ2lIUP0wOrTwtFeXYOXTd5x9', cover_path))
 
+        print("STEP 3: Create_print_pdf")
+        interior_url = get_url_from_file_id("1OukkFgfBhWFYUmPPFOL1hyHAQ3JYrIiW")
+
+        if _yearbook.parent_yearbook is None or _yearbook.is_edited():
+            if not check_file_exists('1UWyYpHCUJ2lIUP0wOrTwtFeXYOXTd5x9', '1OukkFgfBhWFYUmPPFOL1hyHAQ3JYrIiW'):
+                self.stitch_background_with_image(_yearbook)
+                print("STEP 4: Create Custom PDF")
+                images = []
+                # Need to skip both front and back cover pages
+                for page in _yearbook.pages[1:-1]:
+                    images.append(os.path.join(get_jpg_path(self.yearbook_parameters['output_dir'],
+                                                            _yearbook.school,
+                                                            _yearbook.classroom,
+                                                            _yearbook.child),
+                                               str(page.number) + "_stitched.png"))
+
+                print("Creating PDF from images")
+                create_pdf_from_images(pdf_path, images)
+                interior_url = get_url_from_file_id(upload_to_folder('1UWyYpHCUJ2lIUP0wOrTwtFeXYOXTd5x9', pdf_path))
+
         _yearbook.update_line_item(student_id=student_id,
+                                   pod_id=LULU_MONTICELLO_POD_ID,
                                    interior_pdf_url=interior_url,
                                    cover_pdf_url=cover_url,
                                    job_id=None)
@@ -1373,22 +1337,21 @@ class MainWindow(Gtk.Window):
 
         # Let's pickle the yearbook. Now we have a track of uploaded items on Google Drive
         pickle_yearbook(_yearbook, self.yearbook_parameters['output_dir'])
-        print("Length of line items")
-        print(len(self.order_line_items))
 
         return
 
-    def submit_full_order(self, student_yearbooks: [Yearbook], external_id="RethinkYearbooks"):
+    def submit_full_order(self, widget):
+
         import json
-        yearbook_line_items = [yearbook.lulu_line_item for yearbook in student_yearbooks]
-        job_payload = create_order_payload(yearbook_line_items, external_id)
+        job_payload = create_order_payload(self.order_line_items, "RETHINK_YEARBOOKS")
         headers = get_header()
-        response = requests.request('POST', print_job_url, data=job_payload, headers=headers)
+        #response = requests.request('POST', print_job_url, data=job_payload, headers=headers)
 
         # Now we need to parse the response, to make sure the order went through
-        response_json = json.loads(response.text)
+        #response_json = json.loads(response.text)
 
-        return response
+        print(job_payload)
+        return job_payload
 
     def pin_page_left(self, button):
         left_page = self.current_yearbook.pages[self.prev_page_index]

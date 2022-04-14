@@ -21,6 +21,34 @@ def get_url_from_file_id(file_id: str):
     return "https://drive.google.com/file/d/%s/view?usp=sharing" % file_id
 
 
+def check_file_exists(real_folder_id, file_id):
+    try:
+        service = build('drive', 'v3', credentials=get_credentials())
+        g_file = service.files().get(fileId=file_id, fields='parents').execute()
+        print(g_file)
+        return True
+    except HttpError as error:
+        print(F'An error occurred: {error}')
+        return False
+
+
+def upload_to_folder_with_item_check(real_folder_id, pdf_file, file_id):
+
+    try:
+        service = build('drive', 'v3', credentials=get_credentials())
+        g_file = service.files().get(fileId=file_id, fields='parents').execute()
+
+        print(g_file)
+        if g_file is not None:
+            print("File exists, skipping upload PHEW!!")
+            return file_id
+        else:
+            print("File does not exist, uploading!!")
+            return upload_to_folder(real_folder_id, pdf_file)
+    except HttpError as error:
+        print(F'An error occurred: {error}')
+        return None
+
 def upload_to_folder(real_folder_id, pdf_file):
     """Upload a file to the specified folder and prints file ID, folder ID
     Args: Id of the folder
