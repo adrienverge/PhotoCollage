@@ -1,4 +1,5 @@
 from data.pickle.utils import get_pickle_path
+from publish.LuluLineItem import LuluLineItem
 from yearbook.page.Page import Page
 from gi.repository import GObject
 
@@ -62,6 +63,7 @@ class PickleYearbook:
         self.school: str = school
         self.classroom: str = classroom
         self.child: str = child
+        self.lulu_line_item: LuluLineItem = None
         self.parent_book: PickleYearbook = parent_book
 
     def __repr__(self):
@@ -77,6 +79,7 @@ class PickleYearbook:
         print("%s :-> %s :-> %s" % (self.school,
                                     self.classroom, self.child))
 
+
 class Yearbook(GObject.GObject):
 
     def __init__(self, pickle_yearbook: PickleYearbook):
@@ -87,6 +90,7 @@ class Yearbook(GObject.GObject):
         self.classroom = self.pickle_yearbook.classroom
         self.child = self.pickle_yearbook.child
         self.parent_yearbook = self.pickle_yearbook.parent_book
+        self.lulu_line_item: LuluLineItem = self.pickle_yearbook.lulu_line_item
 
     def get_prev_page(self, current_page: Page):
         current_page_idx = current_page.number - 1
@@ -106,9 +110,25 @@ class Yearbook(GObject.GObject):
 
         return self.pickle_yearbook.child
 
+    def update_line_item(self, student_id: str, pod_id: str, interior_pdf_url: str, cover_pdf_url: str, job_id: str):
+        if self.lulu_line_item is None:
+            self.lulu_line_item = LuluLineItem(student_id, pod_id, interior_pdf_url, cover_pdf_url)
+            self.lulu_line_item.job_id = job_id
+        else:
+            self.lulu_line_item.student_id = student_id
+            self.lulu_line_item.interior_pdf_url = interior_pdf_url
+            self.lulu_line_item.cover_url = cover_pdf_url
+            self.lulu_line_item.job_id = job_id
+
     def print_yearbook_info(self):
         print("%s :-> %s :-> %s" % (self.pickle_yearbook.school,
                                     self.pickle_yearbook.classroom, self.pickle_yearbook.child))
+
+    def is_edited(self):
+        from functools import reduce
+
+        is_edited = [page.is_edited() for page in self.pages]
+        return reduce(lambda x, y: x or y, is_edited)
 
 
 def get_tag_list_for_page(yearbook: Yearbook, page: Page):

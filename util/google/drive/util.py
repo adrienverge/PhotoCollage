@@ -9,6 +9,7 @@ from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
 
 import os
+from timeit import default_timer as timer
 
 gauth = GoogleAuth()
 drive = GoogleDrive(gauth)
@@ -16,13 +17,37 @@ drive = GoogleDrive(gauth)
 SCOPES = ['https://www.googleapis.com/auth/drive']
 
 
-def upload_pdf_file(parent_folder_id: str, full_path_pdf: str):
-    gfile = drive.CreateFile({'parents': [{'id': parent_folder_id}]})
-    # Read file and set it as the content of this instance.
-    gfile.SetContentFile(full_path_pdf)
-    gfile.Upload()  # Upload the file.
-    gfile.clear()
+def get_url_from_file_id(file_id: str):
+    return "https://drive.google.com/file/d/%s/view?usp=sharing" % file_id
 
+
+def check_file_exists(real_folder_id, file_id):
+    try:
+        service = build('drive', 'v3', credentials=get_credentials())
+        g_file = service.files().get(fileId=file_id, fields='parents').execute()
+        print(g_file)
+        return True
+    except HttpError as error:
+        print(F'An error occurred: {error}')
+        return False
+
+
+def upload_to_folder_with_item_check(real_folder_id, pdf_file, file_id):
+
+    try:
+        service = build('drive', 'v3', credentials=get_credentials())
+        g_file = service.files().get(fileId=file_id, fields='parents').execute()
+
+        print(g_file)
+        if g_file is not None:
+            print("File exists, skipping upload PHEW!!")
+            return file_id
+        else:
+            print("File does not exist, uploading!!")
+            return upload_to_folder(real_folder_id, pdf_file)
+    except HttpError as error:
+        print(F'An error occurred: {error}')
+        return None
 
 def upload_to_folder(real_folder_id, pdf_file):
     """Upload a file to the specified folder and prints file ID, folder ID
@@ -32,7 +57,7 @@ def upload_to_folder(real_folder_id, pdf_file):
     TODO(developer) - See https://developers.google.com/identity
     for guides on implementing OAuth2 for the application.
     """
-
+    start = timer()
     try:
         # create gmail api client
         service = build('drive', 'v3', credentials=get_credentials())
@@ -52,8 +77,10 @@ def upload_to_folder(real_folder_id, pdf_file):
 
     except HttpError as error:
         print(F'An error occurred: {error}')
-        file = None
+        return None
 
+    end = timer()
+    print("Time in seconds to upload %s" % str(end - start))
     return file.get('id')
 
 
