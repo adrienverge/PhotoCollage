@@ -25,11 +25,10 @@ import urllib
 import PIL
 import cairo
 import gi
-import requests
 from PIL import Image
 from gi.repository.Gtk import TreeStore
 
-from data.pickle.utils import get_pickle_path, get_jpg_path, get_pdf_path
+from data.pickle.utils import get_pickle_path, get_jpg_path
 from data.rankers import RankerFactory
 from data.sqllite.reader import get_tree_model
 from images.ImageWindow import ImageWindow
@@ -39,20 +38,16 @@ from photocollage.render import PIL_SUPPORTED_EXTS as EXTS, TEXT_FONT
 from photocollage.dialogs.SettingsDialog import SettingsDialog
 
 from data.readers.default import corpus_processor
-from photocollage.settings.PrintSettings import US_LETTER_HARDCOVER, \
-    BACK_COVER_BOTTOM_RIGHT, BACK_COVER_TOP_LEFT, FRONT_COVER_TOP_LEFT, FRONT_COVER_BOTTOM_RIGHT, BOOK_COVER_SIZE, \
-    COVER_CHILD_IMAGE
 from publish import LuluLineItem
-from publish.lulu import create_order_payload, get_header, print_job_url, LULU_MONTICELLO_POD_ID
+from publish.lulu import create_order_payload, get_header, LULU_MONTICELLO_POD_ID
 
-from util.draw.DashedImageDraw import DashedImageDraw
 from util.google.drive.util import upload_to_folder, get_url_from_file_id, \
     check_file_exists
 from util.utils import get_unique_list_insertion_order
-from yearbook.Yearbook import Yearbook, get_tag_list_for_page
+from yearbook.Yearbook import Yearbook, get_tag_list_for_page, pickle_yearbook
 from yearbook.Yearbook import Page
 
-from images.utils import get_orientation_fixed_pixbuf, pixbuf2image
+from images.utils import get_orientation_fixed_pixbuf
 
 gi.require_version('Gtk', '3.0')
 gi.require_version('GdkPixbuf', '2.0')
@@ -82,16 +77,6 @@ def pil_image_to_cairo_surface(src):
     return surface
 
 
-def get_all_save_image_exts():
-    all_types = dict(list(EXTS.RW.items()) + list(EXTS.WO.items()))
-    all_images = []
-    for file_type in all_types:
-        for ext in all_types[file_type]:
-            all_images.append(ext)
-
-    return all_images
-
-
 def set_open_image_filters(dialog):
     """Set our own filter because Gtk.FileFilter.add_pixbuf_formats() contains
     formats not supported by PIL.
@@ -108,34 +93,6 @@ def set_open_image_filters(dialog):
 
     dialog.add_filter(img_filter)
     dialog.set_filter(img_filter)
-
-
-def set_save_image_filters(dialog):
-    """Set our own filter because Gtk.FileFilter.add_pixbuf_formats() contains
-    formats not supported by PIL.
-
-    """
-    all_types = dict(list(EXTS.RW.items()) + list(EXTS.WO.items()))
-    filters = [Gtk.FileFilter()]
-
-    flt = filters[-1]
-    flt.set_name(_("All supported image formats"))
-    for ext in get_all_save_image_exts():
-        flt.add_pattern("*." + ext)
-        flt.add_pattern("*." + ext.upper())
-    dialog.add_filter(flt)
-    dialog.set_filter(flt)
-
-    for file_type in all_types:
-        filters.append(Gtk.FileFilter())
-        flt = filters[-1]
-        name = _("%s image") % file_type
-        name += " (." + ", .".join(all_types[file_type]) + ")"
-        flt.set_name(name)
-        for ext in all_types[file_type]:
-            flt.add_pattern("*." + ext)
-            flt.add_pattern("*." + ext.upper())
-        dialog.add_filter(flt)
 
 
 def gtk_run_in_main_thread(fn):
@@ -507,24 +464,6 @@ def stitch_print_ready_cover(pdf_path: str, yearbook: Yearbook):
 
     print("Finished writing pdf here %s " % cover_path_pdf)
     return cover_path_pdf
-
-
-def pickle_yearbook(_yearbook: Yearbook, stub_dir: str):
-    from pathlib import Path
-    import pickle
-
-    pickle_path = get_pickle_path(stub_dir, _yearbook.school,
-                                  _yearbook.classroom, _yearbook.child)
-    pickle_filename = os.path.join(pickle_path, "file.pickle")
-    path1 = Path(pickle_filename)
-    # Create the parent directories if they don't exist
-    os.makedirs(path1.parent, exist_ok=True)
-
-    # Important to open the file in binary mode
-    with open(pickle_filename, 'wb') as f:
-        pickle.dump(_yearbook.pickle_yearbook, f)
-
-    print("Saved pickled yearbook here: ", pickle_filename)
 
 
 class MainWindow(Gtk.Window):
@@ -1345,10 +1284,10 @@ class MainWindow(Gtk.Window):
         import json
         job_payload = create_order_payload(self.order_line_items, "RETHINK_YEARBOOKS")
         headers = get_header()
-        #response = requests.request('POST', print_job_url, data=job_payload, headers=headers)
+        # response = requests.request('POST', print_job_url, data=job_payload, headers=headers)
 
         # Now we need to parse the response, to make sure the order went through
-        #response_json = json.loads(response.text)
+        # response_json = json.loads(response.text)
 
         print(job_payload)
         return job_payload

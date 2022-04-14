@@ -144,3 +144,22 @@ def get_tag_list_for_page(yearbook: Yearbook, page: Page):
         tags.append(yearbook.child)
 
     return tags
+
+
+def pickle_yearbook(_yearbook: Yearbook, stub_dir: str):
+    from pathlib import Path
+    import pickle
+    import os
+
+    pickle_path = get_pickle_path(stub_dir, _yearbook.school,
+                                  _yearbook.classroom, _yearbook.child)
+    pickle_filename = os.path.join(pickle_path, "file.pickle")
+    path1 = Path(pickle_filename)
+    # Create the parent directories if they don't exist
+    os.makedirs(path1.parent, exist_ok=True)
+
+    # Important to open the file in binary mode
+    with open(pickle_filename, 'wb') as f:
+        pickle.dump(_yearbook.pickle_yearbook, f)
+
+    print("Saved pickled yearbook here: ", pickle_filename)
