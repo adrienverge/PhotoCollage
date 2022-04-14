@@ -1,7 +1,7 @@
 import unittest
 import json
 
-from publish.LuluLineItem import LuluLineItem
+from publish.OrderDetails import OrderDetails
 from publish.lulu import get_access_token_json, client_id_sandbox, client_secret_sandbox, \
     get_job_details, get_line_items, create_order_payload, submit_full_order
 
@@ -14,7 +14,7 @@ class LuluIntegrationTests(unittest.TestCase):
     def test_line_item(self):
         cover_url = "https://drive.google.com/file/d/1Y3y1GlcY4n120ERg_PU0ISNbiTnK1Rn9/view?usp=sharing"
         interior_url = "https://drive.google.com/file/d/1GpzDaNbea-aZcHFMzb-HvzP8isxIfYr5/view?usp=sharing"
-        first_item = LuluLineItem("1", "0827X1169FCPRELW060UW444MNG", interior_url, cover_url)
+        first_item = OrderDetails("1", "0827X1169FCPRELW060UW444MNG", interior_url, cover_url)
 
         json_item_str = first_item.get_lulu_line_item()
         assert ("0827X1169FCPRELW060UW444MNG" == json.loads(json_item_str)["pod_package_id"])
@@ -22,8 +22,8 @@ class LuluIntegrationTests(unittest.TestCase):
     def test_get_line_items(self):
         cover_url = "https://drive.google.com/file/d/1Y3y1GlcY4n120ERg_PU0ISNbiTnK1Rn9/view?usp=sharing"
         interior_url = "https://drive.google.com/file/d/1GpzDaNbea-aZcHFMzb-HvzP8isxIfYr5/view?usp=sharing"
-        first_item = LuluLineItem("1", "0827X1169FCPRELW060UW444MNG", interior_url, cover_url)
-        second_item = LuluLineItem("2", "0827X1169FCPRELW060UW444MNG", interior_url, cover_url)
+        first_item = OrderDetails("1", "0827X1169FCPRELW060UW444MNG", interior_url, cover_url)
+        second_item = OrderDetails("2", "0827X1169FCPRELW060UW444MNG", interior_url, cover_url)
 
         order_items = [first_item, second_item]
 
@@ -33,8 +33,8 @@ class LuluIntegrationTests(unittest.TestCase):
     def test_get_print_job_all(self):
         cover_url = "https://drive.google.com/file/d/1Y3y1GlcY4n120ERg_PU0ISNbiTnK1Rn9/view?usp=sharing"
         interior_url = "https://drive.google.com/file/d/1GpzDaNbea-aZcHFMzb-HvzP8isxIfYr5/view?usp=sharing"
-        first_item = LuluLineItem("1", "0827X1169FCPRELW060UW444MNG", interior_url, cover_url)
-        second_item = LuluLineItem("2", "0827X1169FCPRELW060UW444MNG", interior_url, cover_url)
+        first_item = OrderDetails("1", "0827X1169FCPRELW060UW444MNG", interior_url, cover_url)
+        second_item = OrderDetails("2", "0827X1169FCPRELW060UW444MNG", interior_url, cover_url)
 
         order_items = [first_item, second_item]
 
@@ -44,8 +44,8 @@ class LuluIntegrationTests(unittest.TestCase):
     def test_create_all_print_jobs(self):
         cover_url = "https://drive.google.com/file/d/1UCdNESiQvd4J-97rAtx5BbssY0EVF4iK/view?usp=sharing"
         interior_url = "https://drive.google.com/file/d/18vfC1xcQDUb3EJVTRVrksemsLYfrdwKM/view?usp=sharing"
-        first_item = LuluLineItem("1", "0827X1169FCPRELW060UW444MNG", interior_url, cover_url)
-        second_item = LuluLineItem("2", "0827X1169FCPRELW060UW444MNG", interior_url, cover_url)
+        first_item = OrderDetails("1", "0827X1169FCPRELW060UW444MNG", interior_url, cover_url)
+        second_item = OrderDetails("2", "0827X1169FCPRELW060UW444MNG", interior_url, cover_url)
 
         order_items = [first_item, second_item]
         response = submit_full_order(order_items)

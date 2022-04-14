@@ -32,15 +32,13 @@ def check_file_exists(real_folder_id, file_id):
         return False
 
 
-def upload_to_folder_with_item_check(real_folder_id, pdf_file, file_id):
-
+def upload_with_item_check(real_folder_id, pdf_file, file_id):
     try:
         service = build('drive', 'v3', credentials=get_credentials())
         g_file = service.files().get(fileId=file_id, fields='parents').execute()
 
-        print(g_file)
         if g_file is not None:
-            print("File exists, skipping upload PHEW!!")
+            print("File exists, skipping upload PHEW!! %s " % g_file)
             return file_id
         else:
             print("File does not exist, uploading!!")
@@ -48,6 +46,7 @@ def upload_to_folder_with_item_check(real_folder_id, pdf_file, file_id):
     except HttpError as error:
         print(F'An error occurred: {error}')
         return None
+
 
 def upload_to_folder(real_folder_id, pdf_file):
     """Upload a file to the specified folder and prints file ID, folder ID

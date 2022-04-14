@@ -1,5 +1,8 @@
+from sqlite3 import Cursor
+
 from data.pickle.utils import get_pickle_path
-from publish.LuluLineItem import LuluLineItem
+from data.sqllite.reader import get_order_details_for_child, get_child_orders
+from publish.OrderDetails import OrderDetails
 from yearbook.page.Page import Page
 from gi.repository import GObject
 
@@ -42,7 +45,7 @@ def create_yearbook_from_db(dir_params: {}, school_name: str, classroom: str, ch
 
     db_file_path = dir_params['db_file_path']
     corpus_base_dir = dir_params['corpus_base_dir']
-    album_details = get_album_details_for_school(db_file_path, school_name)
+    album_details: Cursor = get_album_details_for_school(db_file_path, school_name)
     for row in album_details:
         personalized = False
         if row[2].startswith('Dynamic'):
@@ -53,18 +56,28 @@ def create_yearbook_from_db(dir_params: {}, school_name: str, classroom: str, ch
                     orig_image_loc=orig_img_loc, title=str(row[0]), tags=str(row[5]))
         pages.append(page)
 
-    return Yearbook(PickleYearbook(pages, school_name, classroom, child, parent_book))
+    # Check if the child has an order placed for the yearbook
+    orders = None
+
+    if child is not None:
+        print("CHECKING FOR ORDERS for %s" % child)
+        child_orders = get_child_orders(db_file_path, child)
+        if child_orders is not None:
+            print(child_orders)
+            orders = [OrderDetails(wix_order_id=order[0], cover_format=order[1]) for order in child_orders]
+
+    return Yearbook(PickleYearbook(pages, school_name, classroom, child, parent_book, orders))
 
 
 class PickleYearbook:
 
-    def __init__(self, pages: [Page], school: str, classroom: str, child: str, parent_book):
+    def __init__(self, pages: [Page], school: str, classroom: str, child: str, parent_book, orders: [OrderDetails] = None):
         self.pages = pages
         self.school: str = school
         self.classroom: str = classroom
         self.child: str = child
-        self.lulu_line_item: LuluLineItem = None
         self.parent_book: PickleYearbook = parent_book
+        self.orders: [OrderDetails] = orders
 
     def __repr__(self):
         if self.child is None:
@@ -82,15 +95,15 @@ class PickleYearbook:
 
 class Yearbook(GObject.GObject):
 
-    def __init__(self, pickle_yearbook: PickleYearbook):
+    def __init__(self, pick_yearbook: PickleYearbook):
         GObject.GObject.__init__(self)
-        self.pickle_yearbook = pickle_yearbook
+        self.pickle_yearbook = pick_yearbook
         self.pages = self.pickle_yearbook.pages
         self.school = self.pickle_yearbook.school
         self.classroom = self.pickle_yearbook.classroom
         self.child = self.pickle_yearbook.child
         self.parent_yearbook = self.pickle_yearbook.parent_book
-        self.lulu_line_item: LuluLineItem = self.pickle_yearbook.lulu_line_item
+        self.orders: [OrderDetails] = self.pickle_yearbook.orders
 
     def get_prev_page(self, current_page: Page):
         current_page_idx = current_page.number - 1
@@ -110,16 +123,6 @@ class Yearbook(GObject.GObject):
 
         return self.pickle_yearbook.child
 
-    def update_line_item(self, student_id: str, pod_id: str, interior_pdf_url: str, cover_pdf_url: str, job_id: str):
-        if self.lulu_line_item is None:
-            self.lulu_line_item = LuluLineItem(student_id, pod_id, interior_pdf_url, cover_pdf_url)
-            self.lulu_line_item.job_id = job_id
-        else:
-            self.lulu_line_item.student_id = student_id
-            self.lulu_line_item.interior_pdf_url = interior_pdf_url
-            self.lulu_line_item.cover_url = cover_pdf_url
-            self.lulu_line_item.job_id = job_id
-
     def print_yearbook_info(self):
         print("%s :-> %s :-> %s" % (self.pickle_yearbook.school,
                                     self.pickle_yearbook.classroom, self.pickle_yearbook.child))
@@ -129,6 +132,12 @@ class Yearbook(GObject.GObject):
 
         is_edited = [page.is_edited() for page in self.pages]
         return reduce(lambda x, y: x or y, is_edited)
+
+    def get_non_digital_order_url(self):
+        for order in self.orders:
+            if order.cover_format != 'Digital':
+                return order.interior_pdf_url
+        return None
 
 
 def get_tag_list_for_page(yearbook: Yearbook, page: Page):
