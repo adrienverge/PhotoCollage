@@ -9,6 +9,7 @@ from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
 
 import os
+from timeit import default_timer as timer
 
 gauth = GoogleAuth()
 drive = GoogleDrive(gauth)
@@ -28,7 +29,7 @@ def upload_to_folder(real_folder_id, pdf_file):
     TODO(developer) - See https://developers.google.com/identity
     for guides on implementing OAuth2 for the application.
     """
-
+    start = timer()
     try:
         # create gmail api client
         service = build('drive', 'v3', credentials=get_credentials())
@@ -50,6 +51,8 @@ def upload_to_folder(real_folder_id, pdf_file):
         print(F'An error occurred: {error}')
         return None
 
+    end = timer()
+    print("Time in seconds to upload %s" % str(end - start))
     return file.get('id')
 
 

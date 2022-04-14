@@ -1346,7 +1346,8 @@ class MainWindow(Gtk.Window):
             self.stitch_background_with_image(_yearbook)
             print("STEP 2: Create Custom PDF")
             images = []
-            for page in _yearbook.pages:
+            # Need to skip both front and back cover pages
+            for page in _yearbook.pages[1:-1]:
                 images.append(os.path.join(get_jpg_path(self.yearbook_parameters['output_dir'],
                                                         _yearbook.school,
                                                         _yearbook.classroom,
