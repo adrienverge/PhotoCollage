@@ -25,6 +25,7 @@ import urllib
 import PIL
 import cairo
 import gi
+import requests
 from PIL import Image
 from gi.repository.Gtk import TreeStore
 
@@ -41,9 +42,10 @@ from data.readers.default import corpus_processor
 from photocollage.settings.PrintSettings import US_LETTER_HARDCOVER, \
     BACK_COVER_BOTTOM_RIGHT, BACK_COVER_TOP_LEFT, FRONT_COVER_TOP_LEFT, FRONT_COVER_BOTTOM_RIGHT, BOOK_COVER_SIZE, \
     COVER_CHILD_IMAGE
+from publish.lulu import create_order_payload, get_header, print_job_url
 
 from util.draw.DashedImageDraw import DashedImageDraw
-from util.google.drive.util import upload_pdf_file, read_files, upload_to_folder
+from util.google.drive.util import upload_to_folder, get_url_from_file_id
 from util.utils import get_unique_list_insertion_order
 from yearbook.Yearbook import Yearbook, get_tag_list_for_page
 from yearbook.Yearbook import Page
@@ -485,7 +487,7 @@ def stitch_print_ready_cover(pdf_path: str, yearbook: Yearbook):
     base_name = os.path.basename(pdf_path)
     cover_path_pdf = os.path.join(dirname, base_name + "_cover.pdf")
 
-    canvas_cover = Canvas(cover_path_pdf, pagesize=(19 * inch, 12.75 * inch))
+    canvas_cover = Canvas(cover_path_pdf, pagesize=(17.5 * inch, 11.25 * inch))
 
     # First draw the back cover page
     canvas_cover.drawImage(yearbook.pages[-1].image, 0.75 * inch, 0.75 * inch,
@@ -505,6 +507,24 @@ def stitch_print_ready_cover(pdf_path: str, yearbook: Yearbook):
 
     print("Finished writing pdf here %s " % cover_path_pdf)
     return cover_path_pdf
+
+
+def pickle_yearbook(_yearbook: Yearbook, stub_dir: str):
+    from pathlib import Path
+    import pickle
+
+    pickle_path = get_pickle_path(stub_dir, _yearbook.school,
+                                  _yearbook.classroom, _yearbook.child)
+    pickle_filename = os.path.join(pickle_path, "file.pickle")
+    path1 = Path(pickle_filename)
+    # Create the parent directories if they don't exist
+    os.makedirs(path1.parent, exist_ok=True)
+
+    # Important to open the file in binary mode
+    with open(pickle_filename, 'wb') as f:
+        pickle.dump(_yearbook.pickle_yearbook, f)
+
+    print("Saved pickled yearbook here: ", pickle_filename)
 
 
 class MainWindow(Gtk.Window):
@@ -536,6 +556,7 @@ class MainWindow(Gtk.Window):
         self.tree_model_cache = {}
 
         self.current_yearbook: Yearbook = None
+        self.order_line_items = []
         self.corpus = None
 
         from data.sqllite.reader import get_tree_model, get_school_list
@@ -1006,8 +1027,7 @@ class MainWindow(Gtk.Window):
                 options = self.right_opts
 
             self.render_preview(page, self.img_preview_left, options)
-
-        self.pickle_all_books(None)
+        pickle_yearbook(_yearbook, output_dir)
         print("********Finished rendering pages for the yearbook********")
 
     def render_left_page(self, page):
@@ -1016,6 +1036,7 @@ class MainWindow(Gtk.Window):
     def render_right_page(self, page):
         self.render_preview(page, self.img_preview_right, self.right_opts)
 
+    # TODO:: Break into two methods, one that returns the images for the page and another one that does the render
     def render_preview(self, yearbook_page: Page, img_preview_area: ImagePreviewArea, options: Options):
         print("---Displaying %s %s" % (yearbook_page.event_name, str(yearbook_page.number)))
 
@@ -1042,20 +1063,14 @@ class MainWindow(Gtk.Window):
             print("Finished displayed grayscale single image")
             return
 
-        print("Current page metadata")
-        print(yearbook_page.data)
-
         # If this page has never been edited,
         if not yearbook_page.is_edited():
             if self.current_yearbook.parent_yearbook is not None:
                 parent_page: Page = yearbook_page.parent_pages[-1]
                 print("******We have a parent, let's retrieve from there, %s*****" % parent_page.history_index)
-                print(parent_page.data)
                 page_collage: UserCollage = parent_page.history[-1].duplicate_with_layout()
                 yearbook_page.photo_list: [Photo] = page_collage.photolist
                 yearbook_page.history.append(page_collage)
-                print("******%s*****" % yearbook_page.history_index)
-
             elif yearbook_page.history_index < 0:
                 print("No parent exists, so we create from scratch")
                 page_images = self.choose_images_for_page(yearbook_page)
@@ -1064,9 +1079,6 @@ class MainWindow(Gtk.Window):
                 page_collage.make_page(options)
                 yearbook_page.photo_list = first_photo_list
                 yearbook_page.history.append(page_collage)
-                print("Finished appending first time, %s " % len(yearbook_page.history))
-                print("Index %s" % str(yearbook_page.history_index))
-
         else:
             if yearbook_page.has_parent_pins_changed():
                 new_images = yearbook_page.get_filenames_parent_pins_not_on_page()
@@ -1088,7 +1100,6 @@ class MainWindow(Gtk.Window):
                 rebuild = True
 
             if rebuild:
-                print("REBUILDING PHOTO LIST")
                 first_photo_list = render.build_photolist(page_images)
                 page_collage = UserCollage(first_photo_list)
                 page_collage.make_page(options)
@@ -1104,11 +1115,9 @@ class MainWindow(Gtk.Window):
                         page_collage: UserCollage = parent_page.history[-1]
                         # Need to copy the parent layout in this case
                         yearbook_page.history.append(page_collage)
-                        print("Attempting to copy parent layout, since this child has same images as parent")
                     else:
-                        print("")
+                        pass
 
-        print("Picking up from history %s, %s " % (yearbook_page.history_index, len(yearbook_page.history)))
         page_collage: UserCollage = yearbook_page.history[yearbook_page.history_index]
         # If the desired ratio changed in the meantime (e.g. from landscape to
         # portrait), it needs to be re-updated
@@ -1304,44 +1313,81 @@ class MainWindow(Gtk.Window):
         return self.get_folder("Deleted")
 
     def print_all_pdfs(self, button):
-        self.treeModel.foreach(self.create_publish_pdf)
+        self.treeModel.foreach(self.create_and_upload_pdfs)
+        print("Lets see the length of the line items")
+        print(len(self.order_line_items))
 
-    def create_publish_pdf(self, store: Gtk.TreeStore, treepath: Gtk.TreePath, treeiter: Gtk.TreeIter):
-        _yearbook = store[treeiter][0]
+    def create_and_upload_pdfs(self, store: Gtk.TreeStore, treepath: Gtk.TreePath, treeiter: Gtk.TreeIter):
+        _yearbook: Yearbook = store[treeiter][0]
+
+        # We are adding this so that during testing, we don't keep recreating the books
+        if _yearbook.lulu_line_item is not None and _yearbook.lulu_line_item.job_id is not None:
+            return
 
         print("STEP 1: Create_print_pdf")
         output_dir = self.yearbook_parameters['output_dir']
+
         if _yearbook.classroom is None:
             pdf_path = os.path.join(output_dir, "pdf_outputs", _yearbook.school + ".pdf")
+            student_id = _yearbook.school
         elif _yearbook.child is None:
             pdf_path = os.path.join(output_dir, "pdf_outputs", _yearbook.school + "_" + _yearbook.classroom + ".pdf")
+            student_id = _yearbook.classroom
         else:
             pdf_path = os.path.join(output_dir, "pdf_outputs", _yearbook.school + "_" + _yearbook.classroom + "_"
                                     + _yearbook.child + ".pdf")
+            student_id = _yearbook.child
 
         print("STEP 0: Create_cover_pages")
         cover_path = stitch_print_ready_cover(pdf_path, _yearbook)
 
         print("STEP 1: Create_print_pdf")
-        self.stitch_background_with_image(_yearbook)
+        if _yearbook.parent_yearbook is None or _yearbook.is_edited():
+            self.stitch_background_with_image(_yearbook)
+            print("STEP 2: Create Custom PDF")
+            images = []
+            for page in _yearbook.pages:
+                images.append(os.path.join(get_jpg_path(self.yearbook_parameters['output_dir'],
+                                                        _yearbook.school,
+                                                        _yearbook.classroom,
+                                                        _yearbook.child),
+                                           str(page.number) + "_stitched.png"))
 
-        print("STEP 2: Create PDF")
-        images = []
-        for page in _yearbook.pages:
-            images.append(os.path.join(get_jpg_path(self.yearbook_parameters['output_dir'],
-                                                    _yearbook.school,
-                                                    _yearbook.classroom,
-                                                    _yearbook.child),
-                                       str(page.number) + "_stitched.png"))
+            print("Creating PDF from images")
+            create_pdf_from_images(pdf_path, images)
+            interior_url = get_url_from_file_id(upload_to_folder('1UWyYpHCUJ2lIUP0wOrTwtFeXYOXTd5x9', pdf_path))
+        else:
+            # Let's just get the parent
+            print("Getting the parent url, there's nothing custom to upload")
+            interior_url = _yearbook.parent_yearbook.lulu_line_item.interior_pdf_url
 
-        print("Creating PDF from images")
-        create_pdf_from_images(pdf_path, images)
+        cover_url = get_url_from_file_id(upload_to_folder('1UWyYpHCUJ2lIUP0wOrTwtFeXYOXTd5x9', cover_path))
 
-        upload_to_folder('1UWyYpHCUJ2lIUP0wOrTwtFeXYOXTd5x9', pdf_path)
-        upload_to_folder('1UWyYpHCUJ2lIUP0wOrTwtFeXYOXTd5x9', cover_path)
+        _yearbook.update_line_item(student_id=student_id,
+                                   interior_pdf_url=interior_url,
+                                   cover_pdf_url=cover_url,
+                                   job_id=None)
 
-        print("STEP 4: Send PDF to print")
+        self.order_line_items.append(_yearbook.lulu_line_item)
+
+        # Let's pickle the yearbook. Now we have a track of uploaded items on Google Drive
+        pickle_yearbook(_yearbook, self.yearbook_parameters['output_dir'])
+        print("Length of line items")
+        print(len(self.order_line_items))
+
         return
+
+    def submit_full_order(self, student_yearbooks: [Yearbook], external_id="RethinkYearbooks"):
+        import json
+        yearbook_line_items = [yearbook.lulu_line_item for yearbook in student_yearbooks]
+        job_payload = create_order_payload(yearbook_line_items, external_id)
+        headers = get_header()
+        response = requests.request('POST', print_job_url, data=job_payload, headers=headers)
+
+        # Now we need to parse the response, to make sure the order went through
+        response_json = json.loads(response.text)
+
+        return response
 
     def pin_page_left(self, button):
         left_page = self.current_yearbook.pages[self.prev_page_index]
@@ -1372,24 +1418,8 @@ class MainWindow(Gtk.Window):
         self.render_right_page(right_page)
 
     def pickle_book(self, store: Gtk.TreeStore, treepath: Gtk.TreePath, treeiter: Gtk.TreeIter):
-        from pathlib import Path
-        import pickle
-        import os
         _yearbook = store[treeiter][0]
-
-        output_dir = self.yearbook_parameters['output_dir']
-        pickle_path = get_pickle_path(output_dir, _yearbook.school,
-                                      _yearbook.classroom, _yearbook.child)
-        pickle_filename = os.path.join(pickle_path, "file.pickle")
-        path1 = Path(pickle_filename)
-        # Create the parent directories if they don't exist
-        os.makedirs(path1.parent, exist_ok=True)
-
-        # Important to open the file in binary mode
-        with open(pickle_filename, 'wb') as f:
-            pickle.dump(_yearbook.pickle_yearbook, f)
-
-        print("Saved pickled yearbook here: ", pickle_filename)
+        pickle_yearbook(_yearbook, self.yearbook_parameters['output_dir'])
 
     def pickle_all_books(self, button):
         self.treeModel.foreach(self.pickle_book)

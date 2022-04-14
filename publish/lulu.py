@@ -1,7 +1,9 @@
-import requests
 import json
 
+import requests
+
 from publish.LuluLineItem import LuluLineItem
+from yearbook.Yearbook import Yearbook
 
 client_id_sandbox = '0f945822-ca71-413b-b986-d0037c7e0b05'
 client_secret_sandbox = '89cc568b-44dd-477a-a0f4-0e1bd30f7ce5'
@@ -51,11 +53,10 @@ def get_shipping_json() -> str:
 
 def get_line_items(student_books: [LuluLineItem]) -> str:
     internal_line_items = ",".join([line_item.get_lulu_line_item() for line_item in student_books])
-
     return """ "line_items" : [""" + internal_line_items + "]"
 
 
-def get_print_job_all(student_books: [LuluLineItem], external_id="RethinkYearbooks") -> str:
+def create_order_payload(student_books: [LuluLineItem], external_id="RethinkYearbooks") -> str:
     data = """{ "external_id": "%s", 
                 %s ,
                 "shipping_option_level": "MAIL",
@@ -65,41 +66,18 @@ def get_print_job_all(student_books: [LuluLineItem], external_id="RethinkYearboo
     return data
 
 
-def get_print_job_data(student_id: str, pod_package_id: str, interior_url: str, cover_url: str,
-                       shipping_json: str) -> str:
-    data = """{
-               "external_id": "%s",
-                "line_items": [
-                    {
-                        "title": "My Book",
-                        "pod_package_id": "%s",
-                        "quantity": 1,
-                        "interior": {
-                            "source_url": "%s"
-                        },
-                        "cover": {
-                            "source_url": "%s"
-                        }
-                    }
-                ],
-                "shipping_option_level": "MAIL",
-                "contact_email": "rethinkyearbooks@gmail.com",
-                "shipping_address": %s
-    }""" % (student_id, pod_package_id, interior_url, cover_url, shipping_json)
-
-    return data
+def get_header() -> str:
+    headers = {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Authorization': 'Bearer %s' % get_access_token_json(client_id_sandbox, client_secret_sandbox)[
+            'access_token'],
+    }
+    return headers
 
 
-def get_interior_book_url(student_id: str):
-    return "location_of_uploaded_pdf_url/%s" % student_id
-
-
-def get_cover_url(student_id: str):
-    return "location_of_uploaded_pdf_cover_url/%s" % student_id
-
-
-def create_all_print_jobs(student_books: [LuluLineItem], external_id="RethinkYearbooks"):
-    job_payload = get_print_job_all(student_books, external_id)
+def submit_full_order(student_books: [LuluLineItem], external_id="RethinkYearbooks"):
+    job_payload = create_order_payload(student_books, external_id)
     headers = {
         'Content-Type': 'application/json',
         'Cache-Control': 'no-cache',
@@ -108,32 +86,6 @@ def create_all_print_jobs(student_books: [LuluLineItem], external_id="RethinkYea
 
     response = requests.request('POST', print_job_url, data=job_payload, headers=headers)
     return response
-
-
-def create_print_job(student_id: str):
-    # Get the product package id
-    shipping_json = get_shipping_json()
-
-    # Given the student, retrieve the book, and the cover details
-    interior_url = get_interior_book_url(student_id)
-    cover_url = get_cover_url(student_id)
-
-    # first step is to get all the necessary data for the print job
-    payload = get_print_job_data(student_id, __get_pod_package_id(), interior_url, cover_url, shipping_json)
-
-    headers = {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache',
-        'Authorization': 'Bearer %s' % get_access_token_json(client_id_sandbox, client_secret_sandbox)['access_token'],
-    }
-
-    response = requests.request('POST', print_job_url, data=payload, headers=headers)
-    return response
-
-
-def create_print_job_json(student_id: str):
-    response = create_print_job(student_id)
-    return json.loads(response.text)
 
 
 def get_job_details(lulu_job_id: str):
@@ -148,15 +100,3 @@ def get_job_details(lulu_job_id: str):
 
     print(response.text)
     return response.text
-
-def get_all_jobs_details():
-    import requests
-
-    headers = {
-        'Cache-Control': 'no-cache',
-        'Authorization': 'Bearer %s' % get_access_token_json(client_id_sandbox, client_secret_sandbox)['access_token'],
-    }
-
-    response = requests.request('GET', all_jobs_url, headers=headers)
-
-    print(response.text)

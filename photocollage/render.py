@@ -335,32 +335,31 @@ class RenderingTask(Thread):
                 if self.full_resolution:
                     background = PIL.Image.open(self.yearbook_page.image).convert("RGBA")
                     new_background = background.resize(IMAGE_WITH_BLEED_SIZE)
+                    if self.yearbook_page.personalized:
+                        if self.yearbook_page.number % 2 != 0:
+
+                            # Right-hand size page, which will have a title
+                            dashed_img_draw = DashedImageDraw(new_background)
+
+                            w, h = TEXT_FONT.getsize(self.yearbook_page.title)
+
+                            dashed_img_draw.dashed_rectangle([(25, 25), (2600, 3350)],
+                                                             dash=(5, 4), outline='white', width=2)
+                            dashed_img_draw.dashed_rectangle([(75, 75), (2550, 3300)],
+                                                             dash=(5, 4), outline='white', width=2)
+
+                            dashed_img_draw.text((int((canvas.size[0] - w) / 2) + 75, 75),
+                                                 self.yearbook_page.title, (255, 255, 255), font=TEXT_FONT)
+                            dashed_img_draw.text((2450, 3200),
+                                                 str(self.yearbook_page.number),
+                                                 (255, 255, 255), font=TEXT_FONT_SMALL)
+
+                            new_background.paste(canvas, (75, 175), mask=canvas)
+                        else:
+                            # Left-hand size page, which will have the image starting at 75,75
+                            new_background.paste(canvas, (75, 75), mask=canvas)
                 else:
                     new_background = canvas
-
-                if self.yearbook_page.personalized:
-                    if self.yearbook_page.number % 2 != 0:
-
-                        # Right-hand size page, which will have a title
-                        dashed_img_draw = DashedImageDraw(new_background)
-
-                        w, h = TEXT_FONT.getsize(self.yearbook_page.title)
-
-                        dashed_img_draw.dashed_rectangle([(25, 25), (2600, 3350)],
-                                                         dash=(5, 4), outline='white', width=2)
-                        dashed_img_draw.dashed_rectangle([(75, 75), (2550, 3300)],
-                                                         dash=(5, 4), outline='white', width=2)
-
-                        dashed_img_draw.text((int((canvas.size[0] - w) / 2) + 75, 75),
-                                             self.yearbook_page.title, (255, 255, 255), font=TEXT_FONT)
-                        dashed_img_draw.text((2450, 3200),
-                                             str(self.yearbook_page.number),
-                                             (255, 255, 255), font=TEXT_FONT_SMALL)
-
-                        new_background.paste(canvas, (75, 175), mask=canvas)
-                    else:
-                        # Left-hand size page, which will have the image starting at 75,75
-                        new_background.paste(canvas, (75, 75), mask=canvas)
 
                 new_background.save(self.output_file, quality=100)
 

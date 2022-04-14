@@ -16,12 +16,8 @@ drive = GoogleDrive(gauth)
 SCOPES = ['https://www.googleapis.com/auth/drive']
 
 
-def upload_pdf_file(parent_folder_id: str, full_path_pdf: str):
-    gfile = drive.CreateFile({'parents': [{'id': parent_folder_id}]})
-    # Read file and set it as the content of this instance.
-    gfile.SetContentFile(full_path_pdf)
-    gfile.Upload()  # Upload the file.
-    gfile.clear()
+def get_url_from_file_id(file_id: str):
+    return "https://drive.google.com/file/d/%s/view?usp=sharing" % file_id
 
 
 def upload_to_folder(real_folder_id, pdf_file):
@@ -52,7 +48,7 @@ def upload_to_folder(real_folder_id, pdf_file):
 
     except HttpError as error:
         print(F'An error occurred: {error}')
-        file = None
+        return None
 
     return file.get('id')
 

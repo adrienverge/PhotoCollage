@@ -4,6 +4,7 @@ class LuluLineItem:
         self.pod_package_id = pod_package_id
         self.interior_pdf_url = interior_pdf_url
         self.cover_url = cover_url
+        self.job_id: str = None
 
     def get_lulu_line_item(self):
         data = """{
