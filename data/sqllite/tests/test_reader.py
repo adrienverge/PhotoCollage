@@ -1,6 +1,7 @@
 import unittest
+from typing import Optional, List
 
-from data.sqllite.reader import get_tree_model, get_album_details_for_school
+from data.sqllite.reader import get_album_details_for_school, get_child_orders
 import getpass
 import os
 
@@ -23,17 +24,19 @@ class TestReader(unittest.TestCase):
                                     'corpus_base_dir': os.path.join('/Users', getpass.getuser(), 'GoogleDrive',
                                                                     school_name)}
 
-    def test_create_tree_model_per_school(self):
-        tree_model = get_tree_model(self.yearbook_parameters,
-                                    school_name)
-        print("Printing rows")
-        tree_model.foreach(print_row)
-
     def test_get_album_details(self):
         album_details = get_album_details_for_school(self.yearbook_parameters['db_file_path'],
                                                      'Monticello_Preschool_2021_2022')
         for row in album_details:
             print(row)
+
+    def test_get_order_details_for_child(self):
+        # Srivardhan Srinivasan
+        order_details: Optional[List[(str, str)]] = get_child_orders(self.yearbook_parameters['db_file_path'],
+                                               child_name='Aarish Mathur')
+
+        assert (len(order_details) == 1)
+        assert (order_details[0] == 'Digital', '10039')
 
 
 if __name__ == '__main__':

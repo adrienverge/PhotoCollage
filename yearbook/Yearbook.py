@@ -1,5 +1,9 @@
+from sqlite3 import Cursor
+from typing import Optional, List
+
 from data.pickle.utils import get_pickle_path
-from publish.LuluLineItem import LuluLineItem
+from data.sqllite.reader import get_child_orders
+from publish.OrderDetails import OrderDetails
 from yearbook.page.Page import Page
 from gi.repository import GObject
 
@@ -42,7 +46,7 @@ def create_yearbook_from_db(dir_params: {}, school_name: str, classroom: str, ch
 
     db_file_path = dir_params['db_file_path']
     corpus_base_dir = dir_params['corpus_base_dir']
-    album_details = get_album_details_for_school(db_file_path, school_name)
+    album_details: Cursor = get_album_details_for_school(db_file_path, school_name)
     for row in album_details:
         personalized = False
         if row[2].startswith('Dynamic'):
@@ -53,18 +57,34 @@ def create_yearbook_from_db(dir_params: {}, school_name: str, classroom: str, ch
                     orig_image_loc=orig_img_loc, title=str(row[0]), tags=str(row[5]))
         pages.append(page)
 
-    return Yearbook(PickleYearbook(pages, school_name, classroom, child, parent_book))
+    # Check if the child has an order placed for the yearbook
+    orders = []
+
+    if child is not None:
+        print("CHECKING FOR ORDERS for %s" % child)
+        child_orders: Optional[List[(str, str)]] = get_child_orders(db_file_path, child)
+
+        if child_orders is not None:
+            print(child_orders)
+            orders = [OrderDetails(wix_order_id=order[1], cover_format=order[0]) for order in child_orders]
+
+    print("%s ordered %s items " % (child, len(orders)))
+    for order in orders:
+        print("Type of book ordered %s " % order.cover_format)
+
+    return Yearbook(PickleYearbook(pages, school_name, classroom, child, parent_book, orders))
 
 
 class PickleYearbook:
 
-    def __init__(self, pages: [Page], school: str, classroom: str, child: str, parent_book):
+    def __init__(self, pages: [Page], school: str, classroom: str, child: str, parent_book,
+                 orders: [OrderDetails] = None):
         self.pages = pages
         self.school: str = school
         self.classroom: str = classroom
         self.child: str = child
-        self.lulu_line_item: LuluLineItem = None
         self.parent_book: PickleYearbook = parent_book
+        self.orders: [OrderDetails] = orders
 
     def __repr__(self):
         if self.child is None:
@@ -79,6 +99,16 @@ class PickleYearbook:
         print("%s :-> %s :-> %s" % (self.school,
                                     self.classroom, self.child))
 
+    def get_interior_url(self, cover_format: str):
+
+        if self.orders is None:
+            return None
+
+        for order in self.orders:
+            if order.cover_format == cover_format:
+                return order.interior_pdf_url
+        return None
+
 
 class Yearbook(GObject.GObject):
 
@@ -90,7 +120,7 @@ class Yearbook(GObject.GObject):
         self.classroom = self.pickle_yearbook.classroom
         self.child = self.pickle_yearbook.child
         self.parent_yearbook = self.pickle_yearbook.parent_book
-        self.lulu_line_item: LuluLineItem = self.pickle_yearbook.lulu_line_item
+        self.orders: [OrderDetails] = self.pickle_yearbook.orders
 
     def get_prev_page(self, current_page: Page):
         current_page_idx = current_page.number - 1
@@ -109,16 +139,6 @@ class Yearbook(GObject.GObject):
                 return self.pickle_yearbook.classroom
 
         return self.pickle_yearbook.child
-
-    def update_line_item(self, student_id: str, pod_id: str, interior_pdf_url: str, cover_pdf_url: str, job_id: str):
-        if self.lulu_line_item is None:
-            self.lulu_line_item = LuluLineItem(student_id, pod_id, interior_pdf_url, cover_pdf_url)
-            self.lulu_line_item.job_id = job_id
-        else:
-            self.lulu_line_item.student_id = student_id
-            self.lulu_line_item.interior_pdf_url = interior_pdf_url
-            self.lulu_line_item.cover_url = cover_pdf_url
-            self.lulu_line_item.job_id = job_id
 
     def print_yearbook_info(self):
         print("%s :-> %s :-> %s" % (self.pickle_yearbook.school,
@@ -144,3 +164,22 @@ def get_tag_list_for_page(yearbook: Yearbook, page: Page):
         tags.append(yearbook.child)
 
     return tags
+
+
+def pickle_yearbook(_yearbook: Yearbook, stub_dir: str):
+    from pathlib import Path
+    import pickle
+    import os
+
+    pickle_path = get_pickle_path(stub_dir, _yearbook.school,
+                                  _yearbook.classroom, _yearbook.child)
+    pickle_filename = os.path.join(pickle_path, "file.pickle")
+    path1 = Path(pickle_filename)
+    # Create the parent directories if they don't exist
+    os.makedirs(path1.parent, exist_ok=True)
+
+    # Important to open the file in binary mode
+    with open(pickle_filename, 'wb') as f:
+        pickle.dump(_yearbook.pickle_yearbook, f)
+
+    print("Saved pickled yearbook here: ", pickle_filename)

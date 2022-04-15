@@ -2,7 +2,7 @@ import json
 
 import requests
 
-from publish.LuluLineItem import LuluLineItem
+from publish.OrderDetails import OrderDetails
 from yearbook.Yearbook import Yearbook
 
 client_id_sandbox = '0f945822-ca71-413b-b986-d0037c7e0b05'
@@ -53,12 +53,12 @@ def get_shipping_json() -> str:
     }"""
 
 
-def get_line_items(student_books: [LuluLineItem]) -> str:
+def get_line_items(student_books: [OrderDetails]) -> str:
     internal_line_items = ",".join([line_item.get_lulu_line_item() for line_item in student_books])
     return """ "line_items" : [""" + internal_line_items + "]"
 
 
-def create_order_payload(student_books: [LuluLineItem], external_id="RethinkYearbooks") -> str:
+def create_order_payload(student_books: [OrderDetails], external_id="RethinkYearbooks") -> str:
     data = """{ "external_id": "%s", 
                 %s ,
                 "shipping_option_level": "MAIL",
@@ -78,7 +78,7 @@ def get_header() -> str:
     return headers
 
 
-def submit_full_order(student_books: [LuluLineItem], external_id="RethinkYearbooks"):
+def submit_full_order(student_books: [OrderDetails], external_id="RethinkYearbooks"):
     job_payload = create_order_payload(student_books, external_id)
     headers = {
         'Content-Type': 'application/json',
