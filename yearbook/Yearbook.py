@@ -2,7 +2,7 @@ from sqlite3 import Cursor
 from typing import Optional, List
 
 from data.pickle.utils import get_pickle_path
-from data.sqllite.reader import get_order_details_for_child, get_child_orders
+from data.sqllite.reader import get_child_orders
 from publish.OrderDetails import OrderDetails
 from yearbook.page.Page import Page
 from gi.repository import GObject
@@ -66,14 +66,19 @@ def create_yearbook_from_db(dir_params: {}, school_name: str, classroom: str, ch
 
         if child_orders is not None:
             print(child_orders)
-            orders = [OrderDetails(wix_order_id=order[0], cover_format=order[1]) for order in child_orders]
+            orders = [OrderDetails(wix_order_id=order[1], cover_format=order[0]) for order in child_orders]
+
+    print("%s ordered %s items " % (child, len(orders)))
+    for order in orders:
+        print("Type of book ordered %s " % order.cover_format)
 
     return Yearbook(PickleYearbook(pages, school_name, classroom, child, parent_book, orders))
 
 
 class PickleYearbook:
 
-    def __init__(self, pages: [Page], school: str, classroom: str, child: str, parent_book, orders: [OrderDetails] = None):
+    def __init__(self, pages: [Page], school: str, classroom: str, child: str, parent_book,
+                 orders: [OrderDetails] = None):
         self.pages = pages
         self.school: str = school
         self.classroom: str = classroom
@@ -93,6 +98,16 @@ class PickleYearbook:
     def print_yearbook_info(self):
         print("%s :-> %s :-> %s" % (self.school,
                                     self.classroom, self.child))
+
+    def get_interior_url(self, cover_format: str):
+
+        if self.orders is None:
+            return None
+
+        for order in self.orders:
+            if order.cover_format == cover_format:
+                return order.interior_pdf_url
+        return None
 
 
 class Yearbook(GObject.GObject):
@@ -134,18 +149,6 @@ class Yearbook(GObject.GObject):
 
         is_edited = [page.is_edited() for page in self.pages]
         return reduce(lambda x, y: x or y, is_edited)
-
-    def get_non_digital_order_url(self):
-        for order in self.orders:
-            if order.cover_format != 'Digital':
-                return order.interior_pdf_url
-        return None
-
-    def get_digital_order_url(self):
-        for order in self.orders:
-            if order.cover_format == 'Digital':
-                return order.interior_pdf_url
-        return None
 
 
 def get_tag_list_for_page(yearbook: Yearbook, page: Page):
