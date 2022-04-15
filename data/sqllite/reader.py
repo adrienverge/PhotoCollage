@@ -83,5 +83,5 @@ def get_school_list(db_file: str):
     conn.close()
 
     # Provide a hard coded list for now
-    school_list = ['Monticello_Preschool_2021_2022', 'JnR_2019_2021']
+    school_list = ['VargasElementary', 'Monticello_Preschool_2021_2022', 'JnR_2019_2021']
     return school_list
