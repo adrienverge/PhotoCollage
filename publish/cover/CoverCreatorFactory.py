@@ -46,11 +46,12 @@ class SoftCoverSettings(CoverSettings):
         return x, y
 
 
-def get_cover_settings(self, cover_format: str) -> CoverSettings:
+def get_cover_settings(cover_format: str) -> CoverSettings:
+    print("Returning cover setting for %s " % cover_format)
     if cover_format == "Hardcover":
-        return HardCoverSettings
+        return HardCoverSettings()
     elif cover_format == "Softcover":
-        return SoftCoverSettings
+        return SoftCoverSettings()
     elif cover_format == "Digital":
         return None
     else:

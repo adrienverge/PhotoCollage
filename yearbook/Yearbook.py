@@ -1,4 +1,5 @@
 from sqlite3 import Cursor
+from typing import Optional, List
 
 from data.pickle.utils import get_pickle_path
 from data.sqllite.reader import get_order_details_for_child, get_child_orders
@@ -57,11 +58,12 @@ def create_yearbook_from_db(dir_params: {}, school_name: str, classroom: str, ch
         pages.append(page)
 
     # Check if the child has an order placed for the yearbook
-    orders = None
+    orders = []
 
     if child is not None:
         print("CHECKING FOR ORDERS for %s" % child)
-        child_orders = get_child_orders(db_file_path, child)
+        child_orders: Optional[List[(str, str)]] = get_child_orders(db_file_path, child)
+
         if child_orders is not None:
             print(child_orders)
             orders = [OrderDetails(wix_order_id=order[0], cover_format=order[1]) for order in child_orders]
@@ -95,9 +97,9 @@ class PickleYearbook:
 
 class Yearbook(GObject.GObject):
 
-    def __init__(self, pick_yearbook: PickleYearbook):
+    def __init__(self, pickle_yearbook: PickleYearbook):
         GObject.GObject.__init__(self)
-        self.pickle_yearbook = pick_yearbook
+        self.pickle_yearbook = pickle_yearbook
         self.pages = self.pickle_yearbook.pages
         self.school = self.pickle_yearbook.school
         self.classroom = self.pickle_yearbook.classroom
@@ -136,6 +138,12 @@ class Yearbook(GObject.GObject):
     def get_non_digital_order_url(self):
         for order in self.orders:
             if order.cover_format != 'Digital':
+                return order.interior_pdf_url
+        return None
+
+    def get_digital_order_url(self):
+        for order in self.orders:
+            if order.cover_format == 'Digital':
                 return order.interior_pdf_url
         return None
 

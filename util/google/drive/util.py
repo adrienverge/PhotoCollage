@@ -3,7 +3,7 @@ from pydrive.drive import GoogleDrive
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
+
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
@@ -21,6 +21,13 @@ def get_url_from_file_id(file_id: str):
     return "https://drive.google.com/file/d/%s/view?usp=sharing" % file_id
 
 
+def get_file_id_from_url(url: str):
+    if url is None:
+        return None
+
+    return url.split("/")[-2]
+
+
 def check_file_exists(real_folder_id, file_id):
     try:
         service = build('drive', 'v3', credentials=get_credentials())
@@ -34,14 +41,15 @@ def check_file_exists(real_folder_id, file_id):
 
 def upload_with_item_check(real_folder_id, pdf_file, file_id):
     try:
-        service = build('drive', 'v3', credentials=get_credentials())
-        g_file = service.files().get(fileId=file_id, fields='parents').execute()
+        if file_id is not None:
+            service = build('drive', 'v3', credentials=get_credentials())
+            g_file = service.files().get(fileId=file_id, fields='parents').execute()
 
-        if g_file is not None:
-            print("File exists, skipping upload PHEW!! %s " % g_file)
-            return file_id
+            if g_file is not None:
+                print("File exists, skipping upload PHEW!! %s " % g_file)
+                return file_id
         else:
-            print("File does not exist, uploading!!")
+            print("File does not exist, uploading %s !!" % pdf_file)
             return upload_to_folder(real_folder_id, pdf_file)
     except HttpError as error:
         print(F'An error occurred: {error}')
@@ -116,6 +124,7 @@ def get_credentials():
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
+            from google_auth_oauthlib.flow import InstalledAppFlow
             flow = InstalledAppFlow.from_client_secrets_file(
                 'credentials.json', SCOPES)
             creds = flow.run_local_server(port=0)

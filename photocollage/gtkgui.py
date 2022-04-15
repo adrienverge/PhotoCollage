@@ -16,6 +16,7 @@
 
 import copy
 import gettext
+import shutil
 from io import BytesIO
 import math
 import os.path
@@ -38,12 +39,11 @@ from photocollage.render import PIL_SUPPORTED_EXTS as EXTS, TEXT_FONT
 from photocollage.dialogs.SettingsDialog import SettingsDialog
 
 from data.readers.default import corpus_processor
-from publish import OrderDetails
+from publish.OrderDetails import OrderDetails
 from publish.cover.CoverCreatorFactory import get_cover_settings, CoverSettings
-from publish.lulu import create_order_payload, get_header, LULU_MONTICELLO_POD_ID
+from publish.lulu import create_order_payload, get_header
 
-from util.google.drive.util import upload_to_folder, get_url_from_file_id, \
-    check_file_exists, upload_with_item_check
+from util.google.drive.util import get_url_from_file_id, upload_with_item_check, get_file_id_from_url
 from util.utils import get_unique_list_insertion_order
 from yearbook.Yearbook import Yearbook, get_tag_list_for_page, pickle_yearbook
 from yearbook.Yearbook import Page
@@ -451,16 +451,16 @@ def stitch_print_ready_cover(pdf_path: str, yearbook: Yearbook, cover_settings: 
 
     # First draw the back cover page
     top_left_back_cover = cover_settings.get_top_left_back_cover()
-    canvas_cover.drawImage(yearbook.pages[-1].image, top_left_back_cover(0), top_left_back_cover(1),
-                           width=cover_img_dims(0), height=cover_img_dims(1))
+    canvas_cover.drawImage(yearbook.pages[-1].image, top_left_back_cover[0], top_left_back_cover[1],
+                           width=cover_img_dims[0], height=cover_img_dims[1])
 
     # Then draw the front cover page
     top_left_front_cover = cover_settings.get_top_left_front_cover()
 
-    canvas_cover.drawImage(yearbook.pages[0].image, top_left_front_cover(0),
-                           top_left_front_cover(1),
-                           width=cover_img_dims(0),
-                           height=cover_img_dims(1))
+    canvas_cover.drawImage(yearbook.pages[0].image, top_left_front_cover[0],
+                           top_left_front_cover[1],
+                           width=cover_img_dims[0],
+                           height=cover_img_dims[1])
 
     if yearbook.child is not None:
         # On the front cover we draw the text
@@ -1152,14 +1152,14 @@ class MainWindow(Gtk.Window):
         new_collage.make_page(options, shuffle=True)
         self.render_from_new_collage(page, new_collage)
 
-    def stitch_background_with_image(self, yearbook: Yearbook):
+    def stitch_print_images(self, yearbook: Yearbook):
         output_dir = self.yearbook_parameters['output_dir']
 
         page_collages = [
             page.history[page.history_index] for page in yearbook.pages]
 
         # We need to ignore the first page and the last page as they are the covers
-        for page, page_collage in zip(yearbook.pages[1:-1], page_collages[1:-1]):
+        for page, page_collage in zip(yearbook.pages, page_collages):
             new_img_path = os.path.join(get_jpg_path(output_dir, yearbook.school,
                                                      yearbook.classroom, yearbook.child),
                                         str(page.number) + "_stitched.png")
@@ -1229,18 +1229,37 @@ class MainWindow(Gtk.Window):
         self.treeModel.foreach(self.create_and_upload_pdfs)
         self.btn_submit_order.set_sensitive(True)
 
-    def create_pdf_for_printing(self, yearbook: Yearbook, pdf_path: str, digital: bool):
+    def create_digital_yearbook(self, yearbook: Yearbook, pdf_full_path: str):
+        print("------: Creating Digital PDF :------")
+
         if yearbook.parent_yearbook is None or yearbook.is_edited():
-            self.stitch_background_with_image(yearbook)
-            print("STEP 4: Create Custom PDF")
+            # self.stitch_print_images(yearbook)
+            images = []
+            # Need to go through all pages
+            for page in yearbook.pages:
+                images.append(os.path.join(get_jpg_path(self.yearbook_parameters['output_dir'],
+                                                        yearbook.school,
+                                                        yearbook.classroom,
+                                                        yearbook.child),
+                                           str(page.number) + "_stitched.png"))
+
+            create_pdf_from_images(pdf_full_path, images)
+            return False
+        else:
+            print("Will copy the parent PDF here")
+            # You should copy the parent file at the new PDF location
+            parent_pdf_path = self.get_pdf_base_path(yearbook.parent_yearbook) + "Digital.pdf"
+            shutil.copyfile(parent_pdf_path, pdf_full_path)
+            return True
+
+    def create_pdf_for_printing(self, yearbook: Yearbook, pdf_full_path: str):
+        print("------: Creating INTERNAL PDF File :------")
+
+        if yearbook.parent_yearbook is None or yearbook.is_edited():
+            self.stitch_print_images(yearbook)
             images = []
             # Need to skip both front and back cover pages
-            if digital:
-                pages = yearbook.pages
-            else:
-                pages = yearbook.pages[1:-1]
-
-            for page in pages:
+            for page in yearbook.pages[1:-1]:
                 images.append(os.path.join(get_jpg_path(self.yearbook_parameters['output_dir'],
                                                         yearbook.school,
                                                         yearbook.classroom,
@@ -1248,62 +1267,78 @@ class MainWindow(Gtk.Window):
                                            str(page.number) + "_stitched.png"))
 
             print("Creating PDF from images")
-            create_pdf_from_images(pdf_path, images)
+            create_pdf_from_images(pdf_full_path, images)
+        else:
+            print("Will copy the parent PDF here")
+            # You should copy the parent file at the new PDF location
+            parent_pdf_path = self.get_pdf_base_path(yearbook.parent_yearbook) + ".pdf"
+            shutil.copyfile(parent_pdf_path, pdf_full_path)
+
+    def get_pdf_base_path(self, yearbook: Yearbook):
+        output_dir = self.yearbook_parameters['output_dir']
+        if yearbook.classroom is None:
+            pdf_path = os.path.join(output_dir, "pdf_outputs", yearbook.school)
+        elif yearbook.child is None:
+            pdf_path = os.path.join(output_dir, "pdf_outputs", yearbook.school + "_" + yearbook.classroom)
+        else:
+            pdf_path = os.path.join(output_dir, "pdf_outputs", yearbook.school + "_" + yearbook.classroom + "_"
+                                    + yearbook.child)
+
+        return pdf_path
 
     def create_and_upload_pdfs(self, store: Gtk.TreeStore, treepath: Gtk.TreePath, treeiter: Gtk.TreeIter):
         _yearbook: Yearbook = store[treeiter][0]
 
-        # We are adding this so that during testing, we don't keep recreating the books
-        if _yearbook.lulu_line_item is not None and _yearbook.lulu_line_item.job_id is not None:
-            return
-
         print("STEP 1: Create_print_pdf %s " % str(treepath.get_depth()))
-
-        output_dir = self.yearbook_parameters['output_dir']
-
-        if _yearbook.classroom is None:
-            pdf_path = os.path.join(output_dir, "pdf_outputs", _yearbook.school + ".pdf")
-            student_id = _yearbook.school
-        elif _yearbook.child is None:
-            pdf_path = os.path.join(output_dir, "pdf_outputs", _yearbook.school + "_" + _yearbook.classroom + ".pdf")
-            student_id = _yearbook.classroom
-        else:
-            pdf_path = os.path.join(output_dir, "pdf_outputs", _yearbook.school + "_" + _yearbook.classroom + "_"
-                                    + _yearbook.child + ".pdf")
-            student_id = _yearbook.child
+        extension = ".pdf"
+        pdf_base_path = self.get_pdf_base_path(_yearbook)
 
         if _yearbook.child is None:
             # Let's create a dummy order
             order = OrderDetails("root", "HardCover")
             # Always upload the root level PDF, and with no digital setup.
-            self.create_pdf_for_printing(_yearbook, pdf_path, digital=False)
+            if not os.path.exists(pdf_base_path + extension):
+                self.create_pdf_for_printing(_yearbook, pdf_base_path + extension)
+
+            pdf_digital_path = pdf_base_path + "Digital" + extension
+            if not os.path.exists(pdf_digital_path):
+                self.create_digital_yearbook(_yearbook, pdf_digital_path)
+
+            # Let's upload only the original PDF if required
             order.interior_pdf_url = \
                 get_url_from_file_id(upload_with_item_check('1UWyYpHCUJ2lIUP0wOrTwtFeXYOXTd5x9',
-                                                            pdf_path,
+                                                            pdf_base_path + extension,
                                                             "1OukkFgfBhWFYUmPPFOL1hyHAQ3JYrIiW"))
 
             # Add this as on order for every other yearbook to reuse
-            _yearbook.orders.append(order)
-            return
+            if _yearbook.orders is None:
+                _yearbook.orders = []
 
-        print('Printing orders')
-        [print(order) for order in _yearbook.orders]
+            _yearbook.orders.append(order)
+            pickle_yearbook(_yearbook, self.yearbook_parameters['output_dir'])
+
+            return
 
         # If we have orders for this yearbook, then let's create the necessary PDFs
         for order in _yearbook.orders:
             if order.lulu_job_id is None:
-                print("We have no lulu print job for this order")
+                print("We have no lulu print job for this order %s " % order.wix_order_id)
                 # Find the cover setting to create
-                cover_settings: CoverSettings = get_cover_settings(order.cover_format)
+                cover_settings: CoverSettings = get_cover_settings(order.wix_order_id)
 
                 if cover_settings is not None:
                     print("STEP 2: Create_cover_pages with %s " % cover_settings)
-                    cover_path = stitch_print_ready_cover(pdf_path, _yearbook, cover_settings)
+                    cover_path = stitch_print_ready_cover(pdf_base_path + order.wix_order_id + extension,
+                                                          _yearbook, cover_settings)
                     # Upload new cover
                     order.cover_url = get_url_from_file_id(upload_with_item_check('1UWyYpHCUJ2lIUP0wOrTwtFeXYOXTd5x9',
-                                                                                  cover_path, order.cover_url))
+                                                                                  cover_path,
+                                                                                  get_file_id_from_url(
+                                                                                      order.cover_url)))
+
+                    print("Finished uploading cover file")
                     # Now create the interior book, with all pages but the first and last ones (Cover pages)
-                    self.create_pdf_for_printing(_yearbook, pdf_path, digital=False)
+                    self.create_pdf_for_printing(_yearbook, pdf_base_path + order.wix_order_id + extension)
 
                     if _yearbook.is_edited() and _yearbook.parent_yearbook is not None:
                         # Then we can reuse the internal URL of the parent book that has a non-digital order
@@ -1313,14 +1348,20 @@ class MainWindow(Gtk.Window):
                             print("We are screwed")
 
                 else:
+                    pdf_full_path = pdf_base_path + order.wix_order_id + extension
                     # Create an interior file that has all pages including the covers for a DIGITAL order
-                    self.create_pdf_for_printing(_yearbook, pdf_path, digital=True)
+                    from_parent = self.create_digital_yearbook(_yearbook, pdf_full_path)
 
-                    # Have to upload a new version here, since anything could have changed
-                    order.interior_pdf_url = upload_with_item_check('1UWyYpHCUJ2lIUP0wOrTwtFeXYOXTd5x9',
-                                                                    pdf_path,
-                                                                    order.interior_pdf_url)
-
+                    if not from_parent:
+                        # Have to upload a new version here, since anything could have changed
+                        order.interior_pdf_url = get_url_from_file_id(
+                            upload_with_item_check('1UWyYpHCUJ2lIUP0wOrTwtFeXYOXTd5x9',
+                                                   pdf_full_path,
+                                                   get_file_id_from_url(order.interior_pdf_url)))
+                    else:
+                        print("WILL NEED TO GET A HANDLE TO THE URL FROM SOMEWHERE")
+                        order.interior_pdf_url = _yearbook.parent_yearbook.get_digital_order_url()
+                        print(order.interior_pdf_url)
             self.order_items.append(order)
 
         # Let's pickle the yearbook. Now we have a track of uploaded items on Google Drive
