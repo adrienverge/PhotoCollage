@@ -1229,13 +1229,12 @@ class MainWindow(Gtk.Window):
         return self.get_folder("Deleted")
 
     def print_all_pdfs(self, button):
-        self.treeModel.foreach(self.create_and_upload_pdfs)
+        self.treeModel.foreach(self.create_pdfs)
         self.btn_submit_order.set_sensitive(True)
 
     def create_pdf_for_printing(self, yearbook: Yearbook, pdf_full_path: str, cover_format: str):
 
         if yearbook.parent_yearbook is None or yearbook.is_edited():
-
             # TODO:: REMOVE LATER WHEN IN FULL PRODUCTION
             if os.path.exists(pdf_full_path):
                 return False
@@ -1275,6 +1274,22 @@ class MainWindow(Gtk.Window):
                                     + yearbook.child)
 
         return pdf_path
+
+    def create_pdfs(self, store: Gtk.TreeStore, treepath: Gtk.TreePath, treeiter: Gtk.TreeIter):
+        _yearbook: Yearbook = store[treeiter][0]
+        extension = ".pdf"
+        pdf_base_path = self.get_pdf_base_path(_yearbook)
+
+        cover_settings: CoverSettings = get_cover_settings("HardCover")
+        stitch_print_ready_cover(pdf_base_path + "HardCover" + extension,
+                                 _yearbook, cover_settings)
+
+        cover_settings: CoverSettings = get_cover_settings("SoftCover")
+        stitch_print_ready_cover(pdf_base_path + "SoftCover" + extension,
+                                 _yearbook, cover_settings)
+
+        pdf_full_path = pdf_base_path + "HardCover" + extension
+        self.create_pdf_for_printing(_yearbook, pdf_full_path, "HardCover")
 
     def create_and_upload_pdfs(self, store: Gtk.TreeStore, treepath: Gtk.TreePath, treeiter: Gtk.TreeIter):
         _yearbook: Yearbook = store[treeiter][0]
@@ -1343,7 +1358,6 @@ class MainWindow(Gtk.Window):
             self.order_items.append(order)
             print("------------------------------------------------------------------------")
 
-
         # Let's pickle the yearbook. Now we have a track of uploaded items on Google Drive
         pickle_yearbook(_yearbook, self.yearbook_parameters['output_dir'])
         print("****************************************************************")
@@ -1351,7 +1365,7 @@ class MainWindow(Gtk.Window):
         return
 
     def submit_full_order(self, widget):
-
+        self.treeModel.foreach(self.create_and_upload_pdfs)
         import json
         job_payload = create_order_payload(self.order_items, "RETHINK_YEARBOOKS")
         headers = get_header()
