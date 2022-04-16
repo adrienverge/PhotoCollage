@@ -41,16 +41,35 @@ def create_yearbook_from_pickle(pickle_file_path):
 
 def create_yearbook_from_db(dir_params: {}, school_name: str, classroom: str, child: str, parent_book=None):
     import os
-    pages: [Page] = []
     from data.sqllite.reader import get_album_details_for_school
 
+    orders = []
     db_file_path = dir_params['db_file_path']
     corpus_base_dir = dir_params['corpus_base_dir']
+
+    if child is not None:
+        child_orders: Optional[List[(str, str)]] = get_child_orders(db_file_path, child)
+        # We need at least 1 order
+        if len(child_orders) > 0:
+            orders = [OrderDetails(wix_order_id=order[1], cover_format=order[0]) for order in child_orders]
+        else:
+            return None
+
     album_details: Cursor = get_album_details_for_school(db_file_path, school_name)
+    pages: [Page] = []
     for row in album_details:
         personalized = False
         if row[2].startswith('Dynamic'):
             personalized = True
+
+        if row[2].startswith('Optional'):
+            if child is None:
+                continue
+            else:
+                # The number of images in the folder should be greater than two
+                child_order_id = orders[0].wix_order_id
+                if len(os.listdir(os.path.join(corpus_base_dir, 'CustomPhotos', child_order_id))) < 2:
+                    continue
 
         orig_img_loc = os.path.join(corpus_base_dir, school_name, row[4])
         page = Page(number=int(row[3]), event=str(row[1]).strip(), personalized=personalized,
@@ -58,19 +77,6 @@ def create_yearbook_from_db(dir_params: {}, school_name: str, classroom: str, ch
         pages.append(page)
 
     # Check if the child has an order placed for the yearbook
-    orders = []
-
-    if child is not None:
-        child_orders: Optional[List[(str, str)]] = get_child_orders(db_file_path, child)
-
-        # We need at least 1 order
-        if len(child_orders) > 0:
-            print(child_orders)
-            orders = [OrderDetails(wix_order_id=order[1], cover_format=order[0]) for order in child_orders]
-            return Yearbook(PickleYearbook(pages, school_name, classroom, child, parent_book, orders))
-        else:
-            return None
-
     return Yearbook(PickleYearbook(pages, school_name, classroom, child, parent_book, orders))
 
 
