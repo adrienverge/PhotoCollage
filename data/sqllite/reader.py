@@ -39,7 +39,6 @@ def get_child_orders(db_file: str, child_name: str):
     conn = create_connection(db_file)
     orders = get_order_details_for_child(conn, child_name, None)
     conn.close()
-
     return orders
 
     

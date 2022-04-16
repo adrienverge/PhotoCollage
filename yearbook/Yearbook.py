@@ -64,13 +64,14 @@ def create_yearbook_from_db(dir_params: {}, school_name: str, classroom: str, ch
         print("CHECKING FOR ORDERS for %s" % child)
         child_orders: Optional[List[(str, str)]] = get_child_orders(db_file_path, child)
 
-        if child_orders is not None:
+        # We need at least 1 order
+        if len(child_orders) > 0:
             print(child_orders)
             orders = [OrderDetails(wix_order_id=order[1], cover_format=order[0]) for order in child_orders]
-
-    print("%s ordered %s items " % (child, len(orders)))
-    for order in orders:
-        print("Type of book ordered %s " % order.cover_format)
+            return Yearbook(PickleYearbook(pages, school_name, classroom, child, parent_book, orders))
+        else:
+            print("There's no order for this child")
+            return None
 
     return Yearbook(PickleYearbook(pages, school_name, classroom, child, parent_book, orders))
 
