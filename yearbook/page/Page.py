@@ -21,11 +21,11 @@ def read_page_json(json_file_loc):
 
 class Page:
 
-    def __init__(self, number: int, event: str, personalized: bool,
+    def __init__(self, number: int, event: str, page_type: str,
                  orig_image_loc: str, title: str, tags: str = None):
         self.number = number
         self.event_name = event
-        self.personalized = personalized
+        self.page_type = page_type
         self.image = orig_image_loc
         self.data = {"imagePath": orig_image_loc,
                      "extension": os.path.splitext(orig_image_loc)[1],
@@ -164,6 +164,19 @@ class Page:
     @property
     def photos_on_page(self):
         return [photo.filename for photo in self.photo_list]
+
+    @property
+    def personalized(self):
+        return self.page_type == 'Dynamic'
+
+    @property
+    def is_optional(self):
+        return self.page_type.startswith('Optional') or self.page_type.startswith('optional')
+
+    @property
+    def is_static(self):
+        return self.page_type.startswith('Static') or self.page_type.startswith('static')
+
 
     # def get_pinned_parent(self):
     #     pinned_parent = None

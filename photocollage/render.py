@@ -335,7 +335,7 @@ class RenderingTask(Thread):
                 if self.full_resolution:
                     background = PIL.Image.open(self.yearbook_page.image).convert("RGBA")
                     new_background = background.resize(IMAGE_WITH_BLEED_SIZE)
-                    if self.yearbook_page.personalized:
+                    if not self.yearbook_page.page_type.startswith('Static'):
                         if self.yearbook_page.number % 2 != 0:
 
                             # Right-hand size page, which will have a title
