@@ -1023,7 +1023,7 @@ class MainWindow(Gtk.Window):
         if not yearbook_page.is_edited():
             if self.current_yearbook.parent_yearbook is not None:
                 parent_page: Page = yearbook_page.parent_pages[-1]
-                print("******We have a parent, let's retrieve from there, %s*****" % parent_page.history_index)
+                print("******We have a parent, let's retrieve from there,*****")
                 page_collage: UserCollage = parent_page.history[-1].duplicate_with_layout()
                 yearbook_page.photo_list: [Photo] = page_collage.photolist
                 yearbook_page.history.append(page_collage)

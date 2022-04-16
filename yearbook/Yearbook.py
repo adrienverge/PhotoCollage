@@ -58,9 +58,6 @@ def create_yearbook_from_db(dir_params: {}, school_name: str, classroom: str, ch
     album_details: Cursor = get_album_details_for_school(db_file_path, school_name)
     pages: [Page] = []
     for row in album_details:
-        personalized = False
-        if row[2].startswith('Dynamic'):
-            personalized = True
 
         if row[2].startswith('Optional'):
             if child is None:
@@ -68,11 +65,15 @@ def create_yearbook_from_db(dir_params: {}, school_name: str, classroom: str, ch
             else:
                 # The number of images in the folder should be greater than two
                 child_order_id = orders[0].wix_order_id
-                if len(os.listdir(os.path.join(corpus_base_dir, 'CustomPhotos', child_order_id))) < 2:
+                custom_order_dir = os.path.join(corpus_base_dir, school_name, 'CustomPhotos', child_order_id)
+                if os.path.exists(custom_order_dir):
+                    if len(os.listdir(custom_order_dir)) < 2:
+                        continue
+                else:
                     continue
 
         orig_img_loc = os.path.join(corpus_base_dir, school_name, row[4])
-        page = Page(number=int(row[3]), event=str(row[1]).strip(), personalized=personalized,
+        page = Page(number=int(row[3]), event=str(row[1]).strip(), page_type=row[2],
                     orig_image_loc=orig_img_loc, title=str(row[0]), tags=str(row[5]))
         pages.append(page)
 
