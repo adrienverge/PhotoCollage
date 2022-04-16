@@ -36,6 +36,7 @@ def get_tree_model(dir_params: {}, school_selection: str) -> Gtk.TreeStore:
     all_rows = get_all_rows(conn)
     added_schools = {}
 
+    count_children = 0
     for row in all_rows:
         school_name = ('%s' % row[0]).strip()
         if school_selection != school_name:
@@ -65,13 +66,18 @@ def get_tree_model(dir_params: {}, school_selection: str) -> Gtk.TreeStore:
             child_yearbook = create_yearbook(dir_params, school_name, classroom=current_class,
                                              child=current_child,
                                              parent_book=class_yearbook.pickle_yearbook)
+            if child_yearbook is not None:
+                treestore.append(class_parent, [child_yearbook])
+                added_schools[school_name][current_class][current_child] = {}
 
-            treestore.append(class_parent, [child_yearbook])
-            added_schools[school_name][current_class][current_child] = {}
+                # Set the parent pages for this yearbook
+                for child_page, class_page in zip(child_yearbook.pages, class_yearbook.pages):
+                    child_page.parent_pages.append(class_page)
 
-            # Set the parent pages for this yearbook
-            for child_page, class_page in zip(child_yearbook.pages, class_yearbook.pages):
-                child_page.parent_pages.append(class_page)
+                count_children = count_children + 1
+                if count_children % 10 == 0:
+                    print("Added %s children" % count_children)
 
+    print("Total number of children added %s" % count_children)
     conn.close()
     return treestore
