@@ -407,7 +407,7 @@ class Options:
         # Dimensions for Book trim size, US Letter, 8.5 x 11 inches at 300 ppi
         # Making the width the same, and height of right page is smaller than left by 100 pixels
         # for adding the label
-        if left_page:
+        if not left_page:
             self.out_h = 3225
         else:
             _, h = TEXT_FONT.getsize("A")
@@ -894,21 +894,21 @@ class MainWindow(Gtk.Window):
         return self.current_yearbook.pages[self.curr_page_index].is_locked()
 
     def add_image_to_left_pane(self, img_name):
-        print("Updating left page, page index %s " % str(self.prev_page_index))
-        self.update_photolist(self.current_yearbook.pages[self.prev_page_index], [img_name], self.left_opts)
-        self.update_flow_box_with_images(self.current_yearbook.pages[self.prev_page_index])
+        print("Updating left page, page index %s " % str(self.curr_page_index))
+        self.update_photolist(self.current_yearbook.pages[self.curr_page_index], [img_name], self.left_opts)
+        self.update_flow_box_with_images(self.current_yearbook.pages[self.curr_page_index])
 
     def add_image_to_right_pane(self, img_name):
-        print("Updating right page, page index %s " % str(self.curr_page_index))
-        self.update_photolist(self.current_yearbook.pages[self.curr_page_index], [img_name], self.right_opts)
-        self.update_flow_box_with_images(self.current_yearbook.pages[self.curr_page_index])
+        print("Updating right page, page index %s " % str(self.next_page_index))
+        self.update_photolist(self.current_yearbook.pages[self.next_page_index], [img_name], self.right_opts)
+        self.update_flow_box_with_images(self.current_yearbook.pages[self.next_page_index])
 
     def invoke_add_image(self, widget, event, img_name, images_list):
         if event.type == Gdk.EventType._2BUTTON_PRESS:
-            if not self.current_yearbook.pages[self.prev_page_index].is_locked():
+            if not self.current_yearbook.pages[self.curr_page_index].is_locked():
                 self.add_image_to_left_pane(img_name)
         elif event.type == Gdk.EventType.BUTTON_PRESS and event.button == 3:
-            if not self.current_yearbook.pages[self.curr_page_index].is_locked():
+            if not self.current_yearbook.pages[self.next_page_index].is_locked():
                 self.add_image_to_right_pane(img_name)
         else:
             self.per_img_window.update_images_list(images_list)
@@ -1130,25 +1130,25 @@ class MainWindow(Gtk.Window):
     def render_from_new_collage(self, page: Page, _collage):
         page.history.append(_collage)
         self.update_tool_buttons()
-        if page.number % 2 == 0:
+        if page.number % 2 != 0:
             self.render_preview(page, self.img_preview_left, self.left_opts)
         else:
             self.render_preview(page, self.img_preview_right, self.right_opts)
 
     def clear_layout(self, button):
         if button.get_label().endswith("Right"):
-            self.current_yearbook.pages[self.curr_page_index].clear_all()
+            self.current_yearbook.pages[self.next_page_index].clear_all()
             self.img_preview_right.image = None
         else:
-            self.current_yearbook.pages[self.prev_page_index].clear_all()
+            self.current_yearbook.pages[self.curr_page_index].clear_all()
             self.img_preview_left.image = None
 
     def regenerate_layout(self, button):
         if button.get_label().endswith("Right"):
-            page = self.current_yearbook.pages[self.curr_page_index]
+            page = self.current_yearbook.pages[self.next_page_index]
             options = self.right_opts
         else:
-            page = self.current_yearbook.pages[self.prev_page_index]
+            page = self.current_yearbook.pages[self.curr_page_index]
             options = self.left_opts
 
         new_collage = page.history[page.history_index].duplicate()
@@ -1378,7 +1378,7 @@ class MainWindow(Gtk.Window):
         return job_payload
 
     def pin_page_left(self, button):
-        left_page = self.current_yearbook.pages[self.prev_page_index]
+        left_page = self.current_yearbook.pages[self.curr_page_index]
         update_flag_for_page(left_page, button, "pinned")
         if button.get_active():
             pin_all_photos_on_page(left_page, self.img_preview_left)
@@ -1386,7 +1386,7 @@ class MainWindow(Gtk.Window):
         self.render_left_page(left_page)
 
     def pin_page_right(self, button):
-        right_page = self.current_yearbook.pages[self.curr_page_index]
+        right_page = self.current_yearbook.pages[self.next_page_index]
         update_flag_for_page(right_page, button, "pinned")
         if button.get_active():
             pin_all_photos_on_page(right_page, self.img_preview_right)
@@ -1394,14 +1394,12 @@ class MainWindow(Gtk.Window):
         self.render_right_page(right_page)
 
     def lock_page_left(self, button):
-        left_page = self.current_yearbook.pages[self.prev_page_index]
-        print("locking the left page at index %s " % self.prev_page_index)
+        left_page = self.current_yearbook.pages[self.curr_page_index]
         update_flag_for_page(left_page, button, "locked")
         self.render_left_page(left_page)
 
     def lock_page_right(self, button):
-        right_page = self.current_yearbook.pages[self.curr_page_index]
-        print("locking the right page at index %s " % self.curr_page_index)
+        right_page = self.current_yearbook.pages[self.next_page_index]
         update_flag_for_page(right_page, button, "locked")
         self.render_right_page(right_page)
 
@@ -1432,12 +1430,12 @@ class MainWindow(Gtk.Window):
             self.curr_page_index = 0
 
         try:
-            left_page = self.current_yearbook.pages[self.prev_page_index]
+            left_page = self.current_yearbook.pages[self.curr_page_index]
             self.render_left_page(left_page)
         except IndexError:
             pass
 
-        right_page = self.current_yearbook.pages[self.curr_page_index]
+        right_page = self.current_yearbook.pages[self.next_page_index]
         self.render_right_page(right_page)
 
         self.update_flow_box_with_images(left_page)
@@ -1460,7 +1458,7 @@ class MainWindow(Gtk.Window):
             if self.current_yearbook:
                 page = self.current_yearbook.pages[self.curr_page_index]
                 if page.history:
-                    if page.number % 2 == 0:
+                    if page.number % 2 != 0:
                         self.render_preview(page, self.img_preview_left)
                     else:
                         self.render_preview(page, self.img_preview_right)
@@ -1484,8 +1482,8 @@ class MainWindow(Gtk.Window):
         if self.current_yearbook is None:
             return
 
-        left_page = self.current_yearbook.pages[self.curr_page_index]
-        right_page = self.current_yearbook.pages[self.next_page_index]
+        left_page = self.current_yearbook.pages[self.prev_page_index]
+        right_page = self.current_yearbook.pages[self.curr_page_index]
 
         self.btn_undo.set_sensitive(left_page.history_index > 0)
         self.btn_redo.set_sensitive(left_page.history_index < len(left_page.history) - 1)
