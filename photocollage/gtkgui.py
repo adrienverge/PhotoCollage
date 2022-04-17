@@ -1491,13 +1491,13 @@ class MainWindow(Gtk.Window):
     def update_label_text(self):
 
         try:
-            _left = self.current_yearbook.pages[self.curr_page_index - 1]
+            _left = self.current_yearbook.pages[self.curr_page_index]
             _label_text = str(_left.number) + ":" + _left.event_name
             self.lbl_left_page.set_label(_label_text)
         except IndexError:
             self.lbl_left_page.set_label(str("-1"))
 
-        _right = self.current_yearbook.pages[self.curr_page_index]
+        _right = self.current_yearbook.pages[self.next_page_index]
         self.lbl_right_page.set_label(str(_right.number) + ":" + _right.event_name)
         self.page_num_text_entry.set_text(str(_right.number))
 
