@@ -277,10 +277,10 @@ class ImagePreviewArea(Gtk.DrawingArea):
             return
 
         if widget.name == "LeftPage":
-            current_page = self.parent.current_yearbook.pages[self.parent.prev_page_index]
+            current_page = self.parent.current_yearbook.pages[self.parent.curr_page_index]
             options = self.parent.left_opts
         else:
-            current_page = self.parent.current_yearbook.pages[self.parent.curr_page_index]
+            current_page = self.parent.current_yearbook.pages[self.parent.prev_page_index]
             options = self.parent.right_opts
 
         if self.mode == self.FLYING:
@@ -327,9 +327,9 @@ class ImagePreviewArea(Gtk.DrawingArea):
             return
 
         if widget.name == "LeftPage":
-            current_page = self.parent.current_yearbook.pages[self.parent.prev_page_index]
-        else:
             current_page = self.parent.current_yearbook.pages[self.parent.curr_page_index]
+        else:
+            current_page = self.parent.current_yearbook.pages[self.parent.next_page_index]
 
         if self.mode == self.SWAPPING_OR_MOVING:
             self.swap_dest.x, self.swap_dest.y = \
@@ -773,7 +773,7 @@ class MainWindow(Gtk.Window):
 
     def page_num_nav(self, widget):
         new_page_num = int(self.page_num_text_entry.get_text())
-        if new_page_num % 2 == 0:
+        if new_page_num % 2 != 0:
             # If user entered an even number
             self.curr_page_index = new_page_num - 2
         else:
@@ -1031,7 +1031,7 @@ class MainWindow(Gtk.Window):
                     page_collage: UserCollage = parent_page.history[-1].duplicate_with_layout()
                 except IndexError:
                     # This is a custom page
-                    print ("////////////RETRIEVE CUSTOM IMAGES/////////////////////")
+                    print("////////////RETRIEVE CUSTOM IMAGES/////////////////////")
                     child_order_id = self.current_yearbook.orders[0].wix_order_id
                     custom_order_dir = os.path.join(self.corpus_base_dir, self.current_yearbook.school, 'CustomPhotos', child_order_id)
                     if os.path.exists(custom_order_dir):
@@ -1051,6 +1051,9 @@ class MainWindow(Gtk.Window):
                 print("No parent exists, so we create from scratch")
                 page_images = self.choose_images_for_page(yearbook_page)
                 first_photo_list: [Photo] = render.build_photolist(page_images)
+
+                [print(img.filename) for img in first_photo_list]
+
                 page_collage = UserCollage(first_photo_list)
                 page_collage.make_page(options)
                 yearbook_page.photo_list = first_photo_list
