@@ -43,5 +43,6 @@ def get_orientation_fixed_pixbuf(img_name: str, width=120, height=120):
     except OSError:
         # raise BadPhoto(name)
         print("Skipping a photo: %s" % img_name)
+        return None
 
     return pixbuf

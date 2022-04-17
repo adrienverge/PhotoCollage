@@ -789,6 +789,7 @@ class MainWindow(Gtk.Window):
         [self.deleted_images.add(os.path.join(self.get_deleted_images_folder(), img)) for img in deleted_images]
 
     def update_favorites_images(self):
+        print("UPDATING FAVORITES")
         flowbox = self.img_favorites_flow_box
         [flowbox.remove(child) for child in flowbox.get_children()]
         flowbox.set_valign(Gtk.Align.START)
@@ -869,18 +870,18 @@ class MainWindow(Gtk.Window):
 
         for img in candidate_images:
 
-            # Lets not add the image to the viewer if it's on the page.
-            # TODO: This need to account for all previous pages and be smarter than what it currently is
+            # Let's not add the image to the viewer if it's on the page.
             if img in used_images_set or img in self.deleted_images:
                 continue
 
             try:
                 pixbuf = get_orientation_fixed_pixbuf(img)
-                image = Gtk.Image.new_from_pixbuf(pixbuf)
-                img_box = Gtk.EventBox()
-                img_box.add(image)
-                img_box.connect("button_press_event", self.invoke_add_image, img, candidate_images)
-                flowbox.add(img_box)
+                if pixbuf is not None:
+                    image = Gtk.Image.new_from_pixbuf(pixbuf)
+                    img_box = Gtk.EventBox()
+                    img_box.add(image)
+                    img_box.connect("button_press_event", self.invoke_add_image, img, candidate_images)
+                    flowbox.add(img_box)
 
             except OSError:
                 # raise BadPhoto(name)
