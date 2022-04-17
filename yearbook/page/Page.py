@@ -167,7 +167,7 @@ class Page:
 
     @property
     def personalized(self):
-        return self.page_type == 'Dynamic'
+        return self.page_type.strip() == 'Dynamic'
 
     @property
     def is_optional(self):

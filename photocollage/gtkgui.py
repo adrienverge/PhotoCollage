@@ -839,6 +839,7 @@ class MainWindow(Gtk.Window):
         self.show_all()
 
     def update_flow_box_with_images(self, page: Page):
+        print("Adding images to flow box....")
         if not page.personalized:
             print("Load image as is, %s, %s" % (page.event_name, page.image))
             candidate_images = [page.image]
