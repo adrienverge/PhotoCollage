@@ -1022,9 +1022,26 @@ class MainWindow(Gtk.Window):
         # If this page has never been edited,
         if not yearbook_page.is_edited():
             if self.current_yearbook.parent_yearbook is not None:
-                parent_page: Page = yearbook_page.parent_pages[-1]
-                print("******We have a parent, let's retrieve from there,*****")
-                page_collage: UserCollage = parent_page.history[-1].duplicate_with_layout()
+                try:
+                    print("******We have a parent, let's retrieve from there,*****")
+                    parent_page: Page = yearbook_page.parent_pages[-1]
+                    page_collage: UserCollage = parent_page.history[-1].duplicate_with_layout()
+                except IndexError:
+                    # This is a custom page
+                    print ("////////////RETRIEVE CUSTOM IMAGES/////////////////////")
+                    child_order_id = self.current_yearbook.orders[0].wix_order_id
+                    custom_order_dir = os.path.join(self.corpus_base_dir, self.current_yearbook.school, 'CustomPhotos', child_order_id)
+                    if os.path.exists(custom_order_dir):
+                        page_images = [os.path.join(custom_order_dir, img) for img in os.listdir(custom_order_dir) if img.endswith("jpg") or img.endswith("jpeg") or img.endswith("png")]
+                    else:
+                        page_images = [os.path.join(self.corpus_base_dir, self.current_yearbook.school, "blank.png")]
+
+                    [print(img) for img in page_images]
+
+                    first_photo_list: [Photo] = render.build_photolist(page_images)
+                    page_collage = UserCollage(first_photo_list)
+                    page_collage.make_page(options)
+
                 yearbook_page.photo_list: [Photo] = page_collage.photolist
                 yearbook_page.history.append(page_collage)
             elif yearbook_page.history_index < 0:
