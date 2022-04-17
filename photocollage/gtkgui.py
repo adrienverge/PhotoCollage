@@ -839,12 +839,13 @@ class MainWindow(Gtk.Window):
         self.show_all()
 
     def update_flow_box_with_images(self, page: Page):
-        print("Adding images to flow box....")
+
         if not page.personalized:
             print("Load image as is, %s, %s" % (page.event_name, page.image))
             candidate_images = [page.image]
         else:
-            tags = get_unique_list_insertion_order(get_tag_list_for_page(self.current_yearbook, page))
+            tag_list = get_tag_list_for_page(self.current_yearbook, page)
+            tags = get_unique_list_insertion_order(tag_list)
             if self.current_yearbook.child is None:
                 candidate_images = self.corpus.get_images_with_tags_strict(tags)
             else:
