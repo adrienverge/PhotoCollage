@@ -1283,7 +1283,10 @@ class MainWindow(Gtk.Window):
             print("Will copy the parent PDF here")
             # You should copy the parent file at the new PDF location
             parent_pdf_path = self.get_pdf_base_path(yearbook.parent_yearbook) + cover_format + ".pdf"
-            shutil.copyfile(parent_pdf_path, pdf_full_path)
+
+            if not os.path.exists(pdf_full_path):
+                shutil.copyfile(parent_pdf_path, pdf_full_path)
+
             return True
 
     def get_pdf_base_path(self, yearbook):
