@@ -361,7 +361,7 @@ class RenderingTask(Thread):
                 else:
                     new_background = canvas
 
-                new_background.save(self.output_file, quality=100)
+                new_background.save(self.output_file, quality=90)
 
             if self.on_complete:
                 # We can change this to new_background if we wish to display it with the background
