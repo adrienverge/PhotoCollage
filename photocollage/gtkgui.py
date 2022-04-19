@@ -16,6 +16,7 @@
 
 import copy
 import gettext
+import pickle
 import shutil
 from io import BytesIO
 import math
@@ -101,6 +102,23 @@ def gtk_run_in_main_thread(fn):
         GObject.idle_add(fn, *args, **kwargs)
 
     return my_fn
+
+
+def load_favorites_pickle(favorite_pickle_path: str) -> set():
+    pick_file = os.path.join(favorite_pickle_path, "favorite.pickle")
+    if not os.path.exists(pick_file):
+        return set()
+
+    import pickle
+    favorites_pickle = open(pick_file, "rb")
+    return pickle.load(favorites_pickle)
+
+
+def save_favorites_pickle(favorites, favorite_pickle_path=None):
+    os.makedirs(favorite_pickle_path, exist_ok=True)
+
+    with open(os.path.join(favorite_pickle_path, "favorite.pickle"), "wb") as f:
+        pickle.dump(favorites, f)
 
 
 class ImagePreviewArea(Gtk.DrawingArea):
@@ -568,8 +586,16 @@ class MainWindow(Gtk.Window):
         self.right_opts = Options(left_page=False)
 
         self.deleted_images = set()
+        self.favorite_images = set()
         self.per_img_window = ImageWindow(self)
         self.make_window()
+
+        self.connect('delete-event', self.save_favorites)
+
+    def save_favorites(self, widget, event):
+        print("Saving pickle file for favorites")
+        save_favorites_pickle(self.favorite_images, os.path.join(self.get_folder("Favorites")))
+        return False
 
     def make_window(self):
         self.set_border_width(10)
@@ -718,6 +744,8 @@ class MainWindow(Gtk.Window):
         box.pack_start(notebook, True, True, 0)
         box_window.pack_start(box, True, True, 0)
 
+        self.favorite_images = set()
+
     '''
     When the combo select box changes, we have to do the following
     1) Update the corpus that's selected for processing based on the new school
@@ -739,6 +767,7 @@ class MainWindow(Gtk.Window):
 
         self.treeModel = _tree_model  # Not sure if we need to maintain this reference
         self.treeView.expand_all()
+        self.favorite_images = load_favorites_pickle(os.path.join(self.get_folder("Favorites")))
 
     def set_current_corpus(self):
         if self.school_name in self.corpus_cache:
@@ -764,7 +793,6 @@ class MainWindow(Gtk.Window):
         self.set_current_corpus()
         self.update_ui_elements()
         self.update_child_portrait_images(self.current_yearbook)
-        self.update_favorites_images()
         self.update_deleted_images()
 
     def get_child_portrait_images(self, yearbook: Yearbook):
@@ -790,25 +818,34 @@ class MainWindow(Gtk.Window):
         [self.deleted_images.add(os.path.join(self.get_deleted_images_folder(), img)) for img in deleted_images]
 
     def update_favorites_images(self):
+        def convert(set):
+            return [*set, ]
+
+        if len(self.favorite_images) == 0:
+            print("Let's attempt to load the favorite images here")
+            self.favorite_images = load_favorites_pickle(self.get_folder("Favorites"))
+
         print("UPDATING FAVORITES")
         flowbox = self.img_favorites_flow_box
         [flowbox.remove(child) for child in flowbox.get_children()]
         flowbox.set_valign(Gtk.Align.START)
         flowbox.set_max_children_per_line(10)
         flowbox.set_selection_mode(Gtk.SelectionMode.SINGLE)
-        fav_folder = self.get_favorites_folder()
-        favorite_images = [os.path.join(fav_folder, img) for img in os.listdir(fav_folder)]
 
-        for img_path in favorite_images:
+        for img in self.get_used_images():
             try:
-                del_img_path = img_path.replace(fav_folder, self.get_deleted_images_folder())
-                if del_img_path not in self.deleted_images:
-                    pixbuf = get_orientation_fixed_pixbuf(img_path)
-                    image = Gtk.Image.new_from_pixbuf(pixbuf)
-                    img_box = Gtk.EventBox()
-                    img_box.add(image)
-                    img_box.connect("button_press_event", self.invoke_add_image, img_path, favorite_images)
-                    flowbox.add(img_box)
+                self.favorite_images.remove(img)
+            except KeyError:
+                pass
+
+        for img_path in self.favorite_images:
+            try:
+                pixbuf = get_orientation_fixed_pixbuf(img_path)
+                image = Gtk.Image.new_from_pixbuf(pixbuf)
+                img_box = Gtk.EventBox()
+                img_box.add(image)
+                img_box.connect("button_press_event", self.invoke_add_image, img_path, convert(self.favorite_images))
+                flowbox.add(img_box)
             except OSError:
                 # raise BadPhoto(name)
                 print("Update favorites -- Skipping a photo: %s" % img_path)
@@ -840,6 +877,13 @@ class MainWindow(Gtk.Window):
 
         self.show_all()
 
+    def get_used_images(self):
+        used_images_set = set()
+        for pg in self.current_yearbook.pages:
+            [used_images_set.add(photo.filename) for photo in pg.photo_list]
+
+        return used_images_set
+
     def update_flow_box_with_images(self, page: Page):
 
         if not page.personalized:
@@ -865,12 +909,16 @@ class MainWindow(Gtk.Window):
         [flowbox.remove(child) for child in flowbox.get_children()]
 
         # Get a set of images used so far
-        used_images_set = set()
-        for pg in self.current_yearbook.pages:
-            [used_images_set.add(photo.filename) for photo in pg.photo_list]
+        used_images_set = self.get_used_images()
+
+        for img in used_images_set:
+            # Remove it from favorites
+            try:
+                self.favorite_images.remove(img)
+            except KeyError:
+                pass
 
         for img in candidate_images:
-
             # Let's not add the image to the viewer if it's on the page.
             if img in used_images_set or img in self.deleted_images:
                 continue
@@ -901,11 +949,13 @@ class MainWindow(Gtk.Window):
         print("Updating left page, page index %s " % str(self.curr_page_index))
         self.update_photolist(self.current_yearbook.pages[self.curr_page_index], [img_name], self.left_opts)
         self.update_flow_box_with_images(self.current_yearbook.pages[self.curr_page_index])
+        self.update_favorites_images()
 
     def add_image_to_right_pane(self, img_name):
         print("Updating right page, page index %s " % str(self.next_page_index))
         self.update_photolist(self.current_yearbook.pages[self.next_page_index], [img_name], self.right_opts)
         self.update_flow_box_with_images(self.current_yearbook.pages[self.next_page_index])
+        self.update_favorites_images()
 
     def invoke_add_image(self, widget, event, img_name, images_list):
         if event.type == Gdk.EventType._2BUTTON_PRESS:
@@ -1034,9 +1084,11 @@ class MainWindow(Gtk.Window):
                     # This is a custom page
                     print("////////////RETRIEVE CUSTOM IMAGES/////////////////////")
                     child_order_id = self.current_yearbook.orders[0].wix_order_id
-                    custom_order_dir = os.path.join(self.corpus_base_dir, self.current_yearbook.school, 'CustomPhotos', child_order_id)
+                    custom_order_dir = os.path.join(self.corpus_base_dir, self.current_yearbook.school, 'CustomPhotos',
+                                                    child_order_id)
                     if os.path.exists(custom_order_dir):
-                        page_images = [os.path.join(custom_order_dir, img) for img in os.listdir(custom_order_dir) if img.endswith("jpg") or img.endswith("jpeg") or img.endswith("png")]
+                        page_images = [os.path.join(custom_order_dir, img) for img in os.listdir(custom_order_dir) if
+                                       img.endswith("jpg") or img.endswith("jpeg") or img.endswith("png")]
                     else:
                         page_images = [os.path.join(self.corpus_base_dir, self.current_yearbook.school, "blank.png")]
 
