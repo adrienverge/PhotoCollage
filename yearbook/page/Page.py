@@ -69,10 +69,6 @@ class Page:
 
     def remove_from_photolist(self, photo: Photo):
         try:
-            print("Removing from photo list...%s " % photo.filename)
-
-            [print(x.filename) for x in self.photo_list]
-
             photo_to_remove: Photo = next(x for x in self.photo_list if x.filename == photo.filename)
             self.photo_list.remove(photo_to_remove)
 
