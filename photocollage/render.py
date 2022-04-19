@@ -342,12 +342,6 @@ class RenderingTask(Thread):
                             dashed_img_draw = DashedImageDraw(new_background)
 
                             w, h = TEXT_FONT.getsize(self.yearbook_page.title)
-
-                            dashed_img_draw.dashed_rectangle([(25, 25), (2600, 3350)],
-                                                             dash=(5, 4), outline='white', width=2)
-                            dashed_img_draw.dashed_rectangle([(75, 75), (2550, 3300)],
-                                                             dash=(5, 4), outline='white', width=2)
-
                             dashed_img_draw.text((int((canvas.size[0] - w) / 2) + 75, 75),
                                                  self.yearbook_page.title, (255, 255, 255), font=TEXT_FONT)
                             dashed_img_draw.text((2450, 3200),
@@ -361,7 +355,7 @@ class RenderingTask(Thread):
                 else:
                     new_background = canvas
 
-                new_background.save(self.output_file, quality=100)
+                new_background.save(self.output_file, quality=85)
 
             if self.on_complete:
                 # We can change this to new_background if we wish to display it with the background
