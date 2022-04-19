@@ -280,7 +280,7 @@ class ImagePreviewArea(Gtk.DrawingArea):
             current_page = self.parent.current_yearbook.pages[self.parent.curr_page_index]
             options = self.parent.left_opts
         else:
-            current_page = self.parent.current_yearbook.pages[self.parent.prev_page_index]
+            current_page = self.parent.current_yearbook.pages[self.parent.next_page_index]
             options = self.parent.right_opts
 
         if self.mode == self.FLYING:
