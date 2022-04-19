@@ -89,6 +89,7 @@ class ImageWindow(Gtk.Window):
 
     def update_image(self, image):
         if not os.path.exists(image):
+            print("%s does not exist" % image)
             return
 
         pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(image, 800, 600, True)
@@ -129,24 +130,19 @@ class ImageWindow(Gtk.Window):
 
     def add_to_favorites(self, widget):
 
-        folder = self.parent_window.get_favorites_folder()
-        try:
-            shutil.copy(self.current_image, folder)
-        except shutil.SameFileError:
-            pass
-
+        self.parent_window.favorite_images.add(self.current_image)
         # Need to refresh the favorite panel from here
         self.parent_window.update_favorites_images()
         self.update_buttons()
 
     def remove_from_favorites(self, widget):
-        folder = self.parent_window.get_favorites_folder()
         try:
-            os.remove(os.path.join(folder, self.current_image))
-            self.next_image(widget)
-        except:
+            self.parent_window.favorite_images.remove(self.current_image)
+        except KeyError:
             pass
+
         self.parent_window.update_favorites_images()
+        self.update_buttons()
 
     def delete_image(self, widget):
         folder = self.parent_window.get_deleted_images_folder()
