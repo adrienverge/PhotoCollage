@@ -774,12 +774,13 @@ class MainWindow(Gtk.Window):
     def page_num_nav(self, widget):
         new_page_num = int(self.page_num_text_entry.get_text())
         if new_page_num % 2 != 0:
-            # If user entered an even number
-            self.curr_page_index = new_page_num - 2
+            # If user entered an odd number
+            self.curr_page_index = new_page_num - 1
         else:
-            self.curr_page_index = new_page_num - 3
+            self.curr_page_index = new_page_num
 
-        self.select_next_page(widget)
+        self.update_ui_elements()
+        print("NextClick - ")
 
     def add_image_to_deleted(self, image):
         self.deleted_images.add(image)
