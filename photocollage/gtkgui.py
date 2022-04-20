@@ -893,8 +893,10 @@ class MainWindow(Gtk.Window):
             tag_list = get_tag_list_for_page(self.current_yearbook, page)
             tags = get_unique_list_insertion_order(tag_list)
             if self.current_yearbook.child is None:
+                print("Getting images for node with tag list %s " % tags)
                 candidate_images = self.corpus.get_images_with_tags_strict(tags)
             else:
+                print("Getting images for child %s " % self.current_yearbook.child)
                 candidate_images = self.corpus.get_images_for_child(tags, self.current_yearbook.child)
 
         # Let's only keep the unique images from this list
@@ -918,6 +920,8 @@ class MainWindow(Gtk.Window):
             except KeyError:
                 pass
 
+        print("Going to display %s candidates" % len(candidate_images))
+        
         for img in candidate_images:
             # Let's not add the image to the viewer if it's on the page.
             if img in used_images_set or img in self.deleted_images:

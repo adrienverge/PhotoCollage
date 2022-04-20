@@ -55,7 +55,15 @@ class LuluIntegrationTests(unittest.TestCase):
         first_item = OrderDetails("1", "Hardcover")
         first_item.interior_pdf_url = interior_url
         first_item.cover_url = cover_url
-        order_items = [first_item]
+
+        order_items = []
+        order_items.append(first_item)
+        for i in range(10):
+            new_order = OrderDetails("%s" % i, "Hardcover")
+            new_order.interior_pdf_url = first_item.interior_pdf_url
+            new_order.cover_url = first_item.cover_url
+            order_items.append(new_order)
+
         response = submit_full_order(order_items)
 
         print(response.text)
@@ -72,4 +80,4 @@ class LuluIntegrationTests(unittest.TestCase):
         get_job_details(id)
 
     def test_job_details_for(self):
-        get_job_details("56430")
+        get_job_details("56433")

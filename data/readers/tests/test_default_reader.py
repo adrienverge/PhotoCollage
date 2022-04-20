@@ -47,6 +47,12 @@ class TestDefaultReader(unittest.TestCase):
         child_images = self.corpus.get_images_with_tags_strict(tags_list)
         assert len(child_images) == 2
 
+    def test_longer_lists_1(self):
+        tags_list = ['Classroom', 'VargasElementary', 'Grade4_Herron']
+        corpus = corpus_processor(school_name="VargasElementary")
+        assert len(corpus.get_images_with_tags_strict(tags_list)) == 0
+
+
     def test_longer_lists(self):
         tags_list = ["Sunshine",
                      "Portraits",
