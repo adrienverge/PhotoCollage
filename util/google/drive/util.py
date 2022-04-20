@@ -16,16 +16,19 @@ drive = GoogleDrive(gauth)
 
 SCOPES = ['https://www.googleapis.com/auth/drive']
 
+apiKey = "AIzaSyC2UHWfEXxYbmitO-rl1pOwBHGMWZlNz0E"
+
 
 def get_url_from_file_id(file_id: str):
-    return "https://drive.google.com/file/d/%s/view?usp=sharing" % file_id
+    return "https://www.googleapis.com/drive/v3/files/%s?alt=media&key=%s" % (file_id, apiKey)
 
 
 def get_file_id_from_url(url: str):
     if url is None:
         return None
 
-    return url.split("/")[-2]
+    first_half = url.split("?")[0]
+    return first_half.split("/")[-1]
 
 
 def check_file_exists(real_folder_id, file_id):

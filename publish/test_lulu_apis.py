@@ -33,21 +33,37 @@ class LuluIntegrationTests(unittest.TestCase):
     def test_get_print_job_all(self):
         cover_url = "https://drive.google.com/file/d/1Y3y1GlcY4n120ERg_PU0ISNbiTnK1Rn9/view?usp=sharing"
         interior_url = "https://drive.google.com/file/d/1GpzDaNbea-aZcHFMzb-HvzP8isxIfYr5/view?usp=sharing"
-        first_item = OrderDetails("1", "0827X1169FCPRELW060UW444MNG", interior_url, cover_url)
-        second_item = OrderDetails("2", "0827X1169FCPRELW060UW444MNG", interior_url, cover_url)
+        first_item = OrderDetails("1", "HardCover")
+        second_item = OrderDetails("2", "HardCover")
 
-        order_items = [first_item, second_item]
+        order_items = [first_item]
 
         json_str = create_order_payload(order_items)
         valid_json = json.loads(json_str)
 
     def test_create_all_print_jobs(self):
-        cover_url = "https://drive.google.com/file/d/1UCdNESiQvd4J-97rAtx5BbssY0EVF4iK/view?usp=sharing"
-        interior_url = "https://drive.google.com/file/d/18vfC1xcQDUb3EJVTRVrksemsLYfrdwKM/view?usp=sharing"
-        first_item = OrderDetails("1", "0827X1169FCPRELW060UW444MNG", interior_url, cover_url)
-        second_item = OrderDetails("2", "0827X1169FCPRELW060UW444MNG", interior_url, cover_url)
+        apiKey = "AIzaSyC2UHWfEXxYbmitO-rl1pOwBHGMWZlNz0E"
 
-        order_items = [first_item, second_item]
+        cover_file_id = "1Qlysoz_IiVNTSLVBIoYJa8Z4_M5AfLvK"
+        cover_url = "https://www.googleapis.com/drive/v3/files/%s?alt=media&key=%s" % (cover_file_id, apiKey)
+
+        interior_file_id = "1Q2kDEp4WgudUMEwwyNBqrEdOmboZMla7"
+        interior_url = "https://www.googleapis.com/drive/v3/files/%s?alt=media&key=%s" % (interior_file_id, apiKey)
+
+        print("Interior url %s" % interior_url)
+
+        first_item = OrderDetails("1", "Hardcover")
+        first_item.interior_pdf_url = interior_url
+        first_item.cover_url = cover_url
+
+        order_items = []
+        order_items.append(first_item)
+        for i in range(10):
+            new_order = OrderDetails("%s" % i, "Hardcover")
+            new_order.interior_pdf_url = first_item.interior_pdf_url
+            new_order.cover_url = first_item.cover_url
+            order_items.append(new_order)
+
         response = submit_full_order(order_items)
 
         print(response.text)
@@ -64,4 +80,4 @@ class LuluIntegrationTests(unittest.TestCase):
         get_job_details(id)
 
     def test_job_details_for(self):
-        get_job_details("56197")
+        get_job_details("56433")

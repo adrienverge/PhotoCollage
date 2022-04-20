@@ -3,7 +3,6 @@ import json
 import requests
 
 from publish.OrderDetails import OrderDetails
-from yearbook.Yearbook import Yearbook
 
 client_id_sandbox = '0f945822-ca71-413b-b986-d0037c7e0b05'
 client_secret_sandbox = '89cc568b-44dd-477a-a0f4-0e1bd30f7ce5'
@@ -12,6 +11,7 @@ sandbox_base_url = "https://api.sandbox.lulu.com/"
 print_job_url = sandbox_base_url + "print-jobs/"
 job_details_url = sandbox_base_url + "print-jobs/%s/"
 all_jobs_url = 'https://api.sandbox.lulu.com/print-jobs/statistics/'
+apiKey = "AIzaSyC2UHWfEXxYbmitO-rl1pOwBHGMWZlNz0E"
 
 LULU_MONTICELLO_POD_ID = "0827X1169FCPRELW060UW444MNG"
 
