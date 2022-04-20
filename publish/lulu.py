@@ -11,9 +11,21 @@ sandbox_base_url = "https://api.sandbox.lulu.com/"
 print_job_url = sandbox_base_url + "print-jobs/"
 job_details_url = sandbox_base_url + "print-jobs/%s/"
 all_jobs_url = 'https://api.sandbox.lulu.com/print-jobs/statistics/'
-apiKey = "AIzaSyC2UHWfEXxYbmitO-rl1pOwBHGMWZlNz0E"
 
 LULU_MONTICELLO_POD_ID = "0827X1169FCPRELW060UW444MNG"
+
+
+def get_api_key(filename):
+    """ Given a filename,
+        return the contents of that file
+    """
+    try:
+        with open(filename, 'r') as f:
+            # It's assumed our file contains a single line,
+            # with our API key
+            return f.read().strip()
+    except FileNotFoundError:
+        print("'%s' file not found" % filename)
 
 
 def get_access_token_json(client_id: str, client_secret: str) -> str:
