@@ -30,17 +30,6 @@ class LuluIntegrationTests(unittest.TestCase):
         json_items_str = get_line_items(order_items)
         print(json_items_str)
 
-    def test_get_print_job_all(self):
-        cover_url = "https://drive.google.com/file/d/1Y3y1GlcY4n120ERg_PU0ISNbiTnK1Rn9/view?usp=sharing"
-        interior_url = "https://drive.google.com/file/d/1GpzDaNbea-aZcHFMzb-HvzP8isxIfYr5/view?usp=sharing"
-        first_item = OrderDetails("1", "HardCover")
-        second_item = OrderDetails("2", "HardCover")
-
-        order_items = [first_item]
-
-        json_str = create_order_payload(order_items)
-        valid_json = json.loads(json_str)
-
     def test_get_api_key(self):
         print(get_api_key("../api_key"))
 
