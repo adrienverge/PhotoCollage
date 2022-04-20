@@ -7,9 +7,9 @@ class OrderDetails:
         self.lulu_job_id: str = None
 
         if self.cover_format == "Hardcover" or self.cover_format == "hardcover":
-            self.pod_package_id = "0827X1169FCPRELW060UW444MNG"
+            self.pod_package_id = "0850X1100FCPRECW080CW444MXX"
         elif self.cover_format == "Softcover" or self.cover_format == "softcover":
-            self.pod_package_id = None
+            self.pod_package_id = "0850X1100FCPREPB080CW444MXX"
         else:
             self.pod_package_id = None
 

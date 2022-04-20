@@ -69,4 +69,4 @@ class LuluIntegrationTests(unittest.TestCase):
         get_job_details(id)
 
     def test_job_details_for(self):
-        get_job_details("56429")
+        get_job_details("56430")
