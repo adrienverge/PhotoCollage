@@ -43,11 +43,16 @@ class LuluIntegrationTests(unittest.TestCase):
 
     def test_create_all_print_jobs(self):
         cover_url = "https://drive.google.com/uc?export=download&id=1Qlysoz_IiVNTSLVBIoYJa8Z4_M5AfLvK"
-        interior_url = "https://drive.google.com/uc?export=download&id=1Q2kDEp4WgudUMEwwyNBqrEdOmboZMla7"
-        first_item = OrderDetails("1", "0827X1169FCPRELW060UW444MNG", interior_url, cover_url)
-        second_item = OrderDetails("2", "0827X1169FCPRELW060UW444MNG", interior_url, cover_url)
+        fileId = "1Q2kDEp4WgudUMEwwyNBqrEdOmboZMla7"
+        apiKey = "AIzaSyC2UHWfEXxYbmitO-rl1pOwBHGMWZlNz0E"
+        interior_url = "https://www.googleapis.com/drive/v3/files/%s?alt=media&key=%s" % (fileId, apiKey)
 
-        order_items = [first_item, second_item]
+        print("Interior url %s" % interior_url)
+
+        first_item = OrderDetails("1", "Hardcover")
+        first_item.interior_pdf_url = interior_url
+        first_item.cover_url = cover_url
+        order_items = [first_item]
         response = submit_full_order(order_items)
 
         print(response.text)
@@ -64,4 +69,4 @@ class LuluIntegrationTests(unittest.TestCase):
         get_job_details(id)
 
     def test_job_details_for(self):
-        get_job_details("56197")
+        get_job_details("56429")
