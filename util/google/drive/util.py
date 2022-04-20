@@ -18,7 +18,7 @@ SCOPES = ['https://www.googleapis.com/auth/drive']
 
 
 def get_url_from_file_id(file_id: str):
-    return "https://drive.google.com/file/d/%s/view?usp=sharing" % file_id
+    return "https://drive.google.com/uc?export=download&id=%s" % file_id
 
 
 def get_file_id_from_url(url: str):

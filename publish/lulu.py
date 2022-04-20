@@ -3,7 +3,6 @@ import json
 import requests
 
 from publish.OrderDetails import OrderDetails
-from yearbook.Yearbook import Yearbook
 
 client_id_sandbox = '0f945822-ca71-413b-b986-d0037c7e0b05'
 client_secret_sandbox = '89cc568b-44dd-477a-a0f4-0e1bd30f7ce5'
