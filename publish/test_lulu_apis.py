@@ -42,10 +42,13 @@ class LuluIntegrationTests(unittest.TestCase):
         valid_json = json.loads(json_str)
 
     def test_create_all_print_jobs(self):
-        cover_url = "https://drive.google.com/uc?export=download&id=1Qlysoz_IiVNTSLVBIoYJa8Z4_M5AfLvK"
-        fileId = "1Q2kDEp4WgudUMEwwyNBqrEdOmboZMla7"
         apiKey = "AIzaSyC2UHWfEXxYbmitO-rl1pOwBHGMWZlNz0E"
-        interior_url = "https://www.googleapis.com/drive/v3/files/%s?alt=media&key=%s" % (fileId, apiKey)
+
+        cover_file_id = "1Qlysoz_IiVNTSLVBIoYJa8Z4_M5AfLvK"
+        cover_url = "https://www.googleapis.com/drive/v3/files/%s?alt=media&key=%s" % (cover_file_id, apiKey)
+
+        interior_file_id = "1Q2kDEp4WgudUMEwwyNBqrEdOmboZMla7"
+        interior_url = "https://www.googleapis.com/drive/v3/files/%s?alt=media&key=%s" % (interior_file_id, apiKey)
 
         print("Interior url %s" % interior_url)
 
