@@ -14,6 +14,9 @@ class CoverSettings:
     def get_cover_img_dims(self):
         pass
 
+    def get_title_corner(self):
+        pass
+
 
 class HardCoverSettings(CoverSettings):
 
@@ -30,6 +33,9 @@ class HardCoverSettings(CoverSettings):
         y = 0.75 * inch
         return x, y
 
+    def get_title_corner(self):
+        return 14.5 * inch, 10 * inch
+
 
 class SoftCoverSettings(CoverSettings):
     def get_page_size(self):
@@ -41,9 +47,15 @@ class SoftCoverSettings(CoverSettings):
         return width, height
 
     def get_top_left_front_cover(self):
-        x = 9.625 * inch
-        y = 0.75 * inch
+        x = 8.75 * inch
+        y = 0.125 * inch
         return x, y
+
+    def get_top_left_back_cover(self):
+        return 0.125 * inch, 0.125 * inch
+
+    def get_title_corner(self):
+        return 13.5 * inch, 9.25 * inch
 
 
 def get_cover_settings(cover_format: str) -> CoverSettings:

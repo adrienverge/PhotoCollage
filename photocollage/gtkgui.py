@@ -57,6 +57,8 @@ gi.require_version('GdkPixbuf', '2.0')
 from gi.repository import Gtk, Gdk, GObject, GdkPixbuf  # noqa: E402, I100
 from reportlab.pdfgen.canvas import Canvas
 from reportlab.lib.units import inch, cm
+from reportlab.platypus import Paragraph, Frame, KeepInFrame
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
 gettext.textdomain(APP_NAME)
 _ = gettext.gettext
@@ -484,10 +486,25 @@ def stitch_print_ready_cover(pdf_path: str, yearbook: Yearbook, cover_settings: 
                            height=cover_img_dims[1])
 
     if yearbook.child is not None:
+        from reportlab.lib import colors
+        from reportlab.lib.enums import TA_CENTER
+
         # On the front cover we draw the text
         canvas_cover.setFont("Signika", 34)
         # TODO:: Have to do the math to figure out the name
-        canvas_cover.drawString(14 * inch, 11.25 * inch, yearbook.child)
+        (title_x, title_y) = cover_settings.get_title_corner()
+
+        #  canvas_cover.drawString(title_x, title_y, yearbook.child)
+        frame1 = Frame(title_x, title_y, 3.5 * inch, 1.5 * inch, showBoundary=0)
+        styles = getSampleStyleSheet()
+        styles.add(
+            ParagraphStyle(name='TitleStyle', fontName='Signika', fontSize=34, leading=36,
+                           textColor=colors.black, alignment=TA_CENTER))
+
+        name = "\n".join(yearbook.child.split(" "))
+        story = [Paragraph(name, styles['TitleStyle'])]
+        story_inframe = KeepInFrame(3.5 * inch, 1.5 * inch, story)
+        frame1.addFromList([story_inframe], canvas_cover)
 
     canvas_cover.save()
 
