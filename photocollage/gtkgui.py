@@ -487,6 +487,7 @@ def stitch_print_ready_cover(pdf_path: str, yearbook: Yearbook, cover_settings: 
 
     if yearbook.child is not None:
         from reportlab.lib import colors
+        from reportlab.lib.enums import TA_CENTER
 
         # On the front cover we draw the text
         canvas_cover.setFont("Signika", 34)
@@ -498,7 +499,7 @@ def stitch_print_ready_cover(pdf_path: str, yearbook: Yearbook, cover_settings: 
         styles = getSampleStyleSheet()
         styles.add(
             ParagraphStyle(name='TitleStyle', fontName='Signika', fontSize=34, leading=36,
-                           textColor=colors.black))
+                           textColor=colors.black, alignment=TA_CENTER))
 
         name = "\n".join(yearbook.child.split(" "))
         story = [Paragraph(name, styles['TitleStyle'])]
