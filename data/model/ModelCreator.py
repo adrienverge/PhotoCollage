@@ -27,6 +27,8 @@ def get_school_list_model(db_file: str):
 
 # This is the main entry method that takes the sqlite data base file and returns the final tree model
 def get_tree_model(dir_params: {}, school_selection: str) -> Gtk.TreeStore:
+    print("*********Retrieving the entire tree model********")
+
     treestore = Gtk.TreeStore(Yearbook)
 
     db_file = dir_params['db_file_path']
@@ -45,7 +47,7 @@ def get_tree_model(dir_params: {}, school_selection: str) -> Gtk.TreeStore:
         if school_name not in added_schools.keys():
             # add this school as a parent to the tree
             # Create the school level yearbook here
-            school_yearbook: Yearbook = create_yearbook(dir_params, school_name, classroom=None, child=None)
+            school_yearbook = create_yearbook(dir_params, school_name, classroom=None, child=None)
             school_parent = treestore.append(None, [school_yearbook])
             added_schools[school_name] = {}
 
@@ -53,11 +55,6 @@ def get_tree_model(dir_params: {}, school_selection: str) -> Gtk.TreeStore:
         if current_class not in added_schools[school_name].keys():
             class_yearbook = create_yearbook(dir_params, school_name, classroom=current_class,
                                              child=None, parent_book=school_yearbook.pickle_yearbook)
-
-            # Set the parent pages for this yearbook
-            for class_page, school_page in zip(class_yearbook.pages, school_yearbook.pages):
-                class_page.parent_pages.append(school_page)
-
             class_parent = treestore.append(school_parent, [class_yearbook])
             added_schools[school_name][current_class] = {}
 
@@ -70,12 +67,6 @@ def get_tree_model(dir_params: {}, school_selection: str) -> Gtk.TreeStore:
                 treestore.append(class_parent, [child_yearbook])
                 added_schools[school_name][current_class][current_child] = {}
 
-                # Set the parent pages for this yearbook, CustomPages don't have parents.
-                non_custom_child_pages = [page for page in child_yearbook.pages if not page.is_optional]
-                for child_page, class_page in zip(non_custom_child_pages, class_yearbook.pages):
-                    child_page.parent_pages.append(class_page)
-
-                count_children = count_children + 1
                 if count_children % 10 == 0:
                     print("Added %s children" % count_children)
 

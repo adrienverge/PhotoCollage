@@ -29,6 +29,7 @@ def create_yearbook(dir_params: {}, school_name: str, classroom: str, child: str
         return create_yearbook_from_pickle(pickle_filename)
     else:
         # Create the yearbook from DB
+        print("*********First creation of this yearbook********")
         return create_yearbook_from_db(dir_params, school_name, classroom, child, parent_book)
 
 
@@ -55,11 +56,17 @@ def create_yearbook_from_db(dir_params: {}, school_name: str, classroom: str, ch
         else:
             return None
 
+    if parent_book is not None:
+        print("Printing parent yearbook")
+        parent_book.print_yearbook_info()
+
     album_details: Cursor = get_album_details_for_school(db_file_path, school_name)
     pages: [Page] = []
+    optional_page_offset = 0
     for row in album_details:
 
         if row[2].startswith('Optional'):
+            optional_page_offset = optional_page_offset + 1
             if child is None:
                 continue
             else:
@@ -75,10 +82,28 @@ def create_yearbook_from_db(dir_params: {}, school_name: str, classroom: str, ch
         orig_img_loc = os.path.join(corpus_base_dir, school_name, row[4])
         page = Page(number=int(row[3]), event=str(row[1]).strip(), page_type=row[2],
                     orig_image_loc=orig_img_loc, title=str(row[0]), tags=str(row[5]))
+
+        if parent_book is not None:
+            current_parent = parent_book
+            counter = 0
+            print("looking for parent at page number: %s of %s, with %s optional pages "
+                  % (page.number, len(current_parent.pages), optional_page_offset))
+            while current_parent is not None and not page.is_optional:
+                # Add the same index page from the parent
+                page_from_parent = current_parent.pages[page.number - 1 - optional_page_offset]
+                page.add_parent_page(page_from_parent)
+                print(page_from_parent)
+                current_parent = current_parent.parent_book
+                counter = counter + 1
+            print("Total parent pages added to this book, %s " % len(page.parent_pages))
+            page.parent_pages.reverse()
+
         pages.append(page)
 
-    # Check if the child has an order placed for the yearbook
-    return Yearbook(PickleYearbook(pages, school_name, classroom, child, parent_book, orders))
+    yearbook = Yearbook(PickleYearbook(pages, school_name, classroom, child, parent_book, orders))
+    print("Returning yearbook...")
+    yearbook.print_yearbook_info()
+    return yearbook
 
 
 class PickleYearbook:

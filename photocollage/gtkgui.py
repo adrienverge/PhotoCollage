@@ -533,7 +533,7 @@ class MainWindow(Gtk.Window):
         self.output_base_dir = os.path.join('/Users', getpass.getuser(), 'YearbookCreatorOut')
         self.input_base_dir = os.path.join(self.corpus_base_dir, 'YearbookCreatorInput')
         self.yearbook_parameters = {'max_count': 12,
-                                    'db_file_path': os.path.join(self.input_base_dir, 'RY.db'),
+                                    'db_file_path': os.path.join(self.input_base_dir, 'RY_small.db'),
                                     'output_dir': os.path.join(self.output_base_dir, getpass.getuser()),
                                     'corpus_base_dir': self.corpus_base_dir}
 
@@ -814,7 +814,10 @@ class MainWindow(Gtk.Window):
 
     def get_child_portrait_images(self, yearbook: Yearbook):
         selfies_dir = os.path.join(self.corpus_base_dir, yearbook.school, "Selfies", yearbook.child)
-        return [os.path.join(selfies_dir, img) for img in os.listdir(selfies_dir)]
+        if os.path.exists(selfies_dir):
+            return [os.path.join(selfies_dir, img) for img in os.listdir(selfies_dir)]
+        else:
+            return []
 
     def page_num_nav(self, widget):
         new_page_num = int(self.page_num_text_entry.get_text())
@@ -968,12 +971,14 @@ class MainWindow(Gtk.Window):
 
     def add_image_to_left_pane(self, img_name):
         print("Updating left page, page index %s " % str(self.curr_page_index))
+        print(self.current_yearbook.pages[self.curr_page_index])
         self.update_photolist(self.current_yearbook.pages[self.curr_page_index], [img_name], self.left_opts)
         self.update_flow_box_with_images(self.current_yearbook.pages[self.curr_page_index])
         self.update_favorites_images()
 
     def add_image_to_right_pane(self, img_name):
         print("Updating right page, page index %s " % str(self.next_page_index))
+        print(self.current_yearbook.pages[self.next_page_index])
         self.update_photolist(self.current_yearbook.pages[self.next_page_index], [img_name], self.right_opts)
         self.update_flow_box_with_images(self.current_yearbook.pages[self.next_page_index])
         self.update_favorites_images()
@@ -1003,7 +1008,7 @@ class MainWindow(Gtk.Window):
                 new_collage = UserCollage(photolist)
                 new_collage.make_page(options)
                 page.update_flag("edited", True)
-                print("*******UPDATING EDIT FLAG*********")
+                print("*******UPDATING EDIT FLAG********* %s " % page.number )
                 self.render_from_new_collage(page, new_collage)
             else:
                 self.update_tool_buttons()
@@ -1036,6 +1041,19 @@ class MainWindow(Gtk.Window):
         self.update_photolist(self.current_yearbook.pages[self.curr_page_index], files)
         self.update_flow_box_with_images(self.current_yearbook.pages[self.curr_page_index])
 
+    def render_and_save_yearbook(self, store: Gtk.TreeStore, treepath: Gtk.TreePath, treeiter: Gtk.TreeIter):
+        _yearbook = store[treeiter][0]
+        output_dir = self.yearbook_parameters['output_dir']
+        for page in _yearbook.pages:
+            if page.number % 2 == 0:
+                options = self.left_opts
+            else:
+                options = self.right_opts
+
+            self.render_preview(page, self.img_preview_left, options)
+        pickle_yearbook(_yearbook, output_dir)
+        print("********Finished rendering pages for the yearbook********")
+
     def render_and_pickle_yearbook(self, store: Gtk.TreeStore, treepath: Gtk.TreePath, treeiter: Gtk.TreeIter):
         _yearbook = store[treeiter][0]
         self.current_yearbook = _yearbook
@@ -1049,7 +1067,7 @@ class MainWindow(Gtk.Window):
             print("will be loaded from pickle file...")
             return
 
-        print("*********First creation of this yearbook********")
+        print("********* RENDERING CALL ******")
         self.current_yearbook.print_yearbook_info()
         for page in self.current_yearbook.pages:
             if page.number % 2 == 0:
@@ -1098,9 +1116,20 @@ class MainWindow(Gtk.Window):
         if not yearbook_page.is_edited():
             if self.current_yearbook.parent_yearbook is not None:
                 try:
-                    print("******We have a parent, let's retrieve from there,*****")
-                    parent_page: Page = yearbook_page.parent_pages[-1]
+                    print("******We have a parent, let's retrieve from there, %s *****" % len(yearbook_page.parent_pages))
+
+                    for parent_pg in reversed(yearbook_page.parent_pages):
+                        print("The parent page was edited:%s?" % parent_pg.is_edited())
+                        print(parent_pg)
+                        if parent_pg.is_edited():
+                            parent_page = parent_pg
+                            break
+                    else:
+                        # Just pick the parent in that case.
+                        parent_page: Page = yearbook_page.parent_pages[-1]
+
                     page_collage: UserCollage = parent_page.history[-1].duplicate_with_layout()
+
                 except IndexError:
                     # This is a custom page
                     print("////////////RETRIEVE CUSTOM IMAGES/////////////////////")
@@ -1113,8 +1142,6 @@ class MainWindow(Gtk.Window):
                     else:
                         page_images = [os.path.join(self.corpus_base_dir, self.current_yearbook.school, "blank.png")]
 
-                    [print(img) for img in page_images]
-
                     first_photo_list: [Photo] = render.build_photolist(page_images)
                     page_collage = UserCollage(first_photo_list)
                     page_collage.make_page(options)
@@ -1125,14 +1152,13 @@ class MainWindow(Gtk.Window):
                 print("No parent exists, so we create from scratch")
                 page_images = self.choose_images_for_page(yearbook_page)
                 first_photo_list: [Photo] = render.build_photolist(page_images)
-
-                [print(img.filename) for img in first_photo_list]
-
                 page_collage = UserCollage(first_photo_list)
                 page_collage.make_page(options)
                 yearbook_page.photo_list = first_photo_list
                 yearbook_page.history.append(page_collage)
         else:
+            print("YEARBOOK PAGE WAS EDITED")
+            print(yearbook_page)
             if yearbook_page.has_parent_pins_changed():
                 new_images = yearbook_page.get_filenames_parent_pins_not_on_page()
                 existing_images = yearbook_page.photos_on_page
@@ -1190,7 +1216,7 @@ class MainWindow(Gtk.Window):
             img_preview_area.set_collage(img, page_collage)
             comp_dialog.update(fraction_complete)
 
-        def on_complete(img, out_file):
+        def on_complete(img, output_file):
             img_preview_area.set_collage(img, page_collage)
             yearbook_page.canvas = img
             comp_dialog.destroy()
@@ -1332,10 +1358,6 @@ class MainWindow(Gtk.Window):
     def create_pdf_for_printing(self, yearbook: Yearbook, pdf_full_path: str, cover_format: str):
 
         if yearbook.parent_yearbook is None or yearbook.is_edited():
-            # TODO:: REMOVE LATER WHEN IN FULL PRODUCTION
-            if os.path.exists(pdf_full_path):
-                return False
-
             self.stitch_print_images(yearbook)
             images = []
             if cover_format == 'Digital':
@@ -1508,7 +1530,8 @@ class MainWindow(Gtk.Window):
         pickle_yearbook(_yearbook, self.yearbook_parameters['output_dir'])
 
     def pickle_all_books(self, button):
-        self.treeModel.foreach(self.pickle_book)
+        print("Will be pickling all books")
+        self.treeModel.foreach(self.render_and_save_yearbook)
 
     def select_next_page(self, button):
         # Increment to the next left page

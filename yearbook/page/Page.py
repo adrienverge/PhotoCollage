@@ -60,6 +60,9 @@ class Page:
         photo_to_pin: Photo = next(x for x in self.photo_list if x.filename == photo.filename)
         self.pinned_photos.add(photo_to_pin.filename)
 
+    def add_parent_page(self, page):
+        self.parent_pages.append(page)
+
     def remove_pinned_photo(self, photo: Photo):
         try:
             photo_to_unpin: Photo = next(x for x in self.photo_list if x.filename == photo.filename)
@@ -176,20 +179,4 @@ class Page:
     @property
     def is_static(self):
         return self.page_type.startswith('Static') or self.page_type.startswith('static')
-
-
-    # def get_pinned_parent(self):
-    #     pinned_parent = None
-    #     for parent_page in self.parent_pages:
-    #         if parent_page.is_pinned():
-    #             pinned_parent = parent_page
-    #
-    #     return pinned_parent
-    #
-    # def get_pinned_parent_collage(self):
-    #     pinned_parent = self.get_pinned_parent()
-    #     if pinned_parent is not None:
-    #         return pinned_parent.history[-1]
-    #
-    #     return None
 
