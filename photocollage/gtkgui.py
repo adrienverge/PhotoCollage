@@ -299,9 +299,11 @@ class ImagePreviewArea(Gtk.DrawingArea):
         if widget.name == "LeftPage":
             current_page = self.parent.current_yearbook.pages[self.parent.curr_page_index]
             options = self.parent.left_opts
+            flow_box = self.parent.images_flow_box_left
         else:
             current_page = self.parent.current_yearbook.pages[self.parent.next_page_index]
             options = self.parent.right_opts
+            flow_box = self.parent.images_flow_box_right
 
         if self.mode == self.FLYING:
             x, y = self.get_pos_in_image(event.x, event.y)
@@ -326,7 +328,7 @@ class ImagePreviewArea(Gtk.DrawingArea):
                     self.parent.update_tool_buttons()
 
                 # Let's update the flow images to have this image show up in the bottom
-                self.parent.update_flow_box_with_images(current_page)
+                self.parent.update_flow_box_with_images(flow_box, current_page)
 
             elif dist_pinned <= 8 * 8:
                 if cell.photo.filename in current_page.pinned_photos:
@@ -558,7 +560,8 @@ class MainWindow(Gtk.Window):
         self.img_preview_left = ImagePreviewArea(self, "LeftPage")
         self.img_preview_right = ImagePreviewArea(self, "RightPage")
         self.img_favorites_flow_box = Gtk.FlowBox()
-        self.images_flow_box = Gtk.FlowBox()
+        self.images_flow_box_left = Gtk.FlowBox()
+        self.images_flow_box_right = Gtk.FlowBox()
         self.portraits_flow_box = Gtk.FlowBox()
         self.btn_settings = Gtk.Button()
         self.btn_clear_left = Gtk.Button(label="ClearLeft")
@@ -740,13 +743,13 @@ class MainWindow(Gtk.Window):
         # --------------------------------------------
         _scrolledWindow = Gtk.ScrolledWindow()
         _scrolledWindow.set_size_request(600, 300)
-        _scrolledWindow.add(self.images_flow_box)
+        _scrolledWindow.add(self.images_flow_box_left)
 
         notebook = Gtk.Notebook()
         # Create Boxes
         page1 = Gtk.Box()
         page1.set_border_width(50)
-        notebook.append_page(_scrolledWindow, Gtk.Label("Images"))
+        notebook.append_page(_scrolledWindow, Gtk.Label("Left Images"))
 
         _scrolledWindow = Gtk.ScrolledWindow()
         _scrolledWindow.set_size_request(600, 300)
@@ -754,6 +757,13 @@ class MainWindow(Gtk.Window):
         page2 = Gtk.Box()
         page2.set_border_width(50)
         notebook.append_page(_scrolledWindow, Gtk.Label("Favorites"))
+
+        _scrolledWindow = Gtk.ScrolledWindow()
+        _scrolledWindow.set_size_request(600, 300)
+        _scrolledWindow.add(self.images_flow_box_right)
+        page3 = Gtk.Box()
+        page3.set_border_width(50)
+        notebook.append_page(_scrolledWindow, Gtk.Label("Right Images"))
 
         notebook.set_show_tabs(True)
         notebook.show()
@@ -904,7 +914,7 @@ class MainWindow(Gtk.Window):
 
         return used_images_set
 
-    def update_flow_box_with_images(self, page: Page):
+    def update_flow_box_with_images(self, flow_box, page: Page):
 
         if not page.personalized:
             print("Load image as is, %s, %s" % (page.event_name, page.image))
@@ -922,13 +932,12 @@ class MainWindow(Gtk.Window):
         # Let's only keep the unique images from this list
         candidate_images = get_unique_list_insertion_order(candidate_images)
 
-        flowbox = self.images_flow_box
-        flowbox.set_valign(Gtk.Align.START)
-        flowbox.set_max_children_per_line(10)
-        flowbox.set_selection_mode(Gtk.SelectionMode.SINGLE)
+        flow_box.set_valign(Gtk.Align.START)
+        flow_box.set_max_children_per_line(10)
+        flow_box.set_selection_mode(Gtk.SelectionMode.SINGLE)
 
         # Need to remove all previously added images
-        [flowbox.remove(child) for child in flowbox.get_children()]
+        [flow_box.remove(child) for child in flow_box.get_children()]
 
         # Get a set of images used so far
         used_images_set = self.get_used_images()
@@ -954,7 +963,7 @@ class MainWindow(Gtk.Window):
                     img_box = Gtk.EventBox()
                     img_box.add(image)
                     img_box.connect("button_press_event", self.invoke_add_image, img, candidate_images)
-                    flowbox.add(img_box)
+                    flow_box.add(img_box)
 
             except OSError:
                 # raise BadPhoto(name)
@@ -973,14 +982,14 @@ class MainWindow(Gtk.Window):
         print("Updating left page, page index %s " % str(self.curr_page_index))
         print(self.current_yearbook.pages[self.curr_page_index])
         self.update_photolist(self.current_yearbook.pages[self.curr_page_index], [img_name], self.left_opts)
-        self.update_flow_box_with_images(self.current_yearbook.pages[self.curr_page_index])
+        self.update_flow_box_with_images(self.images_flow_box_left, self.current_yearbook.pages[self.curr_page_index])
         self.update_favorites_images()
 
     def add_image_to_right_pane(self, img_name):
         print("Updating right page, page index %s " % str(self.next_page_index))
         print(self.current_yearbook.pages[self.next_page_index])
         self.update_photolist(self.current_yearbook.pages[self.next_page_index], [img_name], self.right_opts)
-        self.update_flow_box_with_images(self.current_yearbook.pages[self.next_page_index])
+        self.update_flow_box_with_images(self.images_flow_box_right, self.current_yearbook.pages[self.next_page_index])
         self.update_favorites_images()
 
     def invoke_add_image(self, widget, event, img_name, images_list):
@@ -1039,7 +1048,7 @@ class MainWindow(Gtk.Window):
             if files[i].startswith("file://"):
                 files[i] = urllib.parse.unquote(files[i][7:])
         self.update_photolist(self.current_yearbook.pages[self.curr_page_index], files)
-        self.update_flow_box_with_images(self.current_yearbook.pages[self.curr_page_index])
+        self.update_flow_box_with_images(self.images_flow_box_left, self.current_yearbook.pages[self.curr_page_index])
 
     def render_and_save_yearbook(self, store: Gtk.TreeStore, treepath: Gtk.TreePath, treeiter: Gtk.TreeIter):
         _yearbook = store[treeiter][0]
@@ -1563,7 +1572,9 @@ class MainWindow(Gtk.Window):
         right_page = self.current_yearbook.pages[self.next_page_index]
         self.render_right_page(right_page)
 
-        self.update_flow_box_with_images(left_page)
+        self.update_flow_box_with_images(self.images_flow_box_left, left_page)
+        self.update_flow_box_with_images(self.images_flow_box_right, right_page)
+
         self.update_favorites_images()
 
         self.update_label_text()
