@@ -72,7 +72,7 @@ class Corpus:
             for img in final_images:
                 img_tags = self.image_to_tags[img]
                 common_tags = intersection(img_tags, tags_list)
-                if len(common_tags) == len(tags_list):
+                if len(common_tags) == len(img_tags):
                     images_with_same_tags.append(img)
 
         except TypeError:
