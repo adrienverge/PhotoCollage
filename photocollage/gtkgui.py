@@ -1386,13 +1386,15 @@ class MainWindow(Gtk.Window):
             return True
 
     def get_pdf_base_path(self, yearbook):
-        output_dir = self.yearbook_parameters['output_dir']
+        output_dir = os.path.join(self.yearbook_parameters['output_dir'], "pdf_outputs")
+        os.mkdir(output_dir, exist_ok=True)
+
         if yearbook.classroom is None:
-            pdf_path = os.path.join(output_dir, "pdf_outputs", yearbook.school)
+            pdf_path = os.path.join(output_dir, yearbook.school)
         elif yearbook.child is None:
-            pdf_path = os.path.join(output_dir, "pdf_outputs", yearbook.school + "_" + yearbook.classroom)
+            pdf_path = os.path.join(output_dir, yearbook.school + "_" + yearbook.classroom)
         else:
-            pdf_path = os.path.join(output_dir, "pdf_outputs", yearbook.school + "_" + yearbook.classroom + "_"
+            pdf_path = os.path.join(output_dir, yearbook.school + "_" + yearbook.classroom + "_"
                                     + yearbook.child)
 
         return pdf_path
