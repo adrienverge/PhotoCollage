@@ -17,7 +17,7 @@ class SettingsDialog(Gtk.Dialog):
              Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
         self.set_border_width(10)
 
-        self.selected_border_color = parent.left_opts.border_c
+        self.selected_border_color = parent.has_title.border_c
 
         box = self.get_content_area()
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
@@ -29,12 +29,12 @@ class SettingsDialog(Gtk.Dialog):
 
         box = Gtk.Box(spacing=6)
         vbox.pack_start(box, False, False, 0)
-        self.etr_outw = Gtk.Entry(text=str(parent.left_opts.out_w))
+        self.etr_outw = Gtk.Entry(text=str(parent.has_title.out_w))
         self.etr_outw.connect("changed", self.validate_int)
         self.etr_outw.last_valid_text = self.etr_outw.get_text()
         box.pack_start(self.etr_outw, False, False, 0)
         box.pack_start(Gtk.Label("×", xalign=0), False, False, 0)
-        self.etr_outh = Gtk.Entry(text=str(parent.left_opts.out_h))
+        self.etr_outh = Gtk.Entry(text=str(parent.has_title.out_h))
         self.etr_outh.connect("changed", self.validate_int)
         self.etr_outh.last_valid_text = self.etr_outh.get_text()
         box.pack_start(self.etr_outh, False, False, 0)
@@ -84,7 +84,7 @@ class SettingsDialog(Gtk.Dialog):
         vbox.pack_start(box, False, False, 0)
         label = Gtk.Label(_("Thickness:"), xalign=0)
         box.pack_start(label, False, False, 0)
-        self.etr_border = Gtk.Entry(text=str(50.0 * parent.left_opts.border_w))
+        self.etr_border = Gtk.Entry(text=str(50.0 * parent.has_title.border_w))
         self.etr_border.connect("changed", self.validate_float)
         self.etr_border.last_valid_text = self.etr_border.get_text()
         self.etr_border.set_width_chars(4)
@@ -97,7 +97,7 @@ class SettingsDialog(Gtk.Dialog):
         box.pack_start(label, True, True, 0)
         self.colorbutton = Gtk.ColorButton()
         color = Gdk.RGBA()
-        color.parse(parent.left_opts.border_c)
+        color.parse(parent.has_title.border_c)
         self.colorbutton.set_rgba(color)
         box.pack_end(self.colorbutton, False, False, 0)
 
