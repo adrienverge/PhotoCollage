@@ -298,15 +298,12 @@ class ImagePreviewArea(Gtk.DrawingArea):
 
         if widget.name == "LeftPage":
             current_page = self.parent.current_yearbook.pages[self.parent.curr_page_index]
+            options = self.parent.left_opts
             flow_box = self.parent.images_flow_box_left
         else:
             current_page = self.parent.current_yearbook.pages[self.parent.next_page_index]
+            options = self.parent.right_opts
             flow_box = self.parent.images_flow_box_right
-
-        if current_page.title is not None:
-            options = self.parent.with_title
-        else:
-            options = self.parent.without_title
 
         if self.mode == self.FLYING:
             x, y = self.get_pos_in_image(event.x, event.y)
@@ -426,13 +423,13 @@ def get_yearbook_string(column, cell, model, iter, data):
 
 
 class Options:
-    def __init__(self, has_title: bool = True):
+    def __init__(self, left_page: bool = True):
         self.border_w = 0.01
         self.border_c = "black"
         # Dimensions for Book trim size, US Letter, 8.5 x 11 inches at 300 ppi
         # Making the width the same, and height of right page is smaller than left by 100 pixels
         # for adding the label
-        if not has_title:
+        if not left_page:
             self.out_h = 3225
         else:
             _, h = TEXT_FONT.getsize("A")
@@ -605,8 +602,8 @@ class MainWindow(Gtk.Window):
         tv_column.set_cell_data_func(cell, get_yearbook_string)
         tv_column.add_attribute(cell, 'text', 0)
 
-        self.with_title = Options(has_title=True)
-        self.without_title = Options(has_title=False)
+        self.left_opts = Options(left_page=True)
+        self.right_opts = Options(left_page=False)
 
         self.deleted_images = set()
         self.favorite_images = set()
@@ -984,14 +981,14 @@ class MainWindow(Gtk.Window):
     def add_image_to_left_pane(self, img_name):
         print("Updating left page, page index %s " % str(self.curr_page_index))
         print(self.current_yearbook.pages[self.curr_page_index])
-        self.update_photolist(self.current_yearbook.pages[self.curr_page_index], [img_name], self.with_title)
+        self.update_photolist(self.current_yearbook.pages[self.curr_page_index], [img_name], self.left_opts)
         self.update_flow_box_with_images(self.images_flow_box_left, self.current_yearbook.pages[self.curr_page_index])
         self.update_favorites_images()
 
     def add_image_to_right_pane(self, img_name):
         print("Updating right page, page index %s " % str(self.next_page_index))
         print(self.current_yearbook.pages[self.next_page_index])
-        self.update_photolist(self.current_yearbook.pages[self.next_page_index], [img_name], self.without_title)
+        self.update_photolist(self.current_yearbook.pages[self.next_page_index], [img_name], self.right_opts)
         self.update_flow_box_with_images(self.images_flow_box_right, self.current_yearbook.pages[self.next_page_index])
         self.update_favorites_images()
 
@@ -1055,13 +1052,15 @@ class MainWindow(Gtk.Window):
 
     def render_and_save_yearbook(self, store: Gtk.TreeStore, treepath: Gtk.TreePath, treeiter: Gtk.TreeIter):
         _yearbook = store[treeiter][0]
-        print("Rendering ...")
-        _yearbook.print_yearbook_info()
+        output_dir = self.yearbook_parameters['output_dir']
         for page in _yearbook.pages:
-            self.render_preview(_yearbook, page, self.img_preview_left)
-        print("Rendering finished, ... now pickling")
+            if page.number % 2 == 0:
+                options = self.left_opts
+            else:
+                options = self.right_opts
 
-        pickle_yearbook(_yearbook, self.yearbook_parameters['output_dir'])
+            self.render_preview(page, self.img_preview_left, options)
+        pickle_yearbook(_yearbook, output_dir)
         print("********Finished rendering pages for the yearbook********")
 
     def render_and_pickle_yearbook(self, store: Gtk.TreeStore, treepath: Gtk.TreePath, treeiter: Gtk.TreeIter):
@@ -1080,25 +1079,24 @@ class MainWindow(Gtk.Window):
         print("********* RENDERING CALL ******")
         self.current_yearbook.print_yearbook_info()
         for page in self.current_yearbook.pages:
-            self.render_preview(self.current_yearbook, page, self.img_preview_left)
+            if page.number % 2 == 0:
+                options = self.left_opts
+            else:
+                options = self.right_opts
 
+            self.render_preview(page, self.img_preview_left, options)
         pickle_yearbook(_yearbook, output_dir)
         print("********Finished rendering pages for the yearbook********")
 
     def render_left_page(self, page):
-        self.render_preview(self.current_yearbook, page, self.img_preview_left)
+        self.render_preview(page, self.img_preview_left, self.left_opts)
 
     def render_right_page(self, page):
-        self.render_preview(self.current_yearbook, page, self.img_preview_right)
+        self.render_preview(page, self.img_preview_right, self.right_opts)
 
     # TODO:: Break into two methods, one that returns the images for the page and another one that does the render
-    def render_preview(self, yearbook: Yearbook, yearbook_page: Page, img_preview_area: ImagePreviewArea):
+    def render_preview(self, yearbook_page: Page, img_preview_area: ImagePreviewArea, options: Options):
         print("---Displaying %s %s" % (yearbook_page.event_name, str(yearbook_page.number)))
-
-        if yearbook_page.title is not None:
-            options = self.with_title
-        else:
-            options = self.without_title
 
         rebuild = False
         pin_changed = False
@@ -1111,9 +1109,9 @@ class MainWindow(Gtk.Window):
         if yearbook_page.is_locked():
             print("Page %s is locked..." % yearbook_page.number)
             outfile = os.path.join(get_jpg_path(self.yearbook_parameters['output_dir'],
-                                                yearbook.school,
-                                                yearbook.classroom,
-                                                yearbook.child),
+                                                self.current_yearbook.school,
+                                                self.current_yearbook.classroom,
+                                                self.current_yearbook.child),
                                    str(yearbook_page.number) + ".png")
             from PIL import ImageOps
 
@@ -1125,7 +1123,7 @@ class MainWindow(Gtk.Window):
 
         # If this page has never been edited,
         if not yearbook_page.is_edited():
-            if yearbook.parent_yearbook is not None:
+            if self.current_yearbook.parent_yearbook is not None:
                 try:
                     print("******We have a parent, let's retrieve from there, %s *****" % len(yearbook_page.parent_pages))
 
@@ -1137,23 +1135,21 @@ class MainWindow(Gtk.Window):
                             break
                     else:
                         # Just pick the parent in that case.
-                        print("Selecting immediate parent, last layout")
-                        print(yearbook_page.parent_pages[-1])
-                        parent_page: Page = yearbook_page.parent_pages[0]
+                        parent_page: Page = yearbook_page.parent_pages[-1]
 
                     page_collage: UserCollage = parent_page.history[-1].duplicate_with_layout()
 
                 except IndexError:
                     # This is a custom page
                     print("////////////RETRIEVE CUSTOM IMAGES/////////////////////")
-                    child_order_id = yearbook.orders[0].wix_order_id
-                    custom_order_dir = os.path.join(self.corpus_base_dir, yearbook.school, 'CustomPhotos',
+                    child_order_id = self.current_yearbook.orders[0].wix_order_id
+                    custom_order_dir = os.path.join(self.corpus_base_dir, self.current_yearbook.school, 'CustomPhotos',
                                                     child_order_id)
                     if os.path.exists(custom_order_dir):
                         page_images = [os.path.join(custom_order_dir, img) for img in os.listdir(custom_order_dir) if
                                        img.endswith("jpg") or img.endswith("jpeg") or img.endswith("png")]
                     else:
-                        page_images = [os.path.join(self.corpus_base_dir, yearbook.school, "blank.png")]
+                        page_images = [os.path.join(self.corpus_base_dir, self.current_yearbook.school, "blank.png")]
 
                     first_photo_list: [Photo] = render.build_photolist(page_images)
                     page_collage = UserCollage(first_photo_list)
@@ -1201,8 +1197,8 @@ class MainWindow(Gtk.Window):
                 # If the images of the current page are the same as the parent
                 # then we want to update and copy the most recent layout of the parent
                 from yearbook.Corpus import intersection
-                if yearbook.parent_yearbook is not None:
-                    parent_page: Page = yearbook.parent_yearbook.pages[yearbook_page.number - 1]
+                if self.current_yearbook.parent_yearbook is not None:
+                    parent_page: Page = self.current_yearbook.parent_yearbook.pages[yearbook_page.number - 1]
                     if set(yearbook_page.photo_list) == set(parent_page.photo_list):
                         page_collage: UserCollage = parent_page.history[-1]
                         # Need to copy the parent layout in this case
@@ -1242,9 +1238,8 @@ class MainWindow(Gtk.Window):
             dialog.destroy()
 
         out_file = os.path.join(get_jpg_path(self.yearbook_parameters['output_dir'],
-                                             yearbook.school,
-                                             yearbook.classroom,
-                                             yearbook.child),
+                                             self.current_yearbook.school,
+                                             self.current_yearbook.classroom, self.current_yearbook.child),
                                 str(yearbook_page.number) + ".png")
 
         t = render.RenderingTask(
@@ -1268,9 +1263,9 @@ class MainWindow(Gtk.Window):
         page.history.append(_collage)
         self.update_tool_buttons()
         if page.number % 2 != 0:
-            self.render_preview(self.current_yearbook, page, self.img_preview_left)
+            self.render_preview(page, self.img_preview_left, self.left_opts)
         else:
-            self.render_preview(self.current_yearbook, page, self.img_preview_right)
+            self.render_preview(page, self.img_preview_right, self.right_opts)
 
     def clear_layout(self, button):
         if button.get_label().endswith("Right"):
@@ -1283,10 +1278,10 @@ class MainWindow(Gtk.Window):
     def regenerate_layout(self, button):
         if button.get_label().endswith("Right"):
             page = self.current_yearbook.pages[self.next_page_index]
-            options = self.without_title
+            options = self.right_opts
         else:
             page = self.current_yearbook.pages[self.curr_page_index]
-            options = self.with_title
+            options = self.left_opts
 
         new_collage = page.history[page.history_index].duplicate()
         new_collage.make_page(options, shuffle=True)
@@ -1305,9 +1300,9 @@ class MainWindow(Gtk.Window):
                                         str(page.number) + "_stitched.png")
 
             if page.personalized and page.number % 2 != 0:
-                options = self.without_title
+                options = self.right_opts
             else:
-                options = self.with_title
+                options = self.left_opts
 
             enlargement = float(options.out_w) / page_collage.page.w
 
@@ -1593,16 +1588,16 @@ class MainWindow(Gtk.Window):
         dialog = SettingsDialog(self)
         response = dialog.run()
         if response == Gtk.ResponseType.OK:
-            dialog.apply_opts(self.with_title)
+            dialog.apply_opts(self.left_opts)
             dialog.destroy()
 
             if self.current_yearbook:
                 page = self.current_yearbook.pages[self.curr_page_index]
                 if page.history:
                     if page.number % 2 != 0:
-                        self.render_preview(self.current_yearbook, page, self.img_preview_left)
+                        self.render_preview(page, self.img_preview_left)
                     else:
-                        self.render_preview(self.current_yearbook, page, self.img_preview_right)
+                        self.render_preview(page, self.img_preview_right)
         else:
             dialog.destroy()
 
