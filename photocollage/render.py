@@ -336,11 +336,11 @@ class RenderingTask(Thread):
                     background = PIL.Image.open(self.yearbook_page.image).convert("RGBA")
                     new_background = background.resize(IMAGE_WITH_BLEED_SIZE)
                     if not self.yearbook_page.page_type.startswith('Static'):
-                        if self.yearbook_page.title is not None and len(self.yearbook_page.title) > 3:
-                            print("This page has a title %s " % self.yearbook_page.number)
+                        if self.yearbook_page.number % 2 == 0:
 
                             # Right-hand size page, which will have a title
                             dashed_img_draw = DashedImageDraw(new_background)
+
                             w, h = TEXT_FONT.getsize(self.yearbook_page.title)
                             dashed_img_draw.text((int((canvas.size[0] - w) / 2) + 75, 75),
                                                  self.yearbook_page.title, (255, 255, 255), font=TEXT_FONT)
@@ -355,7 +355,7 @@ class RenderingTask(Thread):
                 else:
                     new_background = canvas
 
-                new_background.save(self.output_file, quality=55)
+                new_background.save(self.output_file, quality=85)
 
             if self.on_complete:
                 # We can change this to new_background if we wish to display it with the background
