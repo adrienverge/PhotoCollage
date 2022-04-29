@@ -855,10 +855,8 @@ class MainWindow(Gtk.Window):
             return [*set, ]
 
         if len(self.favorite_images) == 0:
-            print("Let's attempt to load the favorite images here")
             self.favorite_images = load_favorites_pickle(self.get_folder("Favorites"))
 
-        print("UPDATING FAVORITES")
         flowbox = self.img_favorites_flow_box
         [flowbox.remove(child) for child in flowbox.get_children()]
         flowbox.set_valign(Gtk.Align.START)
@@ -926,10 +924,8 @@ class MainWindow(Gtk.Window):
             tag_list = get_tag_list_for_page(self.current_yearbook, page)
             tags = get_unique_list_insertion_order(tag_list)
             if self.current_yearbook.child is None:
-                print("Getting images for node with tag list %s " % tags)
                 candidate_images = self.corpus.get_images_with_tags_strict(tags)
             else:
-                print("Getting images for child %s " % self.current_yearbook.child)
                 candidate_images = self.corpus.get_images_for_child(tags, self.current_yearbook.child)
 
         # Let's only keep the unique images from this list
@@ -952,8 +948,6 @@ class MainWindow(Gtk.Window):
             except KeyError:
                 pass
 
-        print("Going to display %s candidates" % len(candidate_images))
-        
         for img in candidate_images:
             # Let's not add the image to the viewer if it's on the page.
             if img in used_images_set or img in self.deleted_images:
@@ -1014,13 +1008,15 @@ class MainWindow(Gtk.Window):
             if page.history_index < len(page.history):
                 photolist = copy.copy(
                     page.history[page.history_index].photolist)
+
             photolist.extend(render.build_photolist(new_images))
 
             if len(photolist) > 0:
                 new_collage = UserCollage(photolist)
                 new_collage.make_page(options)
                 page.update_flag("edited", True)
-                print("*******UPDATING EDIT FLAG********* %s " % page.number )
+                page.photo_list = photolist
+                print("*******UPDATING EDIT FLAG********* %s " % page.number)
                 self.render_from_new_collage(page, new_collage)
             else:
                 self.update_tool_buttons()
@@ -1055,6 +1051,7 @@ class MainWindow(Gtk.Window):
 
     def render_and_save_yearbook(self, store: Gtk.TreeStore, treepath: Gtk.TreePath, treeiter: Gtk.TreeIter):
         _yearbook = store[treeiter][0]
+        self.current_yearbook = _yearbook
         output_dir = self.yearbook_parameters['output_dir']
         for page in _yearbook.pages:
             self.render_preview(page, self.img_preview_left)
@@ -1094,7 +1091,7 @@ class MainWindow(Gtk.Window):
 
         rebuild = False
         pin_changed = False
-        page_images = []
+        page_images = yearbook_page.photos_on_page
 
         if yearbook_page.title is not None and len(yearbook_page.title) > 2:
             options = self.has_title
@@ -1122,13 +1119,14 @@ class MainWindow(Gtk.Window):
 
         # If this page has never been edited,
         if not yearbook_page.is_edited():
+            print(".... CREATING PAGE ...")
+
             if self.current_yearbook.parent_yearbook is not None:
                 try:
                     print("******We have a parent, let's retrieve from there, %s *****" % len(yearbook_page.parent_pages))
-
                     for parent_pg in reversed(yearbook_page.parent_pages):
-                        print("The parent page was edited:%s?" % parent_pg.is_edited())
                         print(parent_pg)
+                        print("The parent page was edited:%s?" % parent_pg.is_edited())
                         if parent_pg.is_edited():
                             parent_page = parent_pg
                             break
@@ -1136,6 +1134,7 @@ class MainWindow(Gtk.Window):
                         # Just pick the parent in that case.
                         parent_page: Page = yearbook_page.parent_pages[-1]
 
+                    print("Picking most recent parent layout")
                     page_collage: UserCollage = parent_page.history[-1].duplicate_with_layout()
 
                 except IndexError:
@@ -1154,58 +1153,48 @@ class MainWindow(Gtk.Window):
                     page_collage = UserCollage(first_photo_list)
                     page_collage.make_page(options)
 
-                yearbook_page.photo_list: [Photo] = page_collage.photolist
-                yearbook_page.history.append(page_collage)
             elif yearbook_page.history_index < 0:
                 print("No parent exists, so we create from scratch")
                 page_images = self.choose_images_for_page(yearbook_page)
                 first_photo_list: [Photo] = render.build_photolist(page_images)
                 page_collage = UserCollage(first_photo_list)
                 page_collage.make_page(options)
-                yearbook_page.photo_list = first_photo_list
-                yearbook_page.history.append(page_collage)
+            else:
+                page_collage: UserCollage = yearbook_page.history[-1]
         else:
-            print("YEARBOOK PAGE WAS EDITED")
-            print(yearbook_page)
+            # Render last collage, unless something changes
+            page_collage = yearbook_page.history[-1]
+            existing_images = yearbook_page.photos_on_page
+
+            if self.current_yearbook.parent_yearbook is not None:
+                parent_page: Page = yearbook_page.parent_pages[-1]
+                if set(yearbook_page.photo_list) == set(parent_page.photo_list):
+                    print("photo list is same as parent")
+                    page_collage: UserCollage = parent_page.history[-1].duplicate_with_layout()
+
             if yearbook_page.has_parent_pins_changed():
                 new_images = yearbook_page.get_filenames_parent_pins_not_on_page()
-                existing_images = yearbook_page.photos_on_page
                 new_images.extend(existing_images)
                 page_images = get_unique_list_insertion_order(new_images)
                 pin_changed = True
                 rebuild = True
 
-            if yearbook_page.did_parent_delete():
-                if pin_changed:
-                    existing_images = page_images
-                else:
-                    existing_images = yearbook_page.photos_on_page
-
+            if yearbook_page.did_parent_delete() and pin_changed:
+                existing_images = page_images
                 parent_deleted_set = yearbook_page.get_parent_deleted_photos()
                 # remove parent deleted images from existing set
                 page_images = [img for img in existing_images if img not in parent_deleted_set]
                 rebuild = True
 
             if rebuild:
-                first_photo_list = render.build_photolist(page_images)
-                page_collage = UserCollage(first_photo_list)
+                new_photo_list = render.build_photolist(page_images)
+                page_collage = UserCollage(new_photo_list)
                 page_collage.make_page(options)
-                yearbook_page.photo_list = first_photo_list
-                yearbook_page.history.append(page_collage)
-            else:
-                # If the images of the current page are the same as the parent
-                # then we want to update and copy the most recent layout of the parent
-                from yearbook.Corpus import intersection
-                if self.current_yearbook.parent_yearbook is not None:
-                    parent_page: Page = self.current_yearbook.parent_yearbook.pages[yearbook_page.number - 1]
-                    if set(yearbook_page.photo_list) == set(parent_page.photo_list):
-                        page_collage: UserCollage = parent_page.history[-1]
-                        # Need to copy the parent layout in this case
-                        yearbook_page.history.append(page_collage)
-                    else:
-                        pass
 
-        page_collage: UserCollage = yearbook_page.history[yearbook_page.history_index]
+        # Update the current yearbook page with the new image list
+        yearbook_page.photo_list = page_collage.photolist
+        yearbook_page.history.append(page_collage)
+
         # If the desired ratio changed in the meantime (e.g. from landscape to
         # portrait), it needs to be re-updated
         page_collage.page.target_ratio = 1.0 * options.out_h / options.out_w
@@ -1412,6 +1401,7 @@ class MainWindow(Gtk.Window):
 
     def create_pdfs(self, store: Gtk.TreeStore, treepath: Gtk.TreePath, treeiter: Gtk.TreeIter):
         _yearbook: Yearbook = store[treeiter][0]
+        self.current_yearbook = _yearbook
         extension = ".pdf"
         pdf_base_path = self.get_pdf_base_path(_yearbook)
 
