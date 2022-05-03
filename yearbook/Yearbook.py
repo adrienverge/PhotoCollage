@@ -26,17 +26,38 @@ def create_yearbook(dir_params: {}, school_name: str, classroom: str, child: str
                                    "file.pickle")
     if os.path.exists(pickle_filename):
         print("Returning yearbook from pickle %s " % pickle_filename)
-        return create_yearbook_from_pickle(pickle_filename)
+        return create_yearbook_from_pickle(pickle_filename, parent_book)
     else:
         # Create the yearbook from DB
         print("*********First creation of this yearbook********")
         return create_yearbook_from_db(dir_params, school_name, classroom, child, parent_book)
 
 
-def create_yearbook_from_pickle(pickle_file_path):
+def create_yearbook_from_pickle(pickle_file_path, parent_book):
     pickle_file = open(pickle_file_path, 'rb')
     yearbook: PickleYearbook = pickle.load(pickle_file)
     pickle_file.close()
+
+    if parent_book is not None:
+
+        for page in yearbook.pages:
+            # Remove parent pages as we're reconstructing them
+            page.parent_pages = []
+            current_parent = parent_book
+            counter = 0
+            parent_page_dict = {parent_page.number: parent_page for parent_page in current_parent.pages}
+            print("looking for parent at page number: %s of %s "
+                  % (page.number, len(current_parent.pages)))
+            while current_parent is not None and not page.is_optional:
+                # Add the same index page from the parent
+                page_from_parent = parent_page_dict[page.number]
+                page.add_parent_page(page_from_parent)
+                print(page_from_parent)
+                current_parent = current_parent.parent_book
+                counter = counter + 1
+            print("Total parent pages added to this book, %s " % len(page.parent_pages))
+            page.parent_pages.reverse()
+
     return Yearbook(pickle_yearbook=yearbook)
 
 
