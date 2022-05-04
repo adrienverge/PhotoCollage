@@ -344,11 +344,11 @@ class RenderingTask(Thread):
                             w, h = TEXT_FONT.getsize(self.yearbook_page.title)
                             dashed_img_draw.text((int((canvas.size[0] - w) / 2) + 75, 75),
                                                  self.yearbook_page.title, (255, 255, 255), font=TEXT_FONT)
-                            dashed_img_draw.text((2450, 3200),
-                                                 str(self.yearbook_page.number),
-                                                 (255, 255, 255), font=TEXT_FONT_SMALL)
 
                             new_background.paste(canvas, (75, 175), mask=canvas)
+                            dashed_img_draw.text((int(canvas.size[0]) - 50, int(canvas.size[1]) + 75),
+                                                 str(self.yearbook_page.number),
+                                                 (255, 255, 255), font=TEXT_FONT_SMALL)
                         else:
                             # Left-hand size page, which will have the image starting at 75,75
                             new_background.paste(canvas, (75, 75), mask=canvas)
