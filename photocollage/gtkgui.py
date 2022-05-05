@@ -36,7 +36,7 @@ from data.rankers import RankerFactory
 from images.ImageWindow import ImageWindow
 from photocollage import APP_NAME, artwork, collage, render
 from photocollage.collage import Photo
-from photocollage.render import PIL_SUPPORTED_EXTS as EXTS, TEXT_FONT
+from photocollage.render import PIL_SUPPORTED_EXTS as EXTS, TITLE_FONT_MOHAVE
 from photocollage.dialogs.SettingsDialog import SettingsDialog
 
 from data.readers.default import corpus_processor
@@ -435,7 +435,7 @@ class Options:
         if not has_title:
             self.out_h = 3225
         else:
-            _, h = TEXT_FONT.getsize("A")
+            _, h = TITLE_FONT_MOHAVE.getsize("A")
             self.out_h = 3225 - h
         self.out_w = 2475
 

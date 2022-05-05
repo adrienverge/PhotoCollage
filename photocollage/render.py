@@ -24,7 +24,7 @@ import PIL.ImageFile
 from PIL import ImageOps, ImageFont
 
 from photocollage.collage import Photo
-from photocollage.settings.PrintSettings import IMAGE_WITH_BLEED_SIZE, TEXT_FONT
+from photocollage.settings.PrintSettings import IMAGE_WITH_BLEED_SIZE
 from util.draw.DashedImageDraw import DashedImageDraw
 from yearbook.page import Page
 
@@ -36,8 +36,9 @@ QUALITY_BEST = 2
 # Hard Coded Size value of 8.75 by 11.25 inches
 IMAGE_WITH_BLEED_SIZE = (2625, 3375)
 FONT_DIR = os.path.join("/Users", getpass.getuser(), "GoogleDrive", "Fonts")
-TEXT_FONT = ImageFont.truetype(os.path.join(FONT_DIR, "open-sans/OpenSans-Bold.ttf"), 100)
+TITLE_FONT_OPEN_SANS = ImageFont.truetype(os.path.join(FONT_DIR, "open-sans/OpenSans-Bold.ttf"), 100)
 TEXT_FONT_SMALL = ImageFont.truetype(os.path.join(FONT_DIR, "open-sans/OpenSans-Bold.ttf"), 50)
+TITLE_FONT_MOHAVE = ImageFont.truetype(os.path.join(FONT_DIR, "Mohave/Mohave-SemiBold.ttf"), 100)
 
 # Try to continue even if the input file is corrupted.
 # See issue at https://github.com/adrienverge/PhotoCollage/issues/65
@@ -341,11 +342,11 @@ class RenderingTask(Thread):
                             # Right-hand size page, which will have a title
                             dashed_img_draw = DashedImageDraw(new_background)
 
-                            w, h = TEXT_FONT.getsize(self.yearbook_page.title)
+                            w, h = TITLE_FONT_MOHAVE.getsize(self.yearbook_page.title)
                             dashed_img_draw.text((int((canvas.size[0] - w) / 2) + 75, 75),
-                                                 self.yearbook_page.title, (255, 255, 255), font=TEXT_FONT)
+                                                 self.yearbook_page.title, (255, 255, 255), font=TITLE_FONT_MOHAVE)
 
-                            new_background.paste(canvas, (75, 175), mask=canvas)
+                            new_background.paste(canvas, (75, 180), mask=canvas)
                             dashed_img_draw.text((int(canvas.size[0]) - 50, int(canvas.size[1]) + 75),
                                                  str(self.yearbook_page.number),
                                                  (255, 255, 255), font=TEXT_FONT_SMALL)
