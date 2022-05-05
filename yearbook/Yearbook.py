@@ -193,8 +193,10 @@ class Yearbook(GObject.GObject):
         return self.pickle_yearbook.child
 
     def print_yearbook_info(self):
-        print("%s :-> %s :-> %s" % (self.pickle_yearbook.school,
-                                    self.pickle_yearbook.classroom, self.pickle_yearbook.child))
+        print(self.get_id())
+
+    def get_id(self):
+        return "%s :-> %s :-> %s" % (self.pickle_yearbook.school, self.pickle_yearbook.classroom, self.pickle_yearbook.child)
 
     def is_edited(self):
         from functools import reduce
