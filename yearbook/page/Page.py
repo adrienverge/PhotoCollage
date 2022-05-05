@@ -52,6 +52,9 @@ class Page:
     def __setstate__(self, d):
         self.__dict__.update(d)
 
+    def get_id(self):
+        return self.event_name + "_" + str(self.number)
+
     def print_image_name(self):
         print("Name:: " + self.image)
 

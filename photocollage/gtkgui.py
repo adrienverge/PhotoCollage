@@ -49,7 +49,7 @@ from util.utils import get_unique_list_insertion_order
 from yearbook.Yearbook import Yearbook, get_tag_list_for_page, pickle_yearbook
 from yearbook.Yearbook import Page
 
-from images.utils import get_orientation_fixed_pixbuf
+from images.utils import get_orientation_fixed_pixbuf, get_minimum_creation_time, get_date_taken
 
 gi.require_version('Gtk', '3.0')
 gi.require_version('GdkPixbuf', '2.0')
@@ -544,6 +544,7 @@ class MainWindow(Gtk.Window):
 
         self.corpus_cache = {}
         self.tree_model_cache = {}
+        self.flow_box_images_cache = {}
 
         self.current_yearbook: Yearbook = None
         self.order_items: [OrderDetails] = []
@@ -921,12 +922,18 @@ class MainWindow(Gtk.Window):
             print("Load image as is, %s, %s" % (page.event_name, page.image))
             candidate_images = [page.image]
         else:
-            tag_list = get_tag_list_for_page(self.current_yearbook, page)
-            tags = get_unique_list_insertion_order(tag_list)
-            if self.current_yearbook.child is None:
-                candidate_images = self.corpus.get_images_with_tags_strict(tags)
+            key = self.current_yearbook.get_id() + "_" + page.get_id()
+            if key in self.flow_box_images_cache:
+                candidate_images = self.flow_box_images_cache[key]
             else:
-                candidate_images = self.corpus.get_images_for_child(tags, self.current_yearbook.child)
+                tag_list = get_tag_list_for_page(self.current_yearbook, page)
+                tags = get_unique_list_insertion_order(tag_list)
+                if self.current_yearbook.child is None:
+                    candidate_images = self.corpus.get_images_with_tags_strict(tags)
+                else:
+                    candidate_images = self.corpus.get_images_for_child(tags, self.current_yearbook.child)
+
+                self.flow_box_images_cache[key] = candidate_images
 
         # Let's only keep the unique images from this list
         candidate_images = get_unique_list_insertion_order(candidate_images)

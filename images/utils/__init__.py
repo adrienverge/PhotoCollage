@@ -1,17 +1,28 @@
 from PIL import Image
 
 
-def pixbuf2image(pix):
-    """Convert gdkpixbuf to PIL image"""
-    data = pix.get_pixels()
-    w = pix.props.width
-    h = pix.props.height
-    stride = pix.props.rowstride
-    mode = "RGB"
-    if pix.props.has_alpha:
-        mode = "RGBA"
-    im = Image.frombytes(mode, (w, h), data, "raw", mode, stride)
-    return im
+def get_date_taken(path):
+    print("Looking for date for %s " % path)
+    exif = Image.open(path)._getexif()
+    if exif is not None:
+        return get_minimum_creation_time(exif)
+
+    return None
+
+
+def get_date(img):
+    return img._getexif()[36867]
+
+
+def get_minimum_creation_time(exif_data):
+    mtime = "?"
+    if 306 in exif_data and exif_data[306] < mtime: # 306 = DateTime
+        mtime = exif_data[306]
+    if 36867 in exif_data and exif_data[36867] < mtime: # 36867 = DateTimeOriginal
+        mtime = exif_data[36867]
+    if 36868 in exif_data and exif_data[36868] < mtime: # 36868 = DateTimeDigitized
+        mtime = exif_data[36868]
+    return mtime
 
 
 def get_orientation_fixed_pixbuf(img_name: str, width=120, height=120):
