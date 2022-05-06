@@ -56,7 +56,7 @@ class Corpus:
 
     def get_images_with_tags_strict(self, tags_list: [str]) -> [str]:
 
-        tag_list_len = len(tags_list)
+        images_with_same_tags = []
 
         # Get the images that have this given tags
         all_images = [self.tags_to_images[tag] for tag in tags_list if tag in self.tags_to_images]
@@ -64,11 +64,8 @@ class Corpus:
         # Now all_images is [[img0, img1] [img3, img4] [img5] [img5] [img6]]
         # We need to return an intersection of the lists
         import functools
-        images_with_same_no_of_tags = []
         try:
             final_images = functools.reduce(lambda x, y: intersection(x, y), all_images)
-            images_with_same_no_of_tags = [img for img in final_images if len(self.image_to_tags[img]) == tag_list_len]
-            images_with_same_tags = []
             for img in final_images:
                 img_tags = self.image_to_tags[img]
                 common_tags = intersection(img_tags, tags_list)
