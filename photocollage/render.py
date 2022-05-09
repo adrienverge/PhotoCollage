@@ -39,7 +39,7 @@ FONT_DIR = os.path.join("/Users", getpass.getuser(), "GoogleDrive", "Fonts")
 TITLE_FONT_OPEN_SANS = ImageFont.truetype(os.path.join(FONT_DIR, "open-sans/OpenSans-Bold.ttf"), 100)
 TEXT_FONT_SMALL = ImageFont.truetype(os.path.join(FONT_DIR, "open-sans/OpenSans-Bold.ttf"), 50)
 TITLE_FONT_MOHAVE = ImageFont.truetype(os.path.join(FONT_DIR, "Mohave/Mohave-SemiBold.ttf"), 100)
-
+TITLE_FONT_SELIMA = ImageFont.truetype(os.path.join(FONT_DIR, "selima/selima_.otf"), 100)
 # Try to continue even if the input file is corrupted.
 # See issue at https://github.com/adrienverge/PhotoCollage/issues/65
 PIL.ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -341,10 +341,10 @@ class RenderingTask(Thread):
 
                             # Right-hand size page, which will have a title
                             dashed_img_draw = DashedImageDraw(new_background)
-
-                            w, h = TITLE_FONT_MOHAVE.getsize(self.yearbook_page.title)
+                            font_to_use = TITLE_FONT_SELIMA
+                            w, h = font_to_use.getsize(self.yearbook_page.title)
                             dashed_img_draw.text((int((canvas.size[0] - w) / 2) + 75, 75),
-                                                 self.yearbook_page.title, (255, 255, 255), font=TITLE_FONT_MOHAVE)
+                                                 self.yearbook_page.title, (255, 255, 255), font=font_to_use)
 
                             new_background.paste(canvas, (75, 180), mask=canvas)
                             dashed_img_draw.text((int(canvas.size[0]) - 50, int(canvas.size[1]) + 75),

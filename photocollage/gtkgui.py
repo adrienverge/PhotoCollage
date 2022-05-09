@@ -299,9 +299,12 @@ class ImagePreviewArea(Gtk.DrawingArea):
         if widget.name == "LeftPage":
             current_page = self.parent.current_yearbook.pages[self.parent.curr_page_index]
             flow_box = self.parent.images_flow_box_left
+            lbl_ref = self.parent.lbl_left_images_panel
         else:
             current_page = self.parent.current_yearbook.pages[self.parent.next_page_index]
             flow_box = self.parent.images_flow_box_right
+            lbl_ref = self.parent.lbl_right_images_panel
+
 
         if current_page.title is not None:
             options = self.parent.has_title
@@ -331,7 +334,8 @@ class ImagePreviewArea(Gtk.DrawingArea):
                     self.parent.update_tool_buttons()
 
                 # Let's update the flow images to have this image show up in the bottom
-                self.parent.update_flow_box_with_images(flow_box, current_page)
+                img_counter = self.parent.update_flow_box_with_images(flow_box, current_page)
+                lbl_ref.set_label(lbl_ref.get-label() + ": %s" % img_counter)
 
             elif dist_pinned <= 8 * 8:
                 if cell.photo.filename in current_page.pinned_photos:
@@ -587,6 +591,8 @@ class MainWindow(Gtk.Window):
         self.btn_lock_page_right = Gtk.ToggleButton(label=_("Lock Right"))
         self.btn_pin_page_left = Gtk.ToggleButton(label="Pin Page Left")
         self.btn_pin_page_right = Gtk.ToggleButton(label="Pin Page Right")
+        self.lbl_left_image_panel =  Gtk.Label(label="Left Images")
+        self.lbl_right_image_panel =  Gtk.Label(label="Right Images")
 
         self.btn_print_all_books = Gtk.Button(label=_("Print All@Lulu"))
         self.btn_submit_order = Gtk.Button(label=_("ORDER"))
@@ -753,7 +759,8 @@ class MainWindow(Gtk.Window):
         # Create Boxes
         page1 = Gtk.Box()
         page1.set_border_width(50)
-        notebook.append_page(_scrolledWindow, Gtk.Label("Left Images"))
+
+        notebook.append_page(_scrolledWindow, self.lbl_left_image_panel)
 
         _scrolledWindow = Gtk.ScrolledWindow()
         _scrolledWindow.set_size_request(600, 300)
@@ -767,7 +774,7 @@ class MainWindow(Gtk.Window):
         _scrolledWindow.add(self.images_flow_box_right)
         page3 = Gtk.Box()
         page3.set_border_width(50)
-        notebook.append_page(_scrolledWindow, Gtk.Label("Right Images"))
+        notebook.append_page(_scrolledWindow, self.lbl_right_image_panel)
 
         notebook.set_show_tabs(True)
         notebook.show()
@@ -937,6 +944,7 @@ class MainWindow(Gtk.Window):
 
         # Let's only keep the unique images from this list
         candidate_images = get_unique_list_insertion_order(candidate_images)
+        candidate_images.sort()
 
         flow_box.set_valign(Gtk.Align.START)
         flow_box.set_max_children_per_line(10)
@@ -955,6 +963,7 @@ class MainWindow(Gtk.Window):
             except KeyError:
                 pass
 
+        counter = 0
         for img in candidate_images:
             # Let's not add the image to the viewer if it's on the page.
             if img in used_images_set or img in self.deleted_images:
@@ -968,6 +977,7 @@ class MainWindow(Gtk.Window):
                     img_box.add(image)
                     img_box.connect("button_press_event", self.invoke_add_image, img, candidate_images)
                     flow_box.add(img_box)
+                    counter = counter + 1
 
             except OSError:
                 # raise BadPhoto(name)
@@ -975,6 +985,7 @@ class MainWindow(Gtk.Window):
                 continue
 
         self.show_all()
+        return counter
 
     def is_left_page_locked(self):
         return self.current_yearbook.pages[self.prev_page_index].is_locked()
@@ -986,14 +997,16 @@ class MainWindow(Gtk.Window):
         print("Updating left page, page index %s " % str(self.curr_page_index))
         print(self.current_yearbook.pages[self.curr_page_index])
         self.update_photolist(self.current_yearbook.pages[self.curr_page_index], [img_name], self.has_title)
-        self.update_flow_box_with_images(self.images_flow_box_left, self.current_yearbook.pages[self.curr_page_index])
+        img_counter = self.update_flow_box_with_images(self.images_flow_box_left, self.current_yearbook.pages[self.curr_page_index])
+        self.lbl_left_image_panel.set_text("Left Images : %s " % img_counter)
         self.update_favorites_images()
 
     def add_image_to_right_pane(self, img_name):
         print("Updating right page, page index %s " % str(self.next_page_index))
         print(self.current_yearbook.pages[self.next_page_index])
         self.update_photolist(self.current_yearbook.pages[self.next_page_index], [img_name], self.without_title)
-        self.update_flow_box_with_images(self.images_flow_box_right, self.current_yearbook.pages[self.next_page_index])
+        img_counter = self.update_flow_box_with_images(self.images_flow_box_right, self.current_yearbook.pages[self.next_page_index])
+        self.lbl_right_image_panel.set_text("Right Images : %s " % img_counter)
         self.update_favorites_images()
 
     def invoke_add_image(self, widget, event, img_name, images_list):
@@ -1571,11 +1584,12 @@ class MainWindow(Gtk.Window):
         right_page = self.current_yearbook.pages[self.next_page_index]
         self.render_right_page(right_page)
 
-        self.update_flow_box_with_images(self.images_flow_box_left, left_page)
-        self.update_flow_box_with_images(self.images_flow_box_right, right_page)
+        left_counter = self.update_flow_box_with_images(self.images_flow_box_left, left_page)
+        self.lbl_left_image_panel.set_text("Left Images: %s" % left_counter)
+        right_counter = self.update_flow_box_with_images(self.images_flow_box_right, right_page)
+        self.lbl_right_image_panel.set_text("Right Images: %s" % right_counter)
 
         self.update_favorites_images()
-
         self.update_label_text()
         self.btn_lock_page_left.set_active(left_page.is_locked())
         self.btn_lock_page_right.set_active(right_page.is_locked())

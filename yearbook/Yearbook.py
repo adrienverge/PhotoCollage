@@ -109,9 +109,11 @@ def create_yearbook_from_db(dir_params: {}, school_name: str, classroom: str, ch
             counter = 0
             print("looking for parent at page number: %s of %s, with %s optional pages "
                   % (page.number, len(current_parent.pages), optional_page_offset))
+            parent_page_dict = {parent_page.number: parent_page for parent_page in current_parent.pages}
+
             while current_parent is not None and not page.is_optional:
                 # Add the same index page from the parent
-                page_from_parent = current_parent.pages[page.number - 1 - optional_page_offset]
+                page_from_parent = parent_page_dict[page.number]
                 page.add_parent_page(page_from_parent)
                 print(page_from_parent)
                 current_parent = current_parent.parent_book
