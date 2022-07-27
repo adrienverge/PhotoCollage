@@ -11,6 +11,7 @@
  <summary xml:lang="fr">Outil graphique pour fabriquer des posters en collant plusieurs photos</summary>
  <summary xml:lang="it">Strumento grafico per creare collage di fotografie</summary>
  <summary xml:lang="nl">Grafische toepassing om fotocollageposters te maken</summary>
+<summary xml:lang="pt-br">Ferramenta gráfica para fazer pôsteres de colagem de fotos</summary>
  <summary xml:lang="ru">Графический инструмент для создания фотоколлажей</summary>
  <summary xml:lang="uk">Графічний застосунок для створення фотоколажів</summary>
  <description>
@@ -120,6 +121,23 @@
    automatisch ingedeeld om de gehele poster op te vullen. Daarna kun je de
    indeling, afmetingen, randdikte en volgorde aanpassen en de poster opslaan
    in elke denkbare grootte.
+  </p>
+  <p xml:lang="pt-br">
+   Photocollage permite criar pôsteres de colagem de fotos. Ele reune
+   fotografias de entrada para gerar um grande pôster. As
+   As fotos são organizadas automaticamente para preencher o pôster inteiro
+   então, você pode alterar o design final, dimensões, bordas ou trocar
+   fotos na grade gerada.Finalmente, a imagem final do pôster
+   pode ser salva em qualquer tamanho.
+  </p>
+  <p xml:lang="pt-br">
+   O algoritmo gera layouts aleatórios das fotos
+   aproveitando todo o espaço livre. Ele Tenta preencher todo o espaço
+   Mantendo cada foto o maior possível.
+  </p>
+  <p xml:lang="pt-br">
+   Photocollage faz mais ou menos o mesmo que muitos sites comerciais,
+   porém, de graça e com código aberto.
   </p>
   <p xml:lang="ru">
    PhotoCollage позволяет создавать фотоколлажи. Из данных ему
