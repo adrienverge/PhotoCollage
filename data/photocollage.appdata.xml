@@ -4,6 +4,7 @@
  <metadata_license>CC-BY-3.0</metadata_license>
  <project_license>GPL-2.0+</project_license>
  <name>PhotoCollage</name>
+ <content_rating type="oars-1.0" />
  <summary>Graphical tool to make photo collage posters</summary>
  <summary xml:lang="cs">Grafický nástroj pro vytváření koláží z fotografií</summary>
  <summary xml:lang="de">Grafisches Werkzeug zum erstellen von Foto-Collagen Poster</summary>
@@ -179,4 +180,7 @@
  </screenshots>
  <url type="homepage">https://github.com/adrienverge/PhotoCollage</url>
  <updatecontact>adrienverge_at_gmail.com</updatecontact>
+ <releases>
+   <release version="1.4.5" date="2021-07-09" />
+ </releases>
 </application>
