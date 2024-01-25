@@ -15,9 +15,12 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import distutils
-import distutils.command.build
-import distutils.core
+from setuptools import distutils
+import setuptools.command.build
+try:
+    import setuptools.modified as dep_util
+except ModuleNotFoundError:
+    from distutils import dep_util
 import os
 
 from photocollage import APP_NAME, APP_VERSION
@@ -46,7 +49,7 @@ class build_i18n(distutils.core.Command):
             self.mkpath(dir)
             mo = os.path.join(dir, "%s.mo" % self.distribution.metadata.name)
 
-            if distutils.dep_util.newer(po, mo):
+            if dep_util.newer(po, mo):
                 distutils.log.info("Compile: {} -> {}".format(po, mo))
                 self.spawn(["msgfmt", "-o", mo, po])
 
@@ -54,7 +57,7 @@ class build_i18n(distutils.core.Command):
             self.distribution.data_files.append((targetpath, (mo,)))
 
 
-distutils.command.build.build.sub_commands.append(("build_i18n", None))
+setuptools.command.build.build.sub_commands.append(("build_i18n", None))
 
 
 long_description = (
