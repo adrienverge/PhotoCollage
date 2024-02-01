@@ -14,6 +14,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import gettext
 import random
 from threading import Thread
 import time
@@ -22,12 +23,24 @@ import PIL.Image
 import PIL.ImageDraw
 import PIL.ImageFile
 
+from photocollage import APP_NAME
 from photocollage.collage import Photo
 
+gettext.textdomain(APP_NAME)
+_ = gettext.gettext
+_n = gettext.ngettext
 
-QUALITY_SKEL = 0
-QUALITY_FAST = 1
-QUALITY_BEST = 2
+QUALITY_SKEL = 1
+QUALITY_FAST = 2
+QUALITY_BEST = 3
+QUALITIES = {
+    QUALITY_SKEL: {'str': _("Skeleton (no rendering)"),
+                   'filter': None},
+    QUALITY_FAST: {'str': _("Standard (nearest neighbor; quicker)"),
+                   'filter': PIL.Image.NEAREST},
+    QUALITY_BEST: {'str': _("Best (antialiasing; slower)"),
+                   'filter': PIL.Image.ANTIALIAS},
+}
 
 
 # Try to continue even if the input file is corrupted.
@@ -218,21 +231,24 @@ class RenderingTask(Thread):
             elif cell.photo.orientation == 8:
                 img = img.rotate(90, expand=True)
 
-        if self.quality == QUALITY_FAST:
-            method = PIL.Image.NEAREST
-        else:
-            method = PIL.Image.ANTIALIAS
+        method = QUALITIES[self.quality]['filter']
 
         shape = img.size[0] * cell.h - img.size[1] * cell.w
         if shape > 0:  # image is too thick
-            img = img.resize((int(round(cell.h * img.size[0] / img.size[1])),
-                              int(round(cell.h))), method)
+            img = img.resize(
+                (int(round(cell.h * img.size[0] / img.size[1])),
+                 int(round(cell.h))),
+                method)
         elif shape < 0:  # image is too tall
-            img = img.resize((int(round(cell.w)),
-                              int(round(cell.w * img.size[1] / img.size[0]))),
-                             method)
+            img = img.resize(
+                (int(round(cell.w)),
+                 int(round(cell.w * img.size[1] / img.size[0]))),
+                method)
         else:
-            img = img.resize((int(round(cell.w)), int(round(cell.h))), method)
+            img = img.resize(
+                (int(round(cell.w)),
+                 int(round(cell.h))),
+                method)
 
         # Save this new image to cache (if it is larger than the previous one)
         if (use_cache and (cell.photo.filename not in cache or
@@ -274,7 +290,8 @@ class RenderingTask(Thread):
 
             if self.quality != QUALITY_SKEL:
                 n = sum([len([cell for cell in col.cells if not
-                              cell.is_extension()]) for col in self.page.cols])
+                              cell.is_extension()])
+                         for col in self.page.cols])
                 i = 0.0
                 if self.on_update:
                     self.on_update(canvas, 0.0)
