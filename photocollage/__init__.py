@@ -15,7 +15,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 APP_NAME = "photocollage"
-APP_VERSION = "1.4.5"
+APP_VERSION = "1.4.6"
 
 __author__ = "Adrien Vergé"
 __copyright__ = "Copyright 2013, Adrien Vergé"
