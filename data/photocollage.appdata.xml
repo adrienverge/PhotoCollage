@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<application>
- <id type="desktop">photocollage.desktop</id>
+<component type="desktop">
+ <id>photocollage.desktop</id>
  <metadata_license>CC-BY-3.0</metadata_license>
  <project_license>GPL-2.0+</project_license>
  <name>PhotoCollage</name>
- <content_rating type="oars-1.0" />
+ <developer_name>Adrien Vergé</developer_name>
+ <launchable type="desktop-id">photocollage.desktop</launchable>
+ <content_rating type="oars-1.1" />
  <summary>Graphical tool to make photo collage posters</summary>
  <summary xml:lang="cs">Grafický nástroj pro vytváření koláží z fotografií</summary>
  <summary xml:lang="de">Grafisches Werkzeug zum erstellen von Foto-Collagen Poster</summary>
@@ -175,12 +177,15 @@
  </description>
  <screenshots>
   <screenshot type="default" width="800" height="450">
-   https://github.com/adrienverge/PhotoCollage/raw/v1.4.0/screenshots/photocollage-1.4-preview.png
+   <image>https://github.com/adrienverge/PhotoCollage/raw/v1.4.0/screenshots/photocollage-1.4-preview.png</image>
   </screenshot>
  </screenshots>
  <url type="homepage">https://github.com/adrienverge/PhotoCollage</url>
- <updatecontact>adrienverge_at_gmail.com</updatecontact>
+ <url type="bugtracker">https://github.com/adrienverge/PhotoCollage/issues</url>
+ <url type="vcs-browser">https://github.com/adrienverge/PhotoCollage</url>
+ <url type="translate">https://github.com/adrienverge/PhotoCollage/tree/master/po</url>
+ <update_contact>adrienverge_at_gmail.com</update_contact>
  <releases>
    <release version="1.4.5" date="2021-07-09" />
  </releases>
-</application>
+</component>
