@@ -78,7 +78,31 @@ def settings_store_lastsettings(settings):
                 "out_h": settings.out_h
                 }
     with open(settings_file, "w") as openfile:
-        json.dump(dictionary, openfile)
+        json.dump(dictionary, openfile, indent=4)
+
+def templates_load_presets():
+    app_folder = settings_folder_check()
+    templates_file =  app_folder + "/templates.json"
+    if os.path.isfile(templates_file):
+        with open(templates_file, "r") as openfile:
+            json_object = json.load(openfile)
+    else:
+        dictionary = {
+                        "" : None,
+                        "800 × 600" :  (800, 600),
+                        "1600 × 1200" : (1600, 1200),
+                        "A4 landscape (300ppi)" : (3508, 2480),
+                        "A4 portrait (300ppi)" : (2480, 3508),
+                        "A3 landscape (300ppi)" : (4960, 3508),
+                        "A3 portrait (300ppi)" : (3508, 4960),
+                        "US-Letter landscape (300ppi)" : (3300, 2550),
+                        "US-Letter portrait (300ppi)" : (2550, 3300)
+                      }
+        with open(templates_file, "w") as openfile:
+            json.dump(dictionary, openfile, indent=4)
+        with open(templates_file, "r") as openfile:
+            json_object = json.load(openfile)
+    return json_object
 
 
 def pil_image_to_cairo_surface(src):
@@ -693,18 +717,9 @@ class SettingsDialog(Gtk.Dialog):
         box.pack_start(self.etr_outh, False, False, 0)
 
         box.pack_end(Gtk.Label(_("pixels"), xalign=0), False, False, 0)
+        json_object = templates_load_presets()
+        templates = json_object.items()
 
-        templates = (
-            ("", None),
-            ("800 × 600", (800, 600)),
-            ("1600 × 1200", (1600, 1200)),
-            ("A4 landscape (300ppi)", (3508, 2480)),
-            ("A4 portrait (300ppi)", (2480, 3508)),
-            ("A3 landscape (300ppi)", (4960, 3508)),
-            ("A3 portrait (300ppi)", (3508, 4960)),
-            ("US-Letter landscape (300ppi)", (3300, 2550)),
-            ("US-Letter portrait (300ppi)", (2550, 3300)),
-        )
 
         def apply_template(combo):
             t = combo.get_model()[combo.get_active_iter()][1]
