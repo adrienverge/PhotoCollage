@@ -22,7 +22,7 @@ import math
 import os.path
 import random
 import sys
-import urllib
+import urllib.parse
 
 import cairo
 import gi
