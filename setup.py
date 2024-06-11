@@ -15,13 +15,14 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import os
+
 from setuptools import distutils
 import setuptools.command.build
 try:
     import setuptools.modified as dep_util
 except ModuleNotFoundError:
     from distutils import dep_util
-import os
 
 from photocollage import APP_NAME, APP_VERSION
 
