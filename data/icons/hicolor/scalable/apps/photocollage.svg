@@ -708,9 +708,7 @@
    <feGaussianBlur id="feGaussianBlur22159" stdDeviation="2.1238456"/>
   </filter>
   <clipPath id="clipPath36333" clipPathUnits="userSpaceOnUse">
-   <g id="g36335" transform="translate(2.5e-4,0)" stroke="#00ff04" stroke-miterlimit="4" stroke-dasharray="none" stroke-width="0.5" fill="none">
-    <path id="path36337" stroke-linejoin="miter" d="m54.438,4.5312c-3.0779,0-5.2167,0.52406-7.6562,2.1875-2.1837,1.489-0.44236,0.27556-8,5.375-3.2597,1.9324-5.4375,5.4831-5.4375,9.5625v218.69c0,6.1559,4.9379,11.125,11.094,11.125h161.62c2.2272,0,4.2961-0.66168,6.0312-1.7812,0.0633-0.0408,0.12511-0.0829,0.1875-0.125,8.5776-5.0914,7.1492-4.178,10.719-6.2812,2.4472-1.4419,4.1875-5.8596,4.1875-8.9375v-218.69c0-6.1559-4.9691-11.125-11.125-11.125h-161.62z" transform="translate(0,796.36218)" stroke="#00ff04" stroke-miterlimit="4" stroke-dasharray="none" stroke-width="0.5" fill="none"/>
-   </g>
+   <path id="path36337" stroke-linejoin="miter" d="m54.438,4.5312c-3.0779,0-5.2167,0.52406-7.6562,2.1875-2.1837,1.489-0.44236,0.27556-8,5.375-3.2597,1.9324-5.4375,5.4831-5.4375,9.5625v218.69c0,6.1559,4.9379,11.125,11.094,11.125h161.62c2.2272,0,4.2961-0.66168,6.0312-1.7812,0.0633-0.0408,0.12511-0.0829,0.1875-0.125,8.5776-5.0914,7.1492-4.178,10.719-6.2812,2.4472-1.4419,4.1875-5.8596,4.1875-8.9375v-218.69c0-6.1559-4.9691-11.125-11.125-11.125h-161.62z" transform="translate(0,796.36218)" stroke="#00ff04" stroke-miterlimit="4" stroke-dasharray="none" stroke-width="0.5" fill="none"/>
   </clipPath>
   <filter id="filter37619-9" width="1.0500422" y="-0.58810788" x="-0.025021082" height="2.1762159" color-interpolation-filters="sRGB">
    <feGaussianBlur id="feGaussianBlur37621-6" stdDeviation="1.9353033"/>
