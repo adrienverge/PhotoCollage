@@ -267,6 +267,13 @@ class PhotoCollageWindow(Gtk.Window):
         self.btn_save.connect("clicked", self.save_poster)
         box.pack_start(self.btn_save, False, False, 0)
 
+        self.btn_reset = Gtk.Button(label=_("Reset"))
+        self.btn_reset.set_image(Gtk.Image.new_from_stock(
+            Gtk.STOCK_REMOVE, Gtk.IconSize.LARGE_TOOLBAR))
+        self.btn_reset.set_always_show_image(True)
+        self.btn_reset.connect("clicked", self.reset)
+        box.pack_start(self.btn_reset, False, False, 0)
+
         # -----------------------
         #  Tools pan
         # -----------------------
@@ -321,6 +328,7 @@ class PhotoCollageWindow(Gtk.Window):
         box.pack_start(self.img_preview, True, True, 0)
 
         self.btn_save.set_sensitive(False)
+        self.btn_reset.set_sensitive(False)
 
         self.btn_undo.set_sensitive(False)
         self.btn_redo.set_sensitive(False)
@@ -397,6 +405,7 @@ class PhotoCollageWindow(Gtk.Window):
             self.img_preview.set_collage(img, collage)
             compdialog.destroy()
             self.btn_save.set_sensitive(True)
+            self.btn_reset.set_sensitive(True)
 
         def on_fail(exception):
             dialog = ErrorDialog(self, "{}:\n\n{}".format(
@@ -405,6 +414,7 @@ class PhotoCollageWindow(Gtk.Window):
             dialog.run()
             dialog.destroy()
             self.btn_save.set_sensitive(False)
+            self.btn_reset.set_sensitive(False)
 
         t = render.RenderingTask(
             collage.page,
@@ -420,6 +430,22 @@ class PhotoCollageWindow(Gtk.Window):
         if response == Gtk.ResponseType.CANCEL:
             t.abort()
             compdialog.destroy()
+
+    def reset(self, button):
+        dialog = Gtk.MessageDialog(
+            win, Gtk.DialogFlags.DESTROY_WITH_PARENT,
+            Gtk.MessageType.QUESTION, Gtk.ButtonsType.YES_NO,
+            _("Reset"))
+        dialog.format_secondary_text(_("Do you really want to reset ?"))
+        response = dialog.run()
+        dialog.destroy()
+        if response == Gtk.ResponseType.YES:
+            win.img_preview.collage.photolist = None
+            win.img_preview.image = None
+            win.img_preview.mode = win.img_preview.INSENSITIVE
+            win.img_preview.parent.history_index = \
+                len(win.img_preview.parent.history)
+            win.img_preview.parent.update_tool_buttons()
 
     def render_from_new_collage(self, collage):
         self.history.append(collage)
@@ -513,6 +539,8 @@ class PhotoCollageWindow(Gtk.Window):
         else:
             self.lbl_history_index.set_label(" ")
         self.btn_save.set_sensitive(
+            self.history_index < len(self.history))
+        self.btn_reset.set_sensitive(
             self.history_index < len(self.history))
         self.btn_new_layout.set_sensitive(
             self.history_index < len(self.history))
@@ -875,6 +903,7 @@ def main():
     # Enable threading. Without that, threads hang!
     GObject.threads_init()
 
+    global win
     win = PhotoCollageWindow()
     win.connect("delete-event", Gtk.main_quit)
     win.show_all()
