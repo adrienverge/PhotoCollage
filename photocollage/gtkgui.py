@@ -28,6 +28,8 @@ import gi
 
 from photocollage import APP_NAME, artwork, collage, render
 from photocollage.render import PIL_SUPPORTED_EXTS as EXTS
+from photocollage.render import QUALITIES, QUALITY_FAST, QUALITY_BEST,\
+    QUALITY_SKEL
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GObject, GdkPixbuf  # noqa: E402, I100
@@ -168,6 +170,7 @@ class PhotoCollageWindow(Gtk.Window):
                 self.border_c = "black"
                 self.out_w = 800
                 self.out_h = 600
+                self.quality = QUALITY_FAST
 
         self.opts = Options()
 
@@ -344,6 +347,7 @@ class PhotoCollageWindow(Gtk.Window):
             border_width=self.opts.border_w * max(collage.page.w,
                                                   collage.page.h),
             border_color=self.opts.border_c,
+            quality=QUALITY_FAST,  # for preview, use NEAREST
             on_update=gtk_run_in_main_thread(on_update),
             on_complete=gtk_run_in_main_thread(on_complete),
             on_fail=gtk_run_in_main_thread(on_fail))
@@ -392,7 +396,8 @@ class PhotoCollageWindow(Gtk.Window):
         enlargement = float(self.opts.out_w) / collage.page.w
         collage.page.scale(enlargement)
 
-        dialog = Gtk.FileChooserDialog(_("Save image"), button.get_toplevel(),
+        dialog = Gtk.FileChooserDialog(_("Save image"),
+                                       button.get_toplevel(),
                                        Gtk.FileChooserAction.SAVE)
         dialog.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
         dialog.add_button(Gtk.STOCK_OK, Gtk.ResponseType.OK)
@@ -427,6 +432,7 @@ class PhotoCollageWindow(Gtk.Window):
             collage.page, output_file=savefile,
             border_width=self.opts.border_w * max(collage.page.w,
                                                   collage.page.h),
+            quality=self.opts.quality,  # for saving, use user setting
             border_color=self.opts.border_c,
             on_update=gtk_run_in_main_thread(on_update),
             on_complete=gtk_run_in_main_thread(on_complete),
@@ -714,6 +720,29 @@ class SettingsDialog(Gtk.Dialog):
 
         vbox.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
 
+        label = Gtk.Label(xalign=0)
+        label.set_markup("<big><b>%s</b></big>" % _("Image quality"))
+        vbox.pack_start(label, False, False, 0)
+
+        box = Gtk.Box(spacing=6)
+        vbox.pack_start(box, False, False, 0)
+        label = Gtk.Label(_("Resizing method:"), xalign=1)
+        box.pack_start(label, False, False, 0)
+
+        self.qualities = (
+            (QUALITIES[QUALITY_SKEL]['str'], QUALITY_SKEL),
+            (QUALITIES[QUALITY_FAST]['str'], QUALITY_FAST),
+            (QUALITIES[QUALITY_BEST]['str'], QUALITY_BEST),
+        )
+
+        self.cmb_quality = Gtk.ComboBoxText()
+        for q, r in self.qualities:
+            self.cmb_quality.append(q, q)
+        self.cmb_quality.set_active(parent.opts.quality - 1)
+        box.pack_end(self.cmb_quality, False, False, 0)
+
+        vbox.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
+
         self.show_all()
 
     def validate_int(self, entry):
@@ -737,6 +766,11 @@ class SettingsDialog(Gtk.Dialog):
         opts.out_h = int(self.etr_outh.get_text() or '1')
         opts.border_w = float(self.etr_border.get_text() or '0') / 100.0
         opts.border_c = self.colorbutton.get_rgba().to_string()
+        # TODO: test following line; not sure it works that easily.
+        q = self.cmb_quality.get_model()[
+            self.cmb_quality.get_active_iter()][1]
+        if q:
+            opts.quality = dict(self.qualities)[q]
 
 
 class ComputingDialog(Gtk.Dialog):
