@@ -42,6 +42,10 @@ Features:
 Installation
 ------------
 
+* Every distro:
+
+  Follow the install instructions here: https://flathub.org/de/apps/io.github.adrienverge.PhotoCollage
+
 * Fedora 19+:
 
   .. code:: bash
