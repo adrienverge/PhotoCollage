@@ -1,0 +1,105 @@
+# PhotoCollage translation file
+# Copyright (C) 2024 Marcin Schoenknecht <marcin.schoenknecht@gmail.com>
+# This file is distributed under the same license as the PhotoCollage package.
+# Marcin Schoenknecht <marcin.schoenknecht@gmail.com>, 2024.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PhotoCollage 1.4.7\n"
+"Report-Msgid-Bugs-To: https://github.com/adrienverge/PhotoCollage/issues\n"
+"POT-Creation-Date: 2024-07-27 14:06+0200\n"
+"PO-Revision-Date: 2024-07-27 14:06+0200\n"
+"Last-Translator: Marcin Schoenknecht <marcin.schoenknecht@gmail.com>\n"
+"Language-Team: Marcin Schoenknecht for Polish translation <marcin.schoenknecht@gmail.com>\n"
+"Language: pl\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
+"|| n%100>=20) ? 1 : 2)\n"
+
+#: photocollage/gtkgui.py:72 photocollage/gtkgui.py:94
+msgid "All supported image formats"
+msgstr "Wszystkie wspierane formaty graficzne"
+
+#: photocollage/gtkgui.py:104
+#, python-format
+msgid "%s image"
+msgstr "%s obraz"
+
+#: photocollage/gtkgui.py:161
+msgid "PhotoCollage"
+msgstr "PhotoCollage"
+
+#: photocollage/gtkgui.py:189
+msgid "Add images..."
+msgstr "Dodaj zdjęcia..."
+
+#: photocollage/gtkgui.py:196
+msgid "Save poster..."
+msgstr "Zapisz kolaż..."
+
+#: photocollage/gtkgui.py:221
+msgid "Regenerate"
+msgstr "Utwórz ponownie"
+
+#: photocollage/gtkgui.py:279
+#, python-format
+msgid ""
+"This image could not be opened:\n"
+"\"%(imgname)s\"."
+msgstr ""
+"Ten obraz nie może zostać otwarty:\n"
+"\"%(imgname)s\"."
+
+#: photocollage/gtkgui.py:285
+msgid "Choose images"
+msgstr "Wybierz obrazy"
+
+#: photocollage/gtkgui.py:339 photocollage/gtkgui.py:424
+msgid "An error occurred while rendering image:"
+msgstr "Wystąpił błąd podczas renderowanie obrazu:"
+
+#: photocollage/gtkgui.py:398
+msgid "Save image"
+msgstr "Zapisz obraz"
+
+#: photocollage/gtkgui.py:622
+msgid "Settings"
+msgstr "Ustawienia"
+
+#: photocollage/gtkgui.py:634
+msgid "Output image size"
+msgstr "Rozmiar obrazu wyjściowego"
+
+#: photocollage/gtkgui.py:649
+msgid "pixels"
+msgstr "pikseli"
+
+#: photocollage/gtkgui.py:673
+msgid "Apply a template:"
+msgstr "Zastosuj szablon:"
+
+#: photocollage/gtkgui.py:686
+msgid "Border"
+msgstr "Obramowanie"
+
+#: photocollage/gtkgui.py:691
+msgid "Thickness:"
+msgstr "Grubość:"
+
+#: photocollage/gtkgui.py:701
+msgid "Color:"
+msgstr "Kolor:"
+
+#: photocollage/gtkgui.py:740
+msgid "Please wait"
+msgstr "Proszę czekać"
+
+#: photocollage/gtkgui.py:749
+msgid "Performing image computation..."
+msgstr "Wykonywanie obliczeń analizy obrazu..."
+
+#: photocollage/gtkgui.py:764
+msgid "Error"
+msgstr "Błąd"
