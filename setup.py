@@ -100,7 +100,7 @@ distutils.core.setup(
     scripts=["bin/photocollage"],
     data_files=[
         ("share/applications", ["data/photocollage.desktop"]),
-        ("share/appdata", ["data/photocollage.appdata.xml"]),
+        ("share/metainfo", ["data/photocollage.appdata.xml"]),
         ("share/icons/hicolor/scalable/apps",
          ["data/icons/hicolor/scalable/apps/photocollage.svg"]),
         ("share/icons/hicolor/16x16/apps",
