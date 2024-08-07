@@ -283,12 +283,12 @@ class PhotoCollageWindow(Gtk.Window):
 
     def choose_images(self, button):
         dialog = PreviewFileChooserDialog(title=_("Choose images"),
-                                          parent=button.get_toplevel(),
                                           action=Gtk.FileChooserAction.OPEN,
                                           select_multiple=True,
                                           modal=True)
 
-        if dialog.run() == Gtk.ResponseType.OK:
+        result = dialog.run()
+        if result == Gtk.ResponseType.ACCEPT:
             files = dialog.get_filenames()
             dialog.destroy()
             self.update_photolist(files)
@@ -392,13 +392,12 @@ class PhotoCollageWindow(Gtk.Window):
         enlargement = float(self.opts.out_w) / collage.page.w
         collage.page.scale(enlargement)
 
-        dialog = Gtk.FileChooserDialog(_("Save image"), button.get_toplevel(),
-                                       Gtk.FileChooserAction.SAVE)
-        dialog.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
-        dialog.add_button(Gtk.STOCK_OK, Gtk.ResponseType.OK)
+        dialog = Gtk.FileChooserNative(title=_("Save image"),
+                                       action=Gtk.FileChooserAction.SAVE)
+
         dialog.set_do_overwrite_confirmation(True)
         set_save_image_filters(dialog)
-        if dialog.run() != Gtk.ResponseType.OK:
+        if dialog.run() != Gtk.ResponseType.ACCEPT:
             dialog.destroy()
             return
         savefile = dialog.get_filename()
@@ -775,14 +774,14 @@ class ErrorDialog(Gtk.Dialog):
         self.show_all()
 
 
-class PreviewFileChooserDialog(Gtk.FileChooserDialog):
+class PreviewFileChooserDialog(Gtk.FileChooserNative):
     PREVIEW_MAX_SIZE = 256
 
     def __init__(self, **kw):
         super().__init__(**kw)
 
-        self.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
-        self.add_button(Gtk.STOCK_OK, Gtk.ResponseType.OK)
+        # self.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
+        # self.add_button(Gtk.STOCK_OK, Gtk.ResponseType.OK)
 
         set_open_image_filters(self)
 
@@ -814,6 +813,7 @@ class PreviewFileChooserDialog(Gtk.FileChooserDialog):
 
 
 def main():
+    os.environ["GTK_USE_PORTAL"] = '1'
     # Enable threading. Without that, threads hang!
     GObject.threads_init()
 
