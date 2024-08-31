@@ -130,18 +130,25 @@ class UserCollage:
         # Define the output image height / width ratio
         ratio = 1.0 * opts.out_h / opts.out_w
 
-        # Compute a good number of columns. It depends on the ratio, the number
-        # of images and the average ratio of these images. According to my
-        # calculations, the number of column should be inversely proportional
-        # to the square root of the output image ratio, and proportional to the
-        # square root of the average input images ratio.
-        avg_ratio = (sum(1.0 * photo.h / photo.w for photo in self.photolist) /
-                     len(self.photolist))
-        # Virtual number of images: since ~ 1 image over 3 is in a multi-cell
-        # (i.e. takes two columns), it takes the space of 4 images.
-        # So it's equivalent to 1/3 * 4 + 2/3 = 2 times the number of images.
-        virtual_no_imgs = 2 * len(self.photolist)
-        no_cols = int(round(math.sqrt(avg_ratio / ratio * virtual_no_imgs)))
+        if opts.cols == 0:
+            # Compute a good number of columns. It depends on the ratio, the
+            # number of images and the average ratio of these images. According
+            # to my calculations, the number of column should be inversely
+            # proportional to the square root of the output image ratio, and
+            # proportional to the square root of the average input images
+            # ratio.
+            avg_ratio = (sum(1.0 * photo.h / photo.w for photo in
+                         self.photolist) / len(self.photolist))
+            # Virtual number of images: since ~ 1 image over 3 is in a
+            # multi-cell (i.e. takes two columns), it takes the space of 4
+            # images.
+            # So it's equivalent to 1/3 * 4 + 2/3 = 2 times the number of
+            # images.
+            virtual_no_imgs = 2 * len(self.photolist)
+            no_cols = int(round(math.sqrt(avg_ratio / ratio *
+                          virtual_no_imgs)))
+        else:
+            no_cols = opts.cols
 
         self.page = collage.Page(1.0, ratio, no_cols)
         random.shuffle(self.photolist)
@@ -168,6 +175,7 @@ class PhotoCollageWindow(Gtk.Window):
                 self.border_c = "black"
                 self.out_w = 800
                 self.out_h = 600
+                self.cols = 0
 
         self.opts = Options()
 
@@ -382,7 +390,7 @@ class PhotoCollageWindow(Gtk.Window):
             dialog.apply_opts(self.opts)
             dialog.destroy()
             if self.history:
-                self.render_preview()
+                self.regenerate_layout()
         else:
             dialog.destroy()
 
@@ -714,6 +722,22 @@ class SettingsDialog(Gtk.Dialog):
 
         vbox.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
 
+        label = Gtk.Label(xalign=0)
+        label.set_markup("<big><b>%s</b></big>" % _("Layout"))
+        vbox.pack_start(label, False, False, 0)
+
+        box = Gtk.Box(spacing=6)
+        vbox.pack_start(box, False, False, 0)
+        label = Gtk.Label(_("Columns:"), xalign=0)
+        box.pack_start(label, False, False, 0)
+        self.etr_cols = Gtk.Entry(text=str(parent.opts.cols))
+        self.etr_cols.connect("changed", self.validate_int)
+        self.etr_cols.last_valid_text = self.etr_cols.get_text()
+        self.etr_cols.set_width_chars(2)
+        box.pack_start(self.etr_cols, False, False, 0)
+
+        vbox.pack_start(Gtk.SeparatorToolItem(), True, True, 0)
+
         self.show_all()
 
     def validate_int(self, entry):
@@ -737,6 +761,7 @@ class SettingsDialog(Gtk.Dialog):
         opts.out_h = int(self.etr_outh.get_text() or '1')
         opts.border_w = float(self.etr_border.get_text() or '0') / 100.0
         opts.border_c = self.colorbutton.get_rgba().to_string()
+        opts.cols = int(self.etr_cols.get_text() or '0')
 
 
 class ComputingDialog(Gtk.Dialog):
