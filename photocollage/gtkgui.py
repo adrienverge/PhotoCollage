@@ -17,6 +17,7 @@
 import copy
 import gettext
 from io import BytesIO
+import json
 import math
 import os.path
 import random
@@ -39,6 +40,71 @@ _n = gettext.ngettext
 # xgettext --keyword=_n:1,2 -o po/photocollage.pot $(find . -name '*.py')
 # cp po/photocollage.pot po/fr.po
 # msgfmt -o po/fr.mo po/fr.po
+
+
+def settings_folder_check():
+    app_folder = os.path.expanduser("~") + "/.local/share/PhotoCollage"
+    if not os.path.lexists(app_folder):
+        os.makedirs(app_folder)
+    return app_folder
+
+
+def settings_load_lastsettings():
+    app_folder = settings_folder_check()
+    settings_file = app_folder + "/lastsettings.json"
+    if os.path.isfile(settings_file):
+        with open(settings_file, "r") as openfile:
+            json_object = json.load(openfile)
+    else:
+        dictionary = {
+                    "border_w": 0.01,
+                    "border_c": "black",
+                    "out_w": 800,
+                    "out_h": 600
+                    }
+        with open(settings_file, "w") as openfile:
+            json.dump(dictionary, openfile)
+        with open(settings_file, "r") as openfile:
+            json_object = json.load(openfile)
+    return json_object
+
+
+def settings_store_lastsettings(settings):
+    app_folder = settings_folder_check()
+    settings_file = app_folder + "/lastsettings.json"
+    dictionary = {
+                "border_w": settings.border_w,
+                "border_c": settings.border_c,
+                "out_w": settings.out_w,
+                "out_h": settings.out_h
+                }
+    with open(settings_file, "w") as openfile:
+        json.dump(dictionary, openfile, indent=4)
+
+
+def templates_load_presets():
+    app_folder = settings_folder_check()
+    templates_file = app_folder + "/templates.json"
+    if os.path.isfile(templates_file):
+        with open(templates_file, "r") as openfile:
+            json_object = json.load(openfile)
+    else:
+        dictionary = {
+                        "": None,
+                        "800 × 600":  (800, 600),
+                        "1600 × 1200": (1600, 1200),
+                        "A4 landscape (300ppi)": (3508, 2480),
+                        "A4 portrait (300ppi)": (2480, 3508),
+                        "A3 landscape (300ppi)": (4960, 3508),
+                        "A3 portrait (300ppi)": (3508, 4960),
+                        "US-Letter landscape (300ppi)": (3300, 2550),
+                        "US-Letter portrait (300ppi)": (2550, 3300)
+                      }
+        with open(templates_file, "w") as openfile:
+            json.dump(dictionary, openfile, indent=4)
+        with open(templates_file, "r") as openfile:
+            json_object = json.load(openfile)
+    return json_object
 
 
 def pil_image_to_cairo_surface(src):
@@ -164,10 +230,11 @@ class PhotoCollageWindow(Gtk.Window):
 
         class Options:
             def __init__(self):
-                self.border_w = 0.01
-                self.border_c = "black"
-                self.out_w = 800
-                self.out_h = 600
+                json_object = settings_load_lastsettings()
+                self.border_w = json_object['border_w']
+                self.border_c = json_object['border_c']
+                self.out_w = json_object['out_w']
+                self.out_h = json_object['out_h']
 
         self.opts = Options()
 
@@ -199,6 +266,13 @@ class PhotoCollageWindow(Gtk.Window):
         self.btn_save.set_always_show_image(True)
         self.btn_save.connect("clicked", self.save_poster)
         box.pack_start(self.btn_save, False, False, 0)
+
+        self.btn_reset = Gtk.Button(label=_("Reset"))
+        self.btn_reset.set_image(Gtk.Image.new_from_stock(
+            Gtk.STOCK_REMOVE, Gtk.IconSize.LARGE_TOOLBAR))
+        self.btn_reset.set_always_show_image(True)
+        self.btn_reset.connect("clicked", self.reset)
+        box.pack_start(self.btn_reset, False, False, 0)
 
         # -----------------------
         #  Tools pan
@@ -254,6 +328,7 @@ class PhotoCollageWindow(Gtk.Window):
         box.pack_start(self.img_preview, True, True, 0)
 
         self.btn_save.set_sensitive(False)
+        self.btn_reset.set_sensitive(False)
 
         self.btn_undo.set_sensitive(False)
         self.btn_redo.set_sensitive(False)
@@ -330,6 +405,7 @@ class PhotoCollageWindow(Gtk.Window):
             self.img_preview.set_collage(img, collage)
             compdialog.destroy()
             self.btn_save.set_sensitive(True)
+            self.btn_reset.set_sensitive(True)
 
         def on_fail(exception):
             dialog = ErrorDialog(self, "{}:\n\n{}".format(
@@ -338,6 +414,7 @@ class PhotoCollageWindow(Gtk.Window):
             dialog.run()
             dialog.destroy()
             self.btn_save.set_sensitive(False)
+            self.btn_reset.set_sensitive(False)
 
         t = render.RenderingTask(
             collage.page,
@@ -353,6 +430,22 @@ class PhotoCollageWindow(Gtk.Window):
         if response == Gtk.ResponseType.CANCEL:
             t.abort()
             compdialog.destroy()
+
+    def reset(self, button):
+        dialog = Gtk.MessageDialog(
+            win, Gtk.DialogFlags.DESTROY_WITH_PARENT,
+            Gtk.MessageType.QUESTION, Gtk.ButtonsType.YES_NO,
+            _("Reset"))
+        dialog.format_secondary_text(_("Do you really want to reset ?"))
+        response = dialog.run()
+        dialog.destroy()
+        if response == Gtk.ResponseType.YES:
+            win.img_preview.collage.photolist = None
+            win.img_preview.image = None
+            win.img_preview.mode = win.img_preview.INSENSITIVE
+            win.img_preview.parent.history_index = \
+                len(win.img_preview.parent.history)
+            win.img_preview.parent.update_tool_buttons()
 
     def render_from_new_collage(self, collage):
         self.history.append(collage)
@@ -446,6 +539,8 @@ class PhotoCollageWindow(Gtk.Window):
         else:
             self.lbl_history_index.set_label(" ")
         self.btn_save.set_sensitive(
+            self.history_index < len(self.history))
+        self.btn_reset.set_sensitive(
             self.history_index < len(self.history))
         self.btn_new_layout.set_sensitive(
             self.history_index < len(self.history))
@@ -652,18 +747,8 @@ class SettingsDialog(Gtk.Dialog):
         box.pack_start(self.etr_outh, False, False, 0)
 
         box.pack_end(Gtk.Label(_("pixels"), xalign=0), False, False, 0)
-
-        templates = (
-            ("", None),
-            ("800 × 600", (800, 600)),
-            ("1600 × 1200", (1600, 1200)),
-            ("A4 landscape (300ppi)", (3508, 2480)),
-            ("A4 portrait (300ppi)", (2480, 3508)),
-            ("A3 landscape (300ppi)", (4960, 3508)),
-            ("A3 portrait (300ppi)", (3508, 4960)),
-            ("US-Letter landscape (300ppi)", (3300, 2550)),
-            ("US-Letter portrait (300ppi)", (2550, 3300)),
-        )
+        json_object = templates_load_presets()
+        templates = json_object.items()
 
         def apply_template(combo):
             t = combo.get_model()[combo.get_active_iter()][1]
@@ -737,6 +822,7 @@ class SettingsDialog(Gtk.Dialog):
         opts.out_h = int(self.etr_outh.get_text() or '1')
         opts.border_w = float(self.etr_border.get_text() or '0') / 100.0
         opts.border_c = self.colorbutton.get_rgba().to_string()
+        settings_store_lastsettings(opts)
 
 
 class ComputingDialog(Gtk.Dialog):
@@ -817,6 +903,7 @@ def main():
     # Enable threading. Without that, threads hang!
     GObject.threads_init()
 
+    global win
     win = PhotoCollageWindow()
     win.connect("delete-event", Gtk.main_quit)
     win.show_all()

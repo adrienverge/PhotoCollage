@@ -8,44 +8,48 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PhotoCollage 1.4.2\n"
-"Report-Msgid-Bugs-To: https://github.com/adrienverge/PhotoCollage/issues\n"
-"POT-Creation-Date: 2016-04-11 22:51+0200\n"
-"PO-Revision-Date: 2016-04-11 23:13+0200\n"
-"Last-Translator: Vincent Bermel <willovince@openmailbox.org>\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-06-12 01:17+0200\n"
+"PO-Revision-Date: 2024-06-12 01:19+0200\n"
+"Last-Translator: Christian Lauinger <christian@lauinger-clan.de>\n"
 "Language-Team: none <none@none.com>\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Gtranslator 2.91.7\n"
+"X-Generator: Poedit 3.4.4\n"
 
-#: photocollage/gtkgui.py:72 photocollage/gtkgui.py:94
+#: photocollage/gtkgui.py:138 photocollage/gtkgui.py:160
 msgid "All supported image formats"
 msgstr "Alle unterstützten Bildformate"
 
-#: photocollage/gtkgui.py:104
+#: photocollage/gtkgui.py:170
 #, python-format
 msgid "%s image"
 msgstr "Bild %s"
 
-#: photocollage/gtkgui.py:161
+#: photocollage/gtkgui.py:227
 msgid "PhotoCollage"
 msgstr "PhotoCollage"
 
-#: photocollage/gtkgui.py:189
+#: photocollage/gtkgui.py:256
 msgid "Add images..."
-msgstr "Bilder hinzufügen"
+msgstr "Bilder hinzufügen..."
 
-#: photocollage/gtkgui.py:196
+#: photocollage/gtkgui.py:263
 msgid "Save poster..."
-msgstr "Poster abspeichern"
+msgstr "Poster abspeichern..."
 
-#: photocollage/gtkgui.py:221
+#: photocollage/gtkgui.py:270 photocollage/gtkgui.py:438
+msgid "Reset"
+msgstr "Zurücksetzen"
+
+#: photocollage/gtkgui.py:295
 msgid "Regenerate"
 msgstr "Neue Anordnung"
 
-#: photocollage/gtkgui.py:279
+#: photocollage/gtkgui.py:354
 #, python-format
 msgid ""
 "This image could not be opened:\n"
@@ -54,54 +58,58 @@ msgstr ""
 "Dieses Bild kann nicht geöffnet werden:\n"
 "\"%(imgname)s\"."
 
-#: photocollage/gtkgui.py:285
+#: photocollage/gtkgui.py:360
 msgid "Choose images"
 msgstr "Bilder auswählen"
 
-#: photocollage/gtkgui.py:339 photocollage/gtkgui.py:424
+#: photocollage/gtkgui.py:412 photocollage/gtkgui.py:514
 msgid "An error occurred while rendering image:"
 msgstr "Beim Berechnen des Posters ist ein Fehler aufgetreten:"
 
-#: photocollage/gtkgui.py:398
+#: photocollage/gtkgui.py:439
+msgid "Do you really want to reset ?"
+msgstr "Wollen Sie wirklich zurücksetzen ?"
+
+#: photocollage/gtkgui.py:488
 msgid "Save image"
 msgstr "Poster speichern"
 
-#: photocollage/gtkgui.py:622
+#: photocollage/gtkgui.py:722
 msgid "Settings"
 msgstr "Einstellungen"
 
-#: photocollage/gtkgui.py:634
+#: photocollage/gtkgui.py:734
 msgid "Output image size"
 msgstr "Ausgabebildgröße"
 
-#: photocollage/gtkgui.py:649
+#: photocollage/gtkgui.py:749
 msgid "pixels"
 msgstr "Pixel"
 
-#: photocollage/gtkgui.py:673
+#: photocollage/gtkgui.py:763
 msgid "Apply a template:"
 msgstr "Formatvorlage:"
 
-#: photocollage/gtkgui.py:686
+#: photocollage/gtkgui.py:776
 msgid "Border"
 msgstr "Rahmen"
 
-#: photocollage/gtkgui.py:691
+#: photocollage/gtkgui.py:781
 msgid "Thickness:"
 msgstr "Breite:"
 
-#: photocollage/gtkgui.py:701
+#: photocollage/gtkgui.py:792
 msgid "Color:"
 msgstr "Farbe:"
 
-#: photocollage/gtkgui.py:740
+#: photocollage/gtkgui.py:832
 msgid "Please wait"
 msgstr "Bitte warten"
 
-#: photocollage/gtkgui.py:749
+#: photocollage/gtkgui.py:841
 msgid "Performing image computation..."
 msgstr "Poster wird berechnet..."
 
-#: photocollage/gtkgui.py:764
+#: photocollage/gtkgui.py:856
 msgid "Error"
 msgstr "Fehler"
