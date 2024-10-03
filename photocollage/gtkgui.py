@@ -21,6 +21,7 @@ import math
 import os.path
 import random
 import sys
+import traceback
 import urllib.parse
 
 import cairo
@@ -813,6 +814,29 @@ class PreviewFileChooserDialog(Gtk.FileChooserDialog):
         self.set_preview_widget_active(True)
 
 
+def set_exception_handler(parent):
+    def custom_exception_handler(exc_type, exc_value, exc_traceback):
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)  # enable default printing
+
+        if issubclass(exc_type, KeyboardInterrupt):
+            return
+
+        try:
+            text = (
+                "An unhandled exception occurred:\n"
+                "{}\n"
+                "Refer to console for complete traceback.".format(exc_value)
+            )
+            error_dialog = ErrorDialog(parent, text)
+            error_dialog.run()
+            error_dialog.destroy()
+        except Exception as e:
+            print("Error launching error dialog... :-(")
+            traceback.print_exc()
+
+    sys.excepthook = custom_exception_handler
+
+
 def main():
     # Enable threading. Without that, threads hang!
     GObject.threads_init()
@@ -820,6 +844,7 @@ def main():
     win = PhotoCollageWindow()
     win.connect("delete-event", Gtk.main_quit)
     win.show_all()
+    set_exception_handler(win)
 
     # If arguments are given, treat them as input images
     if len(sys.argv) > 1:
