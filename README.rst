@@ -54,6 +54,8 @@ Installation
 
    sudo apt-get install photocollage
 
+* Arch linux AUR package: `photocollage <https://aur.archlinux.org/packages/photocollage>`_
+
 * Using pip, the Python package manager:
 
   .. code:: bash
