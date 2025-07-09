@@ -1,0 +1,68 @@
+[project]
+name = "photocollage"
+description = "Graphical tool to make photo collage posters"
+readme = {file = "README.rst", content-type = "text/x-rst"}
+requires-python = ">=3.9"
+license = {text = "GPL-2.0-or-later"}
+authors = [{name = "Adrien Vergé"}]
+keywords = ["photocollage", "photo", "collage", "poster", "mosaic", "image"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: X11 Applications :: GTK",
+    "Intended Audience :: End Users/Desktop",
+    "Programming Language :: Python",
+    "Topic :: Multimedia :: Graphics",
+]
+dependencies = [
+    "Pillow",
+    "pycairo",
+    # Also requires PyGI (the Python GObject Introspection bindings), which
+    # is not packaged on pypi.
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+dev = [
+    "flake8",
+    "flake8-import-order",
+]
+
+[project.scripts]
+photocollage = "photocollage.gtkgui:main"
+
+[project.urls]
+homepage = "https://github.com/adrienverge/PhotoCollage"
+repository = "https://github.com/adrienverge/PhotoCollage"
+
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools >= 61"]
+
+[tool.setuptools]
+packages = ["photocollage"]
+
+#[tool.setuptools.package-data]
+[tool.setuptools.data-files]
+"share/applications" = ["data/photocollage.desktop"]
+"share/appdata" = ["data/photocollage.appdata.xml"]
+"share/icons/hicolor/scalable/apps" = [
+  "data/icons/hicolor/scalable/apps/photocollage.svg"]
+"share/icons/hicolor/16x16/apps" = [
+  "data/icons/hicolor/16x16/apps/photocollage.png"]
+"share/icons/hicolor/22x22/apps" = [
+  "data/icons/hicolor/22x22/apps/photocollage.png"]
+"share/icons/hicolor/24x24/apps" = [
+  "data/icons/hicolor/24x24/apps/photocollage.png"]
+"share/icons/hicolor/32x32/apps" = [
+  "data/icons/hicolor/32x32/apps/photocollage.png"]
+"share/icons/hicolor/48x48/apps" = [
+  "data/icons/hicolor/48x48/apps/photocollage.png"]
+"share/icons/hicolor/64x64/apps" = [
+  "data/icons/hicolor/64x64/apps/photocollage.png"]
+"share/icons/hicolor/128x128/apps" = [
+  "data/icons/hicolor/128x128/apps/photocollage.png"]
+"share/icons/hicolor/256x256/apps" = [
+  "data/icons/hicolor/256x256/apps/photocollage.png"]
+
+[tool.setuptools.dynamic]
+version = {attr = "photocollage.__version__"}

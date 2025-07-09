@@ -33,12 +33,21 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GObject, GdkPixbuf  # noqa: E402, I100
 
 
-gettext.textdomain(APP_NAME)
-_ = gettext.gettext
-_n = gettext.ngettext
-# xgettext --keyword=_n:1,2 -o po/photocollage.pot $(find . -name '*.py')
-# cp po/photocollage.pot po/fr.po
-# msgfmt -o po/fr.mo po/fr.po
+gettext.install(APP_NAME, localedir=os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), 'locale'))
+
+# To extract strings:
+#   xgettext --keyword=_n:1,2 \
+#     -o photocollage/locale/photocollage.pot \
+#     $(find . -name '*.py')
+#   msgmerge -N -U \
+#     photocollage/locale/fr/LC_MESSAGES/photocollage.po \
+#     photocollage/locale/photocollage.pot
+
+# To do before building the package with 'python -m build':
+#   for file in photocollage/locale/*/LC_MESSAGES/photocollage.po; do
+#     msgfmt -o "${file%.po}.mo" "$file"
+#   done
 
 
 def pil_image_to_cairo_surface(src):
