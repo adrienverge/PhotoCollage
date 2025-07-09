@@ -78,14 +78,7 @@ Hacking
 
   .. code:: bash
 
-   PYTHONPATH=. bin/photocollage
-
-  or:
-
-  .. code:: bash
-
-   python3 -c 'from photocollage import gtkgui; gtkgui.main()'
-
+   python -c 'from photocollage import gtkgui; gtkgui.main()'
 
 * If you need to build a package from source and install it:
 
@@ -97,12 +90,12 @@ Hacking
    sudo pacman -S python-pillow python-gobject
 
    # Install PhotoCollage
-   python3 setup.py sdist
-   pip3 install --user --upgrade dist/photocollage-*.tar.gz
+   python -m build
+   pip install --user --upgrade dist/photocollage-*.tar.gz
 
 * If you wish to contribute, please lint your code and pass tests:
 
   .. code:: bash
 
    flake8 .
-   python3 -m unittest tests/test_*.py
+   python -m unittest tests/test_*.py

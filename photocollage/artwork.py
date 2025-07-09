@@ -18,7 +18,9 @@ import base64
 from io import BytesIO
 
 import cairo
-from gi.repository import GdkPixbuf
+import gi
+gi.require_version('GdkPixbuf', '2.0')
+from gi.repository import GdkPixbuf  # noqa: E402, I100
 
 
 # Generated with:
